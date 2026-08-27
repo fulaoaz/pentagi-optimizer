@@ -29,6 +29,7 @@ const (
 	PerplexityToolName         = "perplexity"
 	SearxngToolName            = "searxng"
 	SploitusToolName           = "sploitus"
+	EppssToolName              = "eppss"
 	WebSearchToolName          = "web_search"
 	SearchToolName             = "search"
 	SearchResultToolName       = "search_result"
@@ -116,6 +117,7 @@ var toolsTypeMapping = map[string]ToolType{
 	PerplexityToolName:         SearchNetworkToolType,
 	SearxngToolName:            SearchNetworkToolType,
 	SploitusToolName:           SearchNetworkToolType,
+	EppssToolName:              SearchNetworkToolType,
 	WebSearchToolName:          SearchNetworkToolType,
 	SearchToolName:             AgentToolType,
 	SearchResultToolName:       StoreAgentResultToolType,
@@ -162,6 +164,7 @@ var allowedStoringInMemoryTools = []string{
 	PerplexityToolName,
 	SearxngToolName,
 	SploitusToolName,
+	EppssToolName,
 	WebSearchToolName,
 	MaintenanceToolName,
 	CoderToolName,
@@ -271,6 +274,12 @@ var registryDefinitions = map[string]llms.FunctionDefinition{
 			"for specific software, services, CVEs, or vulnerability classes (e.g. 'ssh', 'apache log4j', " +
 			"'CVE-2021-44228'). Returns exploit URLs, CVSS scores, CVE references, and publication dates.",
 		Parameters: reflector.Reflect(&SploitusAction{}),
+	},
+
+	EppssToolName: {
+		Name:        EppssToolName,
+		Description: "Look up EPSS scores from FIRST.org for CVEs. EPSS estimates exploit probability (0.0-1.0). Provide CVE IDs separated by comma or space.",
+		Parameters:  reflector.Reflect(&EppssAction{}),
 	},
 	WebSearchToolName: {
 		Name: WebSearchToolName,
