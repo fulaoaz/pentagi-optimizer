@@ -1423,6 +1423,18 @@ func (fte *flowToolsExecutor) GetPentesterExecutor(cfg PentesterExecutorConfig) 
 		ce.handlers[WebSearchToolName] = webSearch.Handle
 	}
 
+	eppss := NewEPPSTool(
+		fte.cfg,
+		fte.flowID,
+		cfg.TaskID,
+		cfg.SubtaskID,
+		fte.slp,
+	)
+	if eppss.IsAvailable() {
+		ce.definitions = append(ce.definitions, registryDefinitions[EppssToolName])
+		ce.handlers[EppssToolName] = eppss.Handle
+	}
+
 	return ce, nil
 }
 
@@ -1477,6 +1489,18 @@ func (fte *flowToolsExecutor) GetSearcherExecutor(cfg SearcherExecutorConfig) (C
 	if webSearch.IsAvailable() {
 		ce.definitions = append(ce.definitions, registryDefinitions[WebSearchToolName])
 		ce.handlers[WebSearchToolName] = webSearch.Handle
+	}
+
+	eppss := NewEPPSTool(
+		fte.cfg,
+		fte.flowID,
+		cfg.TaskID,
+		cfg.SubtaskID,
+		fte.slp,
+	)
+	if eppss.IsAvailable() {
+		ce.definitions = append(ce.definitions, registryDefinitions[EppssToolName])
+		ce.handlers[EppssToolName] = eppss.Handle
 	}
 
 	search := NewSearchTool(

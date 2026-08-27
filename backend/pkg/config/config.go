@@ -174,6 +174,7 @@ type Config struct {
 	// Sploitus exploit aggregator (https://sploitus.com)
 	// service under cloudflare protection, IP should have good reputation to avoid being blocked
 	SploitusEnabled bool `env:"SPLOITUS_ENABLED" envDefault:"false"`
+	EppssEnabled    bool `env:"EPPSS_ENABLED" envDefault:"true"`
 
 	// === Search Engine: Google Custom Search ===
 	GoogleAPIKey string `env:"GOOGLE_API_KEY"`

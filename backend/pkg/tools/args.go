@@ -138,6 +138,11 @@ type SearchResult struct {
 	Message string `json:"message" jsonschema:"required,title=Search result message" jsonschema_description:"Engagement-log entry — a 1-2 short sentence running commentary with a short summary of the result. Written in the engagement language declared by your system prompt."`
 }
 
+type EppssAction struct {
+	CVEs    string `json:"cves" jsonschema:"required" jsonschema_description:"CVE identifiers to look up, one or more separated by comma or space (e.g. CVE-2021-44228, CVE-2022-22965)"`
+	Message string `json:"message" jsonschema:"required,title=Search query message" jsonschema_description:"Engagement-log entry explaining why this CVE is being checked"`
+}
+
 type SploitusAction struct {
 	Query       string `json:"query" jsonschema:"required" jsonschema_description:"Technical-channel payload — search query for Sploitus (e.g. 'ssh', 'apache 2.4', 'CVE-2021-44228'). ALWAYS written in English; the Sploitus index is English-only. Short and precise queries return the best results."`
 	ExploitType String `json:"exploit_type,omitempty" jsonschema:"type=string,enum=exploits,enum=tools" jsonschema_description:"What to search for: 'exploits' (default) for exploit code and PoCs, 'tools' for offensive security tools"`
