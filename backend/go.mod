@@ -79,6 +79,11 @@ require (
 )
 
 require (
+	github.com/spf13/cast v1.7.1 // indirect
+	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
+)
+
+require (
 	cloud.google.com/go v0.121.0 // indirect
 	cloud.google.com/go/aiplatform v1.85.0 // indirect
 	cloud.google.com/go/auth v0.16.2 // indirect
@@ -167,6 +172,7 @@ require (
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20250317134145-8bc96cf8fc35 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
+	github.com/mark3labs/mcp-go v0.44.0
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-localereader v0.0.1 // indirect

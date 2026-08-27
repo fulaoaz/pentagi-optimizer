@@ -20,6 +20,7 @@ import (
 	"pentagi/pkg/database/knowledge"
 	"pentagi/pkg/docker"
 	"pentagi/pkg/graph/subscriptions"
+	"pentagi/pkg/mcpbridge"
 	"pentagi/pkg/providers"
 	"pentagi/pkg/server/auth"
 	"pentagi/pkg/server/logger"
@@ -281,6 +282,14 @@ func NewRouter(
 			authGroup.GET("/login-callback", authService.AuthLoginGetCallback)
 			authGroup.POST("/login-callback", authService.AuthLoginPostCallback)
 			authGroup.POST("/logout-callback", authService.AuthLogoutCallback)
+		}
+
+		if cfg.MCPEnabled {
+			mcpBridge := mcpbridge.NewFlowBridge(cfg.MCPServerName, cfg.MCPServerVersion, controller, db)
+			mcpHandler := mcpBridge.GetHandler(cfg.PublicURL + "/api/v1/mcp")
+			publicGroup.Any("/mcp", gin.WrapH(mcpHandler))
+			publicGroup.Any("/mcp/sse", gin.WrapH(mcpHandler))
+			publicGroup.Any("/mcp/message", gin.WrapH(mcpHandler))
 		}
 	}
 

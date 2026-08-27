@@ -72,6 +72,11 @@ type Config struct {
 	// === Authentication & Session Security ===
 	CookieSigningSalt string `env:"COOKIE_SIGNING_SALT"`
 
+	// === MCP Protocol Bridge ===
+	MCPEnabled       bool   `env:"MCP_ENABLED" envDefault:"true"`
+	MCPServerName    string `env:"MCP_SERVER_NAME" envDefault:"PentAGI"`
+	MCPServerVersion string `env:"MCP_SERVER_VERSION" envDefault:"1.0.0"`
+
 	// === Web Scraper Service Endpoints ===
 	ScraperPublicURL  string `env:"SCRAPER_PUBLIC_URL"`
 	ScraperPrivateURL string `env:"SCRAPER_PRIVATE_URL"`
