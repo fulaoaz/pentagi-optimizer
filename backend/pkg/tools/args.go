@@ -143,6 +143,11 @@ type EppssAction struct {
 	Message string `json:"message" jsonschema:"required,title=Search query message" jsonschema_description:"Engagement-log entry explaining why this CVE is being checked"`
 }
 
+type CvssAction struct {
+	Vectors String `json:"vectors" jsonschema:"required,type=string" jsonschema_description:"CVSS base vector string(s) to score, separated by comma, semicolon or newline. Must include the version prefix, e.g. 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H' or 'CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N'. Scoring is local, so no CVE lookup happens — build the vector from the properties of the finding you observed."`
+	Message string `json:"message" jsonschema:"required,title=CVSS scoring message" jsonschema_description:"Engagement-log entry — a 1-2 short sentence running commentary explaining which finding you are scoring and why. Written in the engagement language declared by your system prompt."`
+}
+
 type SploitusAction struct {
 	Query       string `json:"query" jsonschema:"required" jsonschema_description:"Technical-channel payload — search query for Sploitus (e.g. 'ssh', 'apache 2.4', 'CVE-2021-44228'). ALWAYS written in English; the Sploitus index is English-only. Short and precise queries return the best results."`
 	ExploitType String `json:"exploit_type,omitempty" jsonschema:"type=string,enum=exploits,enum=tools" jsonschema_description:"What to search for: 'exploits' (default) for exploit code and PoCs, 'tools' for offensive security tools"`

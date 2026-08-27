@@ -30,6 +30,7 @@ const (
 	SearxngToolName            = "searxng"
 	SploitusToolName           = "sploitus"
 	EppssToolName              = "eppss"
+	CvssToolName               = "cvss"
 	WebSearchToolName          = "web_search"
 	SearchToolName             = "search"
 	SearchResultToolName       = "search_result"
@@ -118,6 +119,7 @@ var toolsTypeMapping = map[string]ToolType{
 	SearxngToolName:            SearchNetworkToolType,
 	SploitusToolName:           SearchNetworkToolType,
 	EppssToolName:              SearchNetworkToolType,
+	CvssToolName:               SearchNetworkToolType,
 	WebSearchToolName:          SearchNetworkToolType,
 	SearchToolName:             AgentToolType,
 	SearchResultToolName:       StoreAgentResultToolType,
@@ -165,6 +167,7 @@ var allowedStoringInMemoryTools = []string{
 	SearxngToolName,
 	SploitusToolName,
 	EppssToolName,
+	CvssToolName,
 	WebSearchToolName,
 	MaintenanceToolName,
 	CoderToolName,
@@ -280,6 +283,16 @@ var registryDefinitions = map[string]llms.FunctionDefinition{
 		Name:        EppssToolName,
 		Description: "Look up EPSS scores from FIRST.org for CVEs. EPSS estimates exploit probability (0.0-1.0). Provide CVE IDs separated by comma or space.",
 		Parameters:  reflector.Reflect(&EppssAction{}),
+	},
+	CvssToolName: {
+		Name: CvssToolName,
+		Description: "Calculate CVSS base scores and severity ratings from vector strings. " +
+			"Supports CVSS v3.0/v3.1 (exact, per specification) and v4.0 (approximate). " +
+			"Use this to rate the intrinsic severity of a finding you have confirmed, so findings " +
+			"can be ordered in a report. Scoring is a local calculation - no network lookup, no CVE " +
+			"required, so it works for previously unknown issues. For an existing CVE's real-world " +
+			"exploitation likelihood use the 'eppss' tool instead; the two are complementary.",
+		Parameters: reflector.Reflect(&CvssAction{}),
 	},
 	WebSearchToolName: {
 		Name: WebSearchToolName,

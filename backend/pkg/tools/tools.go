@@ -1435,6 +1435,18 @@ func (fte *flowToolsExecutor) GetPentesterExecutor(cfg PentesterExecutorConfig) 
 		ce.handlers[EppssToolName] = eppss.Handle
 	}
 
+	cvssTool := NewCVSSTool(
+		fte.cfg,
+		fte.flowID,
+		cfg.TaskID,
+		cfg.SubtaskID,
+		fte.slp,
+	)
+	if cvssTool.IsAvailable() {
+		ce.definitions = append(ce.definitions, registryDefinitions[CvssToolName])
+		ce.handlers[CvssToolName] = cvssTool.Handle
+	}
+
 	return ce, nil
 }
 
@@ -1501,6 +1513,18 @@ func (fte *flowToolsExecutor) GetSearcherExecutor(cfg SearcherExecutorConfig) (C
 	if eppss.IsAvailable() {
 		ce.definitions = append(ce.definitions, registryDefinitions[EppssToolName])
 		ce.handlers[EppssToolName] = eppss.Handle
+	}
+
+	cvssTool := NewCVSSTool(
+		fte.cfg,
+		fte.flowID,
+		cfg.TaskID,
+		cfg.SubtaskID,
+		fte.slp,
+	)
+	if cvssTool.IsAvailable() {
+		ce.definitions = append(ce.definitions, registryDefinitions[CvssToolName])
+		ce.handlers[CvssToolName] = cvssTool.Handle
 	}
 
 	search := NewSearchTool(

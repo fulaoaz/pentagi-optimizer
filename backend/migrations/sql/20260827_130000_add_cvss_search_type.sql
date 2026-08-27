@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
--- Add eppss to the searchengine_type enum
+-- Add cvss to the searchengine_type enum
 CREATE TYPE SEARCHENGINE_TYPE_NEW AS ENUM (
   'google',
   'tavily',
@@ -11,7 +11,8 @@ CREATE TYPE SEARCHENGINE_TYPE_NEW AS ENUM (
   'perplexity',
   'searxng',
   'sploitus',
-  'eppss'
+  'eppss',
+  'cvss'
 );
 
 -- Update the searchlogs table to use the new enum type
@@ -29,7 +30,7 @@ ALTER TABLE searchlogs
 
 -- +goose Down
 -- +goose StatementBegin
--- Revert the changes by removing eppss from the enum
+-- Revert the changes by removing cvss from the enum
 CREATE TYPE SEARCHENGINE_TYPE_NEW AS ENUM (
   'google',
   'tavily',
@@ -39,14 +40,15 @@ CREATE TYPE SEARCHENGINE_TYPE_NEW AS ENUM (
   'duckduckgo',
   'perplexity',
   'searxng',
-  'sploitus'
+  'sploitus',
+  'eppss'
 );
 
 -- Remap any rows logged with the removed value so the narrowing cast below
--- cannot fail; 'eppss' looks up vulnerability data like 'sploitus'.
+-- cannot fail; 'cvss' scores vulnerabilities like 'eppss'.
 UPDATE searchlogs
-    SET engine = 'sploitus'
-    WHERE engine = 'eppss';
+    SET engine = 'eppss'
+    WHERE engine = 'cvss';
 
 -- Update the searchlogs table to use the reverted enum type
 ALTER TABLE searchlogs
