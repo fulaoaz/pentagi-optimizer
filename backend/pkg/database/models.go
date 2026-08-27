@@ -484,6 +484,7 @@ const (
 	SearchengineTypeSploitus   SearchengineType = "sploitus"
 	SearchengineTypeEppss      SearchengineType = "eppss"
 	SearchengineTypeCvss       SearchengineType = "cvss"
+	SearchengineTypeCve        SearchengineType = "cve"
 )
 
 func (e *SearchengineType) Scan(src interface{}) error {

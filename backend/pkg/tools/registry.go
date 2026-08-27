@@ -31,6 +31,7 @@ const (
 	SploitusToolName           = "sploitus"
 	EppssToolName              = "eppss"
 	CvssToolName               = "cvss"
+CveToolName                = "cve"
 	WebSearchToolName          = "web_search"
 	SearchToolName             = "search"
 	SearchResultToolName       = "search_result"
@@ -120,6 +121,7 @@ var toolsTypeMapping = map[string]ToolType{
 	SploitusToolName:           SearchNetworkToolType,
 	EppssToolName:              SearchNetworkToolType,
 	CvssToolName:               SearchNetworkToolType,
+CveToolName:                SearchNetworkToolType,
 	WebSearchToolName:          SearchNetworkToolType,
 	SearchToolName:             AgentToolType,
 	SearchResultToolName:       StoreAgentResultToolType,
@@ -168,6 +170,7 @@ var allowedStoringInMemoryTools = []string{
 	SploitusToolName,
 	EppssToolName,
 	CvssToolName,
+	CveToolName,
 	WebSearchToolName,
 	MaintenanceToolName,
 	CoderToolName,
@@ -284,7 +287,14 @@ var registryDefinitions = map[string]llms.FunctionDefinition{
 		Description: "Look up EPSS scores from FIRST.org for CVEs. EPSS estimates exploit probability (0.0-1.0). Provide CVE IDs separated by comma or space.",
 		Parameters:  reflector.Reflect(&EppssAction{}),
 	},
-	CvssToolName: {
+	CveToolName: {
+		Name: CveToolName,
+		Description: "Look up authoritative CVE details from the NVD database. Returns descriptions, CVSS scores, CWE classification, references and publication dates for known vulnerabilities. "+
+			"Use this when you identified a CVE identifier and need its full details for a report; combine with 'eppss' for exploitation likelihood or 'cvss' to score a previously unknown finding.",
+		Parameters: reflector.Reflect(&CveAction{}),
+	},
+
+CvssToolName: {
 		Name: CvssToolName,
 		Description: "Calculate CVSS base scores and severity ratings from vector strings. " +
 			"Supports CVSS v3.0/v3.1 (exact, per specification) and v4.0 (approximate). " +
