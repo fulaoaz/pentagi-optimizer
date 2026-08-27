@@ -149,8 +149,16 @@ type CvssAction struct {
 }
 
 type CveAction struct {
-	CVEs String `json:"cves" jsonschema:"required,type=string" jsonschema_description:"CVE identifiers to look up in the NVD database, one or more separated by comma or space (e.g. CVE-2021-44228). Returns descriptions, CVSS scores, CWE classification, references and publication dates. Use this to get authoritative vulnerability details; use eppss for real-world exploitation likelihood and cvss to score a previously unknown finding."`
+	CVEs    String `json:"cves" jsonschema:"required,type=string" jsonschema_description:"CVE identifiers to look up in the NVD database, one or more separated by comma or space (e.g. CVE-2021-44228). Returns descriptions, CVSS scores, CWE classification, references and publication dates. Use this to get authoritative vulnerability details; use eppss for real-world exploitation likelihood and cvss to score a previously unknown finding."`
 	Message string `json:"message" jsonschema:"required,title=Search query message" jsonschema_description:"Engagement-log entry explaining why this CVE is being looked up and how it advances the goal. Written in the engagement language declared by your system prompt."`
+}
+
+type KevAction struct {
+	CVEs    String `json:"cves" jsonschema:"type=string" jsonschema_description:"Optional CVE identifiers to filter the CISA KEV catalog, separated by comma or space (e.g. CVE-2021-44228). Leave empty to list the newest known-exploited vulnerabilities."`
+	Vendor  String `json:"vendor,omitempty" jsonschema:"type=string" jsonschema_description:"Optional vendor/project name substring filter (case-insensitive), e.g. 'Apache'."`
+	Product String `json:"product,omitempty" jsonschema:"type=string" jsonschema_description:"Optional product name substring filter (case-insensitive), e.g. 'Log4j'."`
+	Limit   Int64  `json:"limit,omitempty" jsonschema:"type=integer" jsonschema_description:"Maximum number of results to return (minimum 1; maximum 50; default 10)."`
+	Message string `json:"message" jsonschema:"required,title=Search query message" jsonschema_description:"Engagement-log entry explaining why this KEV lookup is being performed and how it advances the goal. Written in the engagement language declared by your system prompt."`
 }
 
 type SploitusAction struct {

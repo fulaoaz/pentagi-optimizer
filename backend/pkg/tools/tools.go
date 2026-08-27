@@ -1459,6 +1459,18 @@ func (fte *flowToolsExecutor) GetPentesterExecutor(cfg PentesterExecutorConfig) 
 		ce.handlers[CveToolName] = cveTool.Handle
 	}
 
+	kevTool := NewKEVTool(
+		fte.cfg,
+		fte.flowID,
+		cfg.TaskID,
+		cfg.SubtaskID,
+		fte.slp,
+	)
+	if kevTool.IsAvailable() {
+		ce.definitions = append(ce.definitions, registryDefinitions[KevToolName])
+		ce.handlers[KevToolName] = kevTool.Handle
+	}
+
 	return ce, nil
 }
 
@@ -1549,6 +1561,18 @@ func (fte *flowToolsExecutor) GetSearcherExecutor(cfg SearcherExecutorConfig) (C
 	if cveTool.IsAvailable() {
 		ce.definitions = append(ce.definitions, registryDefinitions[CveToolName])
 		ce.handlers[CveToolName] = cveTool.Handle
+	}
+
+	kevTool := NewKEVTool(
+		fte.cfg,
+		fte.flowID,
+		cfg.TaskID,
+		cfg.SubtaskID,
+		fte.slp,
+	)
+	if kevTool.IsAvailable() {
+		ce.definitions = append(ce.definitions, registryDefinitions[KevToolName])
+		ce.handlers[KevToolName] = kevTool.Handle
 	}
 
 	search := NewSearchTool(

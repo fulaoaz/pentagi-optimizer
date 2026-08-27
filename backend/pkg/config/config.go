@@ -76,7 +76,7 @@ type Config struct {
 	MCPEnabled       bool   `env:"MCP_ENABLED" envDefault:"true"`
 	MCPServerName    string `env:"MCP_SERVER_NAME" envDefault:"PentAGI"`
 	MCPServerVersion string `env:"MCP_SERVER_VERSION" envDefault:"1.0.0"`
-	MCPAPIKey       string `env:"MCP_API_KEY"`
+	MCPAPIKey        string `env:"MCP_API_KEY"`
 
 	// === Web Scraper Service Endpoints ===
 	ScraperPublicURL  string `env:"SCRAPER_PUBLIC_URL"`
@@ -177,6 +177,7 @@ type Config struct {
 	SploitusEnabled bool `env:"SPLOITUS_ENABLED" envDefault:"false"`
 	EppssEnabled    bool `env:"EPPSS_ENABLED" envDefault:"true"`
 	CveEnabled      bool `env:"CVE_ENABLED" envDefault:"true"`
+	KevEnabled      bool `env:"KEV_ENABLED" envDefault:"true"`
 
 	// === Search Engine: Google Custom Search ===
 	GoogleAPIKey string `env:"GOOGLE_API_KEY"`
