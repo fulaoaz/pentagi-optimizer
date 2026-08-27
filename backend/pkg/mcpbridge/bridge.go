@@ -13,7 +13,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// FlowBridge exposes PentAGI flow management tools via the MCP protocol.
+const mcpBasePath = "/mcp"
+
 type FlowBridge struct {
 	srv     *server.MCPServer
 	name    string
@@ -31,7 +32,7 @@ func NewFlowBridge(name, version string, fc controller.FlowController, db databa
 	)
 
 	fb.srv.AddTool(mcp.NewTool("get_flow_status",
-		mcp.WithDescription("List all flows and their current status. Returns flow ID, title, status, and task count for each flow."),
+		mcp.WithDescription("List all flows and their current status"),
 		mcp.WithString("detail",
 			mcp.Required(),
 			mcp.Description("detail level: summary lists all flows; tasks shows tasks for a specific flow_id"),
@@ -149,8 +150,12 @@ func NewFlowBridge(name, version string, fc controller.FlowController, db databa
 	return fb
 }
 
-func (fb *FlowBridge) GetHandler(serverURL string) http.Handler {
-	return server.NewSSEServer(fb.srv, server.WithBaseURL(serverURL))
+func (fb *FlowBridge) SSEHandler() http.Handler {
+	return server.NewSSEServer(fb.srv, server.WithStaticBasePath(mcpBasePath)).SSEHandler()
+}
+
+func (fb *FlowBridge) MessageHandler() http.Handler {
+	return server.NewSSEServer(fb.srv, server.WithStaticBasePath(mcpBasePath)).MessageHandler()
 }
 
 func (fb *FlowBridge) GetServer() *server.MCPServer { return fb.srv }

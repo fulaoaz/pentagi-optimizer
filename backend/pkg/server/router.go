@@ -286,10 +286,10 @@ func NewRouter(
 
 		if cfg.MCPEnabled {
 			mcpBridge := mcpbridge.NewFlowBridge(cfg.MCPServerName, cfg.MCPServerVersion, controller, db)
-			mcpHandler := mcpBridge.GetHandler(cfg.PublicURL + "/api/v1/mcp")
-			publicGroup.Any("/mcp", gin.WrapH(mcpHandler))
-			publicGroup.Any("/mcp/sse", gin.WrapH(mcpHandler))
-			publicGroup.Any("/mcp/message", gin.WrapH(mcpHandler))
+			mcpSSEHandler := mcpBridge.SSEHandler()
+			publicGroup.Any("/mcp", gin.WrapH(mcpSSEHandler))
+			publicGroup.Any("/mcp/sse", gin.WrapH(mcpSSEHandler))
+			publicGroup.Any("/mcp/message", gin.WrapH(mcpBridge.MessageHandler()))
 		}
 	}
 
