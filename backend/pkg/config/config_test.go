@@ -134,10 +134,10 @@ func TestGetSecretPatterns_PatternCompilation(t *testing.T) {
 		{
 			name: "OAuth",
 			config: &Config{
-				OAuthGoogleClientID:     "123456789012-abcdefghijklmnopqrstuvwxyz123456.apps.googleusercontent.com",
-				OAuthGoogleClientSecret: "GOCSPX-1234567890abcdefghijklmnopqr",
-				OAuthGithubClientID:     "Iv1.1234567890abcdef",
-				OAuthGithubClientSecret: "1234567890abcdefghijklmnopqrstuvwxyz123456",
+				OAuthGoogleClientID:     "test-oauth-google-client-id.apps.example.com",
+				OAuthGoogleClientSecret: "test-oauth-google-client-secret",
+				OAuthGithubClientID:     "test-oauth-github-client-id",
+				OAuthGithubClientSecret: "test-oauth-github-client-secret",
 			},
 		},
 		{
@@ -149,10 +149,10 @@ func TestGetSecretPatterns_PatternCompilation(t *testing.T) {
 		{
 			name: "Bedrock",
 			config: &Config{
-				BedrockAccessKey:    "AKIAIOSFODNN7EXAMPLE",
-				BedrockSecretKey:    "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+				BedrockAccessKey:    "test-bedrock-access-key",
+				BedrockSecretKey:    "test-bedrock-secret-key",
 				BedrockBearerToken:  "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.example",
-				BedrockSessionToken: "FwoGZXIvYXdzEBYaDD1234567890EXAMPLE",
+				BedrockSessionToken: "test-bedrock-session-token",
 			},
 		},
 		{
