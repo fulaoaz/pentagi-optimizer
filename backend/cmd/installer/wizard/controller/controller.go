@@ -1664,6 +1664,10 @@ type SearchEnginesConfig struct {
 	// these fields directly correspond to environment variables and form inputs (not computed)
 	DuckDuckGoEnabled loader.EnvVar // DUCKDUCKGO_ENABLED
 	SploitusEnabled   loader.EnvVar // SPLOITUS_ENABLED
+	EppssEnabled      loader.EnvVar // EPPSS_ENABLED
+	CvssEnabled       loader.EnvVar // CVSS_ENABLED
+	CveEnabled        loader.EnvVar // CVE_ENABLED
+	KevEnabled        loader.EnvVar // KEV_ENABLED
 	PerplexityAPIKey  loader.EnvVar // PERPLEXITY_API_KEY
 	TavilyAPIKey      loader.EnvVar // TAVILY_API_KEY
 	FirecrawlAPIKey   loader.EnvVar // FIRECRAWL_API_KEY
@@ -1707,6 +1711,10 @@ func (c *controller) GetSearchEnginesConfig() *SearchEnginesConfig {
 	duckduckgoSafeSearch, _ := c.GetVar("DUCKDUCKGO_SAFESEARCH")
 	duckduckgoTimeRange, _ := c.GetVar("DUCKDUCKGO_TIME_RANGE")
 	sploitusEnabled, _ := c.GetVar("SPLOITUS_ENABLED")
+	eppssEnabled, _ := c.GetVar("EPPSS_ENABLED")
+	cvssEnabled, _ := c.GetVar("CVSS_ENABLED")
+	cveEnabled, _ := c.GetVar("CVE_ENABLED")
+	kevEnabled, _ := c.GetVar("KEV_ENABLED")
 	perplexityAPIKey, _ := c.GetVar("PERPLEXITY_API_KEY")
 	tavilyAPIKey, _ := c.GetVar("TAVILY_API_KEY")
 	firecrawlAPIKey, _ := c.GetVar("FIRECRAWL_API_KEY")
@@ -1733,6 +1741,10 @@ func (c *controller) GetSearchEnginesConfig() *SearchEnginesConfig {
 		DuckDuckGoSafeSearch:          duckduckgoSafeSearch,
 		DuckDuckGoTimeRange:           duckduckgoTimeRange,
 		SploitusEnabled:               sploitusEnabled,
+		EppssEnabled:                  eppssEnabled,
+		CvssEnabled:                   cvssEnabled,
+		CveEnabled:                    cveEnabled,
+		KevEnabled:                    kevEnabled,
 		PerplexityAPIKey:              perplexityAPIKey,
 		PerplexityModel:               perplexityModel,
 		PerplexityContextSize:         perplexityContextSize,
@@ -1764,6 +1776,26 @@ func (c *controller) GetSearchEnginesConfig() *SearchEnginesConfig {
 	if sploitusEnabled.Value == "true" {
 		configuredCount++
 	} else if sploitusEnabled.Value == "" && sploitusEnabled.Default == "true" {
+		configuredCount++
+	}
+	if eppssEnabled.Value == "true" {
+		configuredCount++
+	} else if eppssEnabled.Value == "" && eppssEnabled.Default == "true" {
+		configuredCount++
+	}
+	if cvssEnabled.Value == "true" {
+		configuredCount++
+	} else if cvssEnabled.Value == "" && cvssEnabled.Default == "true" {
+		configuredCount++
+	}
+	if cveEnabled.Value == "true" {
+		configuredCount++
+	} else if cveEnabled.Value == "" && cveEnabled.Default == "true" {
+		configuredCount++
+	}
+	if kevEnabled.Value == "true" {
+		configuredCount++
+	} else if kevEnabled.Value == "" && kevEnabled.Default == "true" {
 		configuredCount++
 	}
 	if perplexityAPIKey.Value != "" {
@@ -1815,6 +1847,18 @@ func (c *controller) UpdateSearchEnginesConfig(config *SearchEnginesConfig) erro
 	}
 	if err := c.SetVar("SPLOITUS_ENABLED", config.SploitusEnabled.Value); err != nil {
 		return fmt.Errorf("failed to set SPLOITUS_ENABLED: %w", err)
+	}
+	if err := c.SetVar("EPPSS_ENABLED", config.EppssEnabled.Value); err != nil {
+		return fmt.Errorf("failed to set EPPSS_ENABLED: %w", err)
+	}
+	if err := c.SetVar("CVSS_ENABLED", config.CvssEnabled.Value); err != nil {
+		return fmt.Errorf("failed to set CVSS_ENABLED: %w", err)
+	}
+	if err := c.SetVar("CVE_ENABLED", config.CveEnabled.Value); err != nil {
+		return fmt.Errorf("failed to set CVE_ENABLED: %w", err)
+	}
+	if err := c.SetVar("KEV_ENABLED", config.KevEnabled.Value); err != nil {
+		return fmt.Errorf("failed to set KEV_ENABLED: %w", err)
 	}
 	if err := c.SetVar("PERPLEXITY_API_KEY", config.PerplexityAPIKey.Value); err != nil {
 		return fmt.Errorf("failed to set PERPLEXITY_API_KEY: %w", err)
@@ -1886,6 +1930,10 @@ func (c *controller) ResetSearchEnginesConfig() *SearchEnginesConfig {
 		"DUCKDUCKGO_SAFESEARCH",
 		"DUCKDUCKGO_TIME_RANGE",
 		"SPLOITUS_ENABLED",
+		"EPPSS_ENABLED",
+		"CVSS_ENABLED",
+		"CVE_ENABLED",
+		"KEV_ENABLED",
 		"PERPLEXITY_API_KEY",
 		"PERPLEXITY_MODEL",
 		"PERPLEXITY_CONTEXT_SIZE",
@@ -2426,6 +2474,10 @@ func (c *controller) getVariableDescription(varName string) string {
 		"DUCKDUCKGO_SAFESEARCH": locale.EnvDesc_DUCKDUCKGO_SAFESEARCH,
 		"DUCKDUCKGO_TIME_RANGE": locale.EnvDesc_DUCKDUCKGO_TIME_RANGE,
 		"SPLOITUS_ENABLED":      locale.EnvDesc_SPLOITUS_ENABLED,
+		"EPPSS_ENABLED":         locale.EnvDesc_EPPSS_ENABLED,
+		"CVSS_ENABLED":          locale.EnvDesc_CVSS_ENABLED,
+		"CVE_ENABLED":           locale.EnvDesc_CVE_ENABLED,
+		"KEV_ENABLED":           locale.EnvDesc_KEV_ENABLED,
 		"PERPLEXITY_API_KEY":    locale.EnvDesc_PERPLEXITY_API_KEY,
 		"TAVILY_API_KEY":        locale.EnvDesc_TAVILY_API_KEY,
 		"FIRECRAWL_API_KEY":     locale.EnvDesc_FIRECRAWL_API_KEY,
@@ -2647,6 +2699,10 @@ var criticalVariables = map[string]bool{
 	"DUCKDUCKGO_SAFESEARCH":   true,
 	"DUCKDUCKGO_TIME_RANGE":   true,
 	"SPLOITUS_ENABLED":        true,
+	"EPPSS_ENABLED":           true,
+	"CVSS_ENABLED":            true,
+	"CVE_ENABLED":             true,
+	"KEV_ENABLED":             true,
 	"PERPLEXITY_API_KEY":      true,
 	"PERPLEXITY_MODEL":        true,
 	"PERPLEXITY_CONTEXT_SIZE": true,

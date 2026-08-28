@@ -285,10 +285,10 @@ func (m *ServerSettingsFormModel) GetCurrentConfiguration() string {
 		}
 
 		if viaOptions := cfg.DatabaseSearchPathViaOpt.Value; viaOptions == "true" {
-			viaOptions = m.GetStyles().Info.Render("Enabled")
+			viaOptions = m.GetStyles().Info.Render(locale.StatusEnabled)
 			sections = append(sections, fmt.Sprintf("• %s: %s", locale.ServerSettingsDatabaseSearchPathViaOptionsHint, viaOptions))
 		} else {
-			viaOptions = m.GetStyles().Muted.Render("Disabled")
+			viaOptions = m.GetStyles().Muted.Render(locale.StatusDisabled)
 			sections = append(sections, fmt.Sprintf("• %s: %s", locale.ServerSettingsDatabaseSearchPathViaOptionsHint, viaOptions))
 		}
 	}

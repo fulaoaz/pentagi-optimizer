@@ -276,10 +276,10 @@ func (m *DockerFormModel) GetCurrentConfiguration() string {
 	// Worker daemon endpoint — only meaningful when Docker Access is enabled.
 	if dockerInside == "true" {
 		if config.DockerInsideHost.Value != "" {
-			sections = append(sections, fmt.Sprintf("• Worker Docker Daemon: %s",
+			sections = append(sections, fmt.Sprintf("• %s: %s", locale.ToolsDockerInsideName,
 				m.GetStyles().Success.Render(locale.StatusConfigured)))
 		} else {
-			sections = append(sections, fmt.Sprintf("• Worker Docker Daemon: %s",
+			sections = append(sections, fmt.Sprintf("• %s: %s", locale.ToolsDockerInsideName,
 				m.GetStyles().Warning.Render(locale.StatusNotConfigured)))
 		}
 	}

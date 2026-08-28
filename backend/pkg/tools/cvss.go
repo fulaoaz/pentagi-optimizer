@@ -115,10 +115,11 @@ func (c *cvss) Handle(ctx context.Context, name string, args json.RawMessage) (s
 	return result, nil
 }
 
-// IsAvailable always returns true: scoring is a local computation with no
-// external dependency or credential to configure.
+// IsAvailable reports whether scoring is enabled. Unlike the network-backed
+// tools there is no credential to check, so this only honours the operator's
+// CVSS_ENABLED switch (on by default).
 func (c *cvss) IsAvailable() bool {
-	return true
+	return c.cfg != nil && c.cfg.CvssEnabled
 }
 
 // cvssResult holds the outcome of scoring one vector.

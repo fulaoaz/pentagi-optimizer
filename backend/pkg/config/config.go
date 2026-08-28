@@ -176,6 +176,7 @@ type Config struct {
 	// service under cloudflare protection, IP should have good reputation to avoid being blocked
 	SploitusEnabled bool `env:"SPLOITUS_ENABLED" envDefault:"false"`
 	EppssEnabled    bool `env:"EPPSS_ENABLED" envDefault:"true"`
+	CvssEnabled     bool `env:"CVSS_ENABLED" envDefault:"true"`
 	CveEnabled      bool `env:"CVE_ENABLED" envDefault:"true"`
 	KevEnabled      bool `env:"KEV_ENABLED" envDefault:"true"`
 

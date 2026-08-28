@@ -23,6 +23,7 @@ var allowedEnglishConstants = map[string]struct{}{
 	"LLMProviderGLM":                   {},
 	"LLMProviderKimi":                  {},
 	"LLMProviderQwen":                  {},
+	"LLMProviderMiniMax":               {},
 	"MonitoringLangfuseFormName":       {},
 	"ToolsSearchEnginesDuckDuckGoName": {},
 	"ToolsSearchEnginesSploitusName":   {},
@@ -30,6 +31,14 @@ var allowedEnglishConstants = map[string]struct{}{
 	"ToolsSearchEnginesTavilyName":     {},
 	"ToolsSearchEnginesTraversaalName": {},
 	"ToolsSearchEnginesSearxngName":    {},
+	"ToolsSearchEnginesFirecrawlName":  {},
+	// Vulnerability-scoring and catalog names are standards/organisation
+	// identifiers (FIRST.org EPSS, CVSS, NIST NVD, CISA KEV): they are cited
+	// verbatim in advisories, so translating them would break recognition.
+	"ToolsSearchEnginesEppssName": {},
+	"ToolsSearchEnginesCvssName":  {},
+	"ToolsSearchEnginesCveName":   {},
+	"ToolsSearchEnginesKevName":   {},
 	"EmbedderProviderOpenAI":           {},
 	"EmbedderProviderOllama":           {},
 	"EmbedderProviderMistral":          {},

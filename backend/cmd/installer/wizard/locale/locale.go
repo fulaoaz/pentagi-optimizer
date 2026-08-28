@@ -378,6 +378,8 @@ const (
 	LLMProviderGLMDesc       = "智谱 AI 的 GLM 模型，擅长中英文任务"
 	LLMProviderKimiDesc      = "月之暗面的长上下文模型，适合文档分析"
 	LLMProviderQwenDesc      = "阿里云通义千问模型，适合多语言任务"
+	LLMProviderMiniMax       = "MiniMax"
+	LLMProviderMiniMaxDesc   = "MiniMax M 系列模型，擅长智能体推理与长上下文任务"
 	LLMProviderCustomDesc    = "自定义 OpenAI 兼容端点，灵活性最高"
 )
 
@@ -601,6 +603,31 @@ LiteLLM 集成：
 成本：定价有竞争力，分层灵活，可匹配不同使用场景
 
 配置方式：在 https://dashscope.console.aliyun.com/ 获取 API 密钥`
+
+	LLMFormMiniMaxHelp = `MiniMax 提供 M 系列智能体模型，上下文窗口非常大，可通过兼容 OpenAI 协议的 API 接入。
+
+PentAGI 默认模型：
+• MiniMax-M3：最新旗舰模型（约 100 万 token 上下文），适合智能体推理、工具调用、编码和长上下文任务
+• MiniMax-M2.7：上一代模型，推理和编码能力依然强劲
+• MiniMax-M2.7-highspeed：M2.7 的低延迟版本，适合需要快速响应的场景
+
+主要优势：
+• M3 上下文窗口极大（约 100 万 token），可容纳大型代码库和长篇报告
+• 智能体工具调用、JSON 输出和流式响应支持稳定
+• 同时提供兼容 OpenAI 和 Anthropic 协议的端点，便于直接替换接入
+
+API 端点：
+• 全球：https://api.minimax.io/v1（默认）
+
+LiteLLM 集成：
+• 使用 LiteLLM 代理时，将 Provider Name 设为 'minimax'
+• 无需修改 config.yml 即可启用模型前缀（如 minimax/MiniMax-M3）
+• 直接调用 MiniMax API 时可不填
+
+适用场景：需要超大上下文和可靠工具调用的智能体安全工作流
+成本：M 系列各档定价均有竞争力
+
+配置方式：在 https://platform.minimax.io/ 获取 API 密钥`
 
 	LLMFormCustomHelp = `可配置任意兼容 OpenAI 协议的 API 端点，灵活性最高，便于对接既有基础设施。
 
@@ -839,6 +866,39 @@ Graphiti 提供时序知识图谱能力：
 	MonitoringGraphitiNeo4jPasswordDesc  = "访问 Neo4j 数据库的密码"
 	MonitoringGraphitiNeo4jDatabase      = "Neo4j 数据库"
 	MonitoringGraphitiNeo4jDatabaseDesc  = "Neo4j 数据库名称"
+
+	MonitoringGraphitiLLMClientType            = "LLM 提供商预设"
+	MonitoringGraphitiLLMClientTypeDesc        = "提供商预设；凭据取自 LLM 提供商配置（openai、gemini、litellm、custom），模型取自 ./graphiti/<provider>.yaml"
+	MonitoringGraphitiSeparateEmbedding        = "使用独立嵌入端点"
+	MonitoringGraphitiSeparateEmbeddingDesc    = "使用共享的嵌入配置，而不是所选 LLM 的凭据"
+	MonitoringGraphitiSemaphoreLimit           = "协程并发上限"
+	MonitoringGraphitiSemaphoreLimitDesc       = "Graphiti 辅助协程的最大并发数"
+	MonitoringGraphitiLogLevel                 = "日志级别"
+	MonitoringGraphitiLogLevelDesc             = "Graphiti 日志详细程度"
+	MonitoringGraphitiSearchScope              = "搜索范围"
+	MonitoringGraphitiSearchScopeDesc          = "flowid 表示按任务流隔离，all 表示可信环境下的全局搜索测试"
+	MonitoringGraphitiIngestPolicyRules        = "摄取策略规则"
+	MonitoringGraphitiIngestPolicyRulesDesc    = "消息模式到 REJECT、SKIP_LLM 或 PROCESS 的 JSON 映射"
+	MonitoringGraphitiIngestPolicyField        = "摄取策略匹配字段"
+	MonitoringGraphitiIngestPolicyFieldDesc    = "用于策略匹配的消息字段"
+	MonitoringGraphitiIngestDefaultAction      = "默认摄取动作"
+	MonitoringGraphitiIngestDefaultActionDesc  = "未匹配任何摄取策略规则时执行的动作"
+	MonitoringGraphitiIngestWorkerCount        = "摄取工作线程数"
+	MonitoringGraphitiIngestWorkerCountDesc    = "跨任务流的重型摄取作业最大并发数"
+	MonitoringGraphitiIngestQueueMaxSize       = "摄取队列上限"
+	MonitoringGraphitiIngestQueueMaxSizeDesc   = "最大排队消息数；0 表示不限制"
+	MonitoringGraphitiTaxonomyLayerProfile     = "分类层级方案"
+	MonitoringGraphitiTaxonomyLayerProfileDesc = "启用的关系类别，或使用 full / minimal 别名"
+	MonitoringGraphitiCPUs                     = "Graphiti CPU 限制"
+	MonitoringGraphitiCPUsDesc                 = "Graphiti 容器的 CPU 限制"
+	MonitoringGraphitiMemory                   = "Graphiti 内存限制"
+	MonitoringGraphitiMemoryDesc               = "Graphiti 容器的内存限制"
+	MonitoringGraphitiNeo4jCPUs                = "Neo4j CPU 限制"
+	MonitoringGraphitiNeo4jCPUsDesc            = "Neo4j 容器的 CPU 限制"
+	MonitoringGraphitiNeo4jMemory              = "Neo4j 内存限制"
+	MonitoringGraphitiNeo4jMemoryDesc          = "Neo4j 容器的内存限制"
+	MonitoringGraphitiNeo4jShmSize             = "Neo4j 共享内存限制"
+	MonitoringGraphitiNeo4jShmSizeDesc         = "/dev/shm 限制；实际占用会计入 Neo4j 内存"
 
 	// Help text
 	MonitoringGraphitiModeGuide    = "选择部署方式：内置（本地 Neo4j）、外部（已有 Graphiti）、禁用（不启用知识图谱）"
@@ -1220,6 +1280,18 @@ const (
 	ServerSettingsCookieSigningSalt     = "Cookie 签名盐值"
 	ServerSettingsCookieSigningSaltDesc = "用于签名 Cookie 的密钥（请妥善保密）"
 
+	ServerSettingsTenantID     = "租户 ID"
+	ServerSettingsTenantIDDesc = "可选命名空间，用于在同一主机上部署多个实例（例如 acme、team_alpha）"
+
+	ServerSettingsPprofAddr     = "pprof 监听地址"
+	ServerSettingsPprofAddrDesc = "可选的 Go pprof 绑定地址，留空表示关闭（例如 :7777、127.0.0.1:7778）"
+
+	ServerSettingsDatabaseExtensionsSchema     = "数据库扩展模式"
+	ServerSettingsDatabaseExtensionsSchemaDesc = "设置租户 ID 时，存放共享扩展的模式（例如 public；Supabase 用 extensions）"
+
+	ServerSettingsDatabaseSearchPathViaOptions     = "通过 Options 传递搜索路径"
+	ServerSettingsDatabaseSearchPathViaOptionsDesc = "在 options 启动参数内传递租户 search_path（部分连接池需要）"
+
 	// Hints for fields overview
 	ServerSettingsLicenseKeyHint          = "许可证密钥"
 	ServerSettingsHostHint                = "监听 IP"
@@ -1235,6 +1307,11 @@ const (
 	ServerSettingsExternalSSLInsecureHint = "跳过 SSL 校验"
 	ServerSettingsSSLDirHint              = "SSL 目录"
 	ServerSettingsDataDirHint             = "数据目录"
+
+	ServerSettingsTenantIDHint                     = "租户 ID"
+	ServerSettingsDatabaseExtensionsSchemaHint     = "扩展模式"
+	ServerSettingsDatabaseSearchPathViaOptionsHint = "通过 Options 传搜索路径"
+	ServerSettingsPprofAddrHint                    = "pprof 地址"
 
 	// Help texts per-field
 	ServerSettingsGeneralHelp = `PentAGI 通过 Docker 对外提供网页界面，主机地址与端口均可配置。
@@ -1304,6 +1381,40 @@ SSL 目录用于提供自定义证书。设置后，服务器将使用该目录�
 	ServerSettingsDataDirHelp = `用于存放持久化数据的主机目录。PentAGI 会将智能体产物存放在 flow-N 子目录下，这些目录会映射到工作容器内的 /work。`
 
 	ServerSettingsCookieSigningSaltHelp = `用于签名 Cookie 的密钥盐值，请妥善保密。`
+
+	ServerSettingsTenantIDHelp = `可选标识，当多个 PentAGI 实例共用同一主机和同一套后端服务时，用它为 PostgreSQL 模式、数据目录、Docker 对象、Graphiti 分组 ID、认证 Cookie 和遥测数据划分命名空间。
+
+单实例部署留空即可（默认）。填写时必须匹配 ^[a-z][a-z0-9_]{0,31}$ —— 首字符为小写字母，其后为小写字母、数字或下划线，最长 32 个字符。不允许使用连字符。
+
+示例：
+• acme
+• team_alpha
+• staging01`
+
+	ServerSettingsPprofAddrHelp = `Go pprof HTTP 端点的可选监听地址，用于 CPU / 内存性能分析。
+
+留空表示不启用 pprof（默认，生产环境推荐）。填写时必须是 host:port 形式，例如 :7777 或 127.0.0.1:7778。
+
+共用主机网络命名空间的实例需要各自不同的地址 —— 端口不是字符串命名空间，无法由 TENANT_ID 推导。
+
+示例：
+• :7777
+• 127.0.0.1:7778
+• 0.0.0.0:7780`
+
+	ServerSettingsDatabaseExtensionsSchemaHelp = `存放共享扩展（vector、pg_trgm）的 PostgreSQL 模式，每个租户都需要通过自己的 search_path 访问它们。
+
+仅在设置了租户 ID 时生效；留空表示使用默认的 "public"，标准 PostgreSQL 安装会把扩展放在那里。如果你的数据库采用其他约定则需要填写 —— Supabase 会把扩展装到 "extensions"，若此项与实际不符，启动会中止并在报错信息中指出它实际找到的模式。
+
+示例：
+• public
+• extensions`
+
+	ServerSettingsDatabaseSearchPathViaOptionsHelp = `以 options=--search_path=<值> 的形式下发租户 search_path，而不是使用独立的 search_path 连接参数。
+
+仅在设置了租户 ID 时生效。直连 PostgreSQL 时保持关闭。当连接池会转发 "options" 启动参数、但丢弃无法识别的独立 search_path 参数时才需要开启 —— 据反馈某些版本的 Supabase Supavisor 属于这种情况。该方式不保证一定生效：若参数始终没有到达后端，启动会以明确的模式不匹配错误失败。
+
+取值：true、false`
 )
 
 // Human-in-the-loop screen strings
@@ -1387,6 +1498,10 @@ const (
 	ToolsSearchEnginesFormOverview    = `可用的搜索引擎：
 • DuckDuckGo —— 免费搜索引擎（无需 API 密钥）
 • Sploitus —— 漏洞利用与漏洞情报库（无需 API 密钥）
+• EPSS —— 漏洞在野利用概率评分（无需 API 密钥）
+• CVSS —— 漏洞严重性评分本地计算（无需联网）
+• NVD CVE —— NIST 官方漏洞详情库（无需 API 密钥）
+• CISA KEV —— 已确证在野利用的漏洞目录（无需 API 密钥）
 • Perplexity —— 带推理能力的 AI 搜索
 • Tavily —— 面向 AI 应用的搜索 API
 • Traversaal —— 网页抓取与搜索
@@ -1411,6 +1526,18 @@ API 密钥获取地址：
 	ToolsSearchEnginesSploitus                  = "Sploitus 搜索"
 	ToolsSearchEnginesSploitusName              = "Sploitus"
 	ToolsSearchEnginesSploitusDesc              = "启用 Sploitus 漏洞利用与漏洞信息搜索（无需 API 密钥）"
+	ToolsSearchEnginesEppss                     = "EPSS 利用概率评分"
+	ToolsSearchEnginesEppssName                 = "EPSS"
+	ToolsSearchEnginesEppssDesc                 = "启用 FIRST.org EPSS 查询，评估漏洞在真实环境被利用的概率（无需 API 密钥）"
+	ToolsSearchEnginesCvss                      = "CVSS 严重性评分"
+	ToolsSearchEnginesCvssName                  = "CVSS"
+	ToolsSearchEnginesCvssDesc                  = "启用 CVSS v3.1/v4.0 向量本地计算，得出基础评分与严重性等级（本地计算，无需联网）"
+	ToolsSearchEnginesCve                       = "NVD 漏洞详情查询"
+	ToolsSearchEnginesCveName                   = "NVD CVE"
+	ToolsSearchEnginesCveDesc                   = "启用 NIST NVD 查询，获取 CVE 描述、CVSS 指标与受影响产品（无需 API 密钥）"
+	ToolsSearchEnginesKev                       = "CISA KEV 在野利用目录"
+	ToolsSearchEnginesKevName                   = "CISA KEV"
+	ToolsSearchEnginesKevDesc                   = "启用 CISA 已知被利用漏洞目录查询，确认漏洞是否存在确证的在野利用（无需 API 密钥）"
 	ToolsSearchEnginesPerplexityKey             = "Perplexity API 密钥"
 	ToolsSearchEnginesPerplexityName            = "Perplexity"
 	ToolsSearchEnginesPerplexityKeyDesc         = "Perplexity AI 搜索的 API 密钥"
@@ -1444,6 +1571,18 @@ API 密钥获取地址：
 	ToolsSearchEnginesSearxngTimeRangeDesc      = "Searxng 搜索引擎时间范围（day 天、month 月、year 年）"
 	ToolsSearchEnginesSearxngTimeout            = "Searxng 超时"
 	ToolsSearchEnginesSearxngTimeoutDesc        = "Searxng 请求超时时间（秒）"
+	ToolsSearchEnginesFirecrawlKey              = "Firecrawl API 密钥"
+	ToolsSearchEnginesFirecrawlName             = "Firecrawl"
+	ToolsSearchEnginesFirecrawlKeyDesc          = "Firecrawl 搜索服务的 API 密钥"
+	ToolsSearchEnginesFirecrawlURL              = "Firecrawl API 地址"
+	ToolsSearchEnginesFirecrawlURLDesc          = "Firecrawl API 基础地址（使用云服务时留空；自建时填写）"
+	ToolsSearchEnginesInternalName              = "内置分析引擎"
+	ToolsSearchEnginesInternalEnabled           = "内置分析引擎"
+	ToolsSearchEnginesInternalEnabledDesc       = "为 answer/research 类查询启用内置的浏览器分析兜底方案（无需 API 密钥；它会抓取并归纳网页，因此需要已配置抓取服务和至少一个可用的链接类引擎，例如 DuckDuckGo 或 Google）"
+	ToolsSearchEnginesInternalMaxSites          = "内置引擎最大页面数"
+	ToolsSearchEnginesInternalMaxSitesDesc      = "每次查询最多抓取并归纳的页面数量"
+	ToolsSearchEnginesInternalMaxSiteBytes      = "内置引擎单页最大字节数"
+	ToolsSearchEnginesInternalMaxSiteBytesDesc  = "每个页面在截断前最多读取的 markdown 字节数"
 )
 
 // Scraper screen strings
@@ -1550,6 +1689,46 @@ const (
 	ToolsDockerTLSVerifyDesc = "为 Docker 连接启用 TLS 验证"
 	ToolsDockerCertPath      = "TLS 证书"
 	ToolsDockerCertPathDesc  = "包含 ca.pem、cert.pem、key.pem 文件的目录"
+
+	// Worker-container Docker connection settings (optional)
+	ToolsDockerInsideHost     = "工作容器 Docker 守护进程地址"
+	ToolsDockerInsideHostDesc = "下发给工作容器的守护进程地址（例如 tcp://dind:2376）；留空则继续挂载套接字"
+	ToolsDockerInsideName     = "工作容器 Docker 守护进程"
+
+	ToolsDockerInsideTLSVerify     = "工作容器 Docker TLS 验证"
+	ToolsDockerInsideTLSVerifyDesc = "为工作容器的 Docker 连接启用 TLS 验证"
+
+	ToolsDockerInsideCertPath     = "工作容器 Docker 证书路径"
+	ToolsDockerInsideCertPathDesc = "位于工作节点上的 TLS 证书目录，会以只读方式挂载进工作容器"
+
+	ToolsDockerInsideHostHelp = `启用 Docker 访问权限后，下发给工作容器的 Docker 守护进程地址。
+
+该地址会以 DOCKER_HOST 注入每个沙箱，因此容器内的 Docker CLI 会连接到这个守护进程。
+
+设置该项还会停止自动探测并挂载主机套接字：此时智能体只能访问你指定的守护进程，而不是运行 PentAGI 自身的那个。显式配置的 Docker 套接字仍然优先，并按原方式挂载。
+
+留空则保持既有行为（自动探测并挂载套接字）。
+
+示例：
+• tcp://dind:2376
+• tcp://10.0.0.5:2375
+• unix:///var/run/docker.sock`
+
+	ToolsDockerInsideTLSVerifyHelp = `为工作容器连接 Docker 守护进程启用 TLS 验证。
+
+该项会以 DOCKER_TLS_VERIFY 注入每个沙箱。当守护进程要求双向 TLS 时，需与"工作容器 Docker 守护进程地址"和"工作容器 Docker 证书路径"配合使用。
+
+若守护进程为普通（非 TLS）端点，保持关闭即可。`
+
+	ToolsDockerInsideCertPathHelp = `存放工作容器所用 TLS 客户端材料（ca.pem、cert.pem、key.pem）的目录。
+
+该目录会以 DOCKER_CERT_PATH 注入每个沙箱，并以只读方式挂载到容器内的相同路径，因此容器内外解析到的值一致。
+
+重要：该路径是在工作节点（即创建沙箱容器的那台 Docker 守护进程所在机器）上解析的，而不是运行本安装器的机器。因此安装器不会校验它，请确认它在工作节点上确实存在。
+
+示例：
+• /etc/docker/certs
+• /opt/pentagi/docker/ssl`
 
 	// Help content for specific configurations
 	ToolsDockerInsideHelp = `Docker 访问权限允许工作容器为专用工具或运行环境创建额外容器。当任务需要默认镜像中未包含的软件时，必须启用此项。
@@ -2210,6 +2389,9 @@ const (
 	EnvDesc_QWEN_API_KEY                      = "Qwen API 密钥"
 	EnvDesc_QWEN_SERVER_URL                   = "Qwen 服务器地址"
 	EnvDesc_QWEN_PROVIDER                     = "Qwen 提供商名称前缀（用于 LiteLLM，例如 'dashscope'）"
+	EnvDesc_MINIMAX_API_KEY                   = "MiniMax API 密钥"
+	EnvDesc_MINIMAX_SERVER_URL                = "MiniMax 服务器地址"
+	EnvDesc_MINIMAX_PROVIDER                  = "MiniMax 提供商名称前缀（用于 LiteLLM，例如 'minimax'）"
 	EnvDesc_LLM_SERVER_URL                    = "自定义 LLM 服务器地址"
 	EnvDesc_LLM_SERVER_KEY                    = "自定义 LLM API 密钥"
 	EnvDesc_LLM_SERVER_MODEL                  = "自定义 LLM 模型"
@@ -2289,8 +2471,14 @@ const (
 	EnvDesc_DUCKDUCKGO_SAFESEARCH = "DuckDuckGo 安全搜索"
 	EnvDesc_DUCKDUCKGO_TIME_RANGE = "DuckDuckGo 时间范围"
 	EnvDesc_SPLOITUS_ENABLED      = "Sploitus 搜索"
+	EnvDesc_EPPSS_ENABLED         = "EPSS 利用概率评分"
+	EnvDesc_CVSS_ENABLED          = "CVSS 严重性评分"
+	EnvDesc_CVE_ENABLED           = "NVD CVE 漏洞详情查询"
+	EnvDesc_KEV_ENABLED           = "CISA KEV 在野利用目录"
 	EnvDesc_PERPLEXITY_API_KEY    = "Perplexity API 密钥"
 	EnvDesc_TAVILY_API_KEY        = "Tavily API 密钥"
+	EnvDesc_FIRECRAWL_API_KEY     = "Firecrawl API 密钥"
+	EnvDesc_FIRECRAWL_API_URL     = "Firecrawl API 地址"
 	EnvDesc_TRAVERSAAL_API_KEY    = "Traversaal API 密钥"
 	EnvDesc_GOOGLE_API_KEY        = "Google 搜索 API 密钥"
 	EnvDesc_GOOGLE_CX_KEY         = "Google 搜索引擎 ID（CX）"
@@ -2307,8 +2495,13 @@ const (
 	EnvDesc_DOCKER_HOST                      = "Docker 主机地址"
 	EnvDesc_DOCKER_TLS_VERIFY                = "Docker TLS 验证"
 	EnvDesc_DOCKER_CERT_PATH                 = "Docker 证书路径"
+	EnvDesc_DOCKER_INSIDE_HOST               = "工作容器 Docker 守护进程地址"
+	EnvDesc_DOCKER_INSIDE_TLS_VERIFY         = "工作容器 Docker TLS 验证"
+	EnvDesc_DOCKER_INSIDE_CERT_PATH          = "工作容器 Docker 证书路径"
 
 	EnvDesc_LICENSE_KEY                       = "PentAGI 许可证密钥"
+	EnvDesc_TENANT_ID                         = "PentAGI 租户 ID"
+	EnvDesc_PPROF_ADDR                        = "PentAGI pprof 监听地址"
 	EnvDesc_PENTAGI_LISTEN_IP                 = "PentAGI 服务监听 IP"
 	EnvDesc_PENTAGI_LISTEN_PORT               = "PentAGI 服务监听端口"
 	EnvDesc_PUBLIC_URL                        = "PentAGI 公开访问地址"
@@ -2358,6 +2551,27 @@ const (
 	EnvDesc_NEO4J_USER          = "Neo4j 用户名"
 	EnvDesc_NEO4J_DATABASE      = "Neo4j 数据库名"
 	EnvDesc_NEO4J_PASSWORD      = "Neo4j 数据库密码"
+
+	EnvDesc_GRAPHITI_ENABLED                      = "启用 Graphiti 时序知识图谱"
+	EnvDesc_GRAPHITI_LLM_CLIENT_TYPE              = "Graphiti LLM 提供商预设"
+	EnvDesc_GRAPHITI_SEPARATE_EMBEDDING           = "Graphiti 使用独立嵌入端点"
+	EnvDesc_GRAPHITI_SEMAPHORE_LIMIT              = "Graphiti 并发请求上限"
+	EnvDesc_GRAPHITI_LOG_LEVEL                    = "Graphiti 日志级别"
+	EnvDesc_GRAPHITI_SEARCH_SCOPE                 = "Graphiti 搜索范围"
+	EnvDesc_GRAPHITI_INGEST_POLICY_RULES          = "Graphiti 摄取策略规则"
+	EnvDesc_GRAPHITI_INGEST_POLICY_FIELD          = "Graphiti 摄取策略匹配字段"
+	EnvDesc_GRAPHITI_INGEST_POLICY_DEFAULT_ACTION = "Graphiti 默认摄取动作"
+	EnvDesc_GRAPHITI_INGEST_WORKER_COUNT          = "Graphiti 摄取工作线程数"
+	EnvDesc_GRAPHITI_INGEST_QUEUE_MAX_SIZE        = "Graphiti 摄取队列上限"
+	EnvDesc_GRAPHITI_TAXONOMY_LAYER_PROFILE       = "Graphiti 分类层级配置"
+	EnvDesc_GRAPHITI_CPUS                         = "Graphiti CPU 限制"
+	EnvDesc_GRAPHITI_MEMORY                       = "Graphiti 内存限制"
+	EnvDesc_NEO4J_CPUS                            = "Neo4j CPU 限制"
+	EnvDesc_NEO4J_MEMORY                          = "Neo4j 内存限制"
+	EnvDesc_NEO4J_SHM_SIZE                        = "Neo4j 共享内存限制"
+
+	EnvDesc_DATABASE_EXTENSIONS_SCHEMA       = "PostgreSQL 扩展所在模式"
+	EnvDesc_DATABASE_SEARCH_PATH_VIA_OPTIONS = "通过连接 Options 设置 PostgreSQL 搜索路径"
 )
 
 // dynamic, contextual sections used in processor operation forms

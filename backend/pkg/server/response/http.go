@@ -58,6 +58,28 @@ func Error(c *gin.Context, err *HttpError, original error) {
 	c.AbortWithStatusJSON(err.HttpCode(), body)
 }
 
+func ErrorWithLevel(c *gin.Context, err *HttpError, original error, level logrus.Level) {
+	message, responseLanguage := localizedErrorMessage(c.GetHeader("Accept-Language"), err)
+	body := gin.H{
+		"status": "error",
+		"code":   err.Code(),
+		"msg":    message,
+	}
+
+	if version.IsDevelopMode() && original != nil {
+		body["error"] = original.Error()
+	}
+
+	fields := logrus.Fields{
+		"code":    err.HttpCode(),
+		"message": err.Msg(),
+	}
+	logger.FromContext(c).WithFields(fields).WithError(original).Log(level, "api error")
+
+	c.Header("Content-Language", responseLanguage)
+	c.AbortWithStatusJSON(err.HttpCode(), body)
+}
+
 func Success(c *gin.Context, code int, data any) {
 	c.JSON(code, gin.H{"status": "success", "data": data})
 }

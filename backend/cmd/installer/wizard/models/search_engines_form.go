@@ -414,10 +414,10 @@ func (m *SearchEnginesFormModel) GetCurrentConfiguration() string {
 
 	// Firecrawl
 	if config.FirecrawlAPIKey.Value != "" {
-		sections = append(sections, fmt.Sprintf("• Firecrawl: %s",
+		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ToolsSearchEnginesFirecrawlName,
 			m.GetStyles().Success.Render(locale.StatusConfigured)))
 	} else {
-		sections = append(sections, fmt.Sprintf("• Firecrawl: %s",
+		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ToolsSearchEnginesFirecrawlName,
 			m.GetStyles().Warning.Render(locale.StatusNotConfigured)))
 	}
 
@@ -454,10 +454,10 @@ func (m *SearchEnginesFormModel) GetCurrentConfiguration() string {
 		internalEnabled = config.WebSearchInternalEnabled.Default
 	}
 	if internalEnabled == "true" {
-		sections = append(sections, fmt.Sprintf("• Internal Analytics Engine: %s",
+		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ToolsSearchEnginesInternalName,
 			m.GetStyles().Success.Render(locale.StatusEnabled)))
 	} else {
-		sections = append(sections, fmt.Sprintf("• Internal Analytics Engine: %s",
+		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ToolsSearchEnginesInternalName,
 			m.GetStyles().Warning.Render(locale.StatusDisabled)))
 	}
 
