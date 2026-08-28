@@ -4,10 +4,11 @@ import { toast } from 'sonner';
 import type { FileNode } from '@/components/shared/file-manager';
 
 import { buildPathsQuery } from '@/features/resources/resources-utils';
+import { useLocale } from '@/hooks/use-locale';
 import { api, getApiErrorMessage } from '@/lib/axios';
 
 import { FLOW_FILES_API_PATH } from './flow-files-constants';
-import { type FlowFilesResponse, pluralizeItems } from './flow-files-utils';
+import { type FlowFilesResponse } from './flow-files-utils';
 
 interface UseFlowFilesDeleteParams {
     flowId: null | string;
@@ -55,6 +56,7 @@ const deleteFlowFilesRequest = (flowId: string, paths: readonly string[]) =>
  * is wired into the Apollo cache and removes the deleted entries automatically.
  */
 export function useFlowFilesDelete({ flowId, onAfterDelete }: UseFlowFilesDeleteParams): UseFlowFilesDeleteResult {
+    const { t } = useLocale();
     const [fileToDelete, setFileToDelete] = useState<FileNode | null>(null);
 
     const requestDelete = useCallback((file: FileNode) => {
@@ -78,20 +80,21 @@ export function useFlowFilesDelete({ flowId, onAfterDelete }: UseFlowFilesDelete
                 );
 
                 if (filesToDelete.length === 1) {
-                    const [single] = filesToDelete;
-                    toast.success(single?.isDir ? 'Directory deleted' : 'File deleted');
+                    const single = filesToDelete[0];
+                    toast.success(single.isDir ? t('flow.files.directoryDeleted') : t('flow.files.fileDeleted'));
                 } else {
-                    toast.success(`${filesToDelete.length} ${pluralizeItems(filesToDelete.length)} deleted`);
+                    const count = t('fileManager.itemCountMany', { count: filesToDelete.length });
+                    toast.success(t('flow.files.deleteCountSuccess', { count }));
                 }
 
                 onAfterDelete?.();
             } catch (error) {
-                const description = getApiErrorMessage(error, 'Failed to delete file');
+                const description = getApiErrorMessage(error, t('flow.files.deleteFailed'));
 
-                toast.error('Delete failed', { description });
+                toast.error(t('flow.files.deleteFailed'), { description });
             }
         },
-        [flowId, onAfterDelete],
+        [flowId, onAfterDelete, t],
     );
 
     const confirmDelete = useCallback(async () => {

@@ -56,4 +56,4 @@ datasources:
           matcherType: label
           name: traceid
           url: '$${__value.raw}'
-          urlDisplayLabel: "Trace for this log"
+          urlDisplayLabel: "查看此日志的追踪"

@@ -116,4 +116,20 @@ describe('validateUploadBatch', () => {
 
         expect(validateUploadBatch(files, { ...DEFAULT_LIMITS, maxFiles: 5 })).toBe('Too many files: max 5 per upload');
     });
+
+    it('uses caller-provided validation messages', () => {
+        const files = Array.from({ length: 3 }, (_, i) => makeFile(`f-${i}.txt`, 1));
+        const result = validateUploadBatch(
+            files,
+            { ...DEFAULT_LIMITS, maxFiles: 2 },
+            {
+                emptyFile: (name) => `${name} 为空`,
+                fileTooLarge: (name, size) => `${name} 超过 ${size} MB`,
+                tooManyFiles: (count) => `每次最多上传 ${count} 个文件`,
+                totalTooLarge: (size) => `总大小超过 ${size} MB`,
+            },
+        );
+
+        expect(result).toBe('每次最多上传 2 个文件');
+    });
 });

@@ -10,7 +10,7 @@
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
-        "name": "Annotations & Alerts",
+        "name": "注释与告警",
         "target": {
           "limit": 100,
           "matchAny": false,
@@ -37,7 +37,7 @@
       },
       "id": 50,
       "panels": [],
-      "title": "Server resources utilization",
+      "title": "服务器资源利用率",
       "type": "row"
     },
     {
@@ -139,7 +139,7 @@
           "refId": "A"
         }
       ],
-      "title": "CPU usage percent",
+      "title": "CPU 使用率",
       "type": "timeseries"
     },
     {
@@ -244,7 +244,7 @@
           "refId": "A"
         }
       ],
-      "title": "VIRT memory usage bytes",
+      "title": "VIRT 内存用量（字节）",
       "type": "timeseries"
     },
     {
@@ -346,7 +346,7 @@
           "refId": "A"
         }
       ],
-      "title": "RSS memory usage bytes",
+      "title": "RSS 内存用量（字节）",
       "type": "timeseries"
     },
     {
@@ -359,7 +359,7 @@
       },
       "id": 12,
       "panels": [],
-      "title": "Golang runtime",
+      "title": "Go 运行时",
       "type": "row"
     },
     {
@@ -1321,7 +1321,7 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "PentAGI Service",
+  "title": "PentAGI 服务",
   "uid": "ae878pmc43xfke",
   "version": 2,
   "weekStart": ""

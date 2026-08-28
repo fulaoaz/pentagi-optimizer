@@ -10,6 +10,7 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { Form, FormControl, FormField } from '@/components/ui/form';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
 import { useAutoScroll } from '@/hooks/use-auto-scroll';
+import { useLocale } from '@/hooks/use-locale';
 import { useFlow } from '@/providers/flow-provider';
 
 import FlowTasksDropdown from '../flow-tasks-dropdown';
@@ -26,6 +27,7 @@ const searchFormSchema = z.object({
 });
 
 function FlowVectorStores() {
+    const { t } = useLocale();
     const { flowData, flowId } = useFlow();
 
     const logs = useMemo(() => flowData?.vectorStoreLogs ?? [], [flowData?.vectorStoreLogs]);
@@ -153,7 +155,7 @@ function FlowVectorStores() {
                                         <InputGroupInput
                                             {...field}
                                             autoComplete="off"
-                                            placeholder="Search vector store logs..."
+                                            placeholder={t('flow.logs.vectorSearch')}
                                             type="text"
                                         />
                                         {field.value && (
@@ -228,8 +230,8 @@ function FlowVectorStores() {
                         <EmptyMedia variant="icon">
                             <ListFilter />
                         </EmptyMedia>
-                        <EmptyTitle>No vector store logs found</EmptyTitle>
-                        <EmptyDescription>Try adjusting your search or filter parameters</EmptyDescription>
+                        <EmptyTitle>{t('flow.logs.vectorNoMatches')}</EmptyTitle>
+                        <EmptyDescription>{t('flow.messages.adjustFilters')}</EmptyDescription>
                     </EmptyHeader>
                     <EmptyContent>
                         <Button
@@ -237,7 +239,7 @@ function FlowVectorStores() {
                             variant="outline"
                         >
                             <X />
-                            Reset filters
+                            {t('flow.messages.resetFilters')}
                         </Button>
                     </EmptyContent>
                 </Empty>
@@ -247,10 +249,8 @@ function FlowVectorStores() {
                         <EmptyMedia variant="icon">
                             <Database />
                         </EmptyMedia>
-                        <EmptyTitle>No vector store logs available</EmptyTitle>
-                        <EmptyDescription>
-                            Vector store logs will appear here when the agent uses knowledge database
-                        </EmptyDescription>
+                        <EmptyTitle>{t('flow.logs.vectorEmptyTitle')}</EmptyTitle>
+                        <EmptyDescription>{t('flow.logs.vectorEmptyDescription')}</EmptyDescription>
                     </EmptyHeader>
                 </Empty>
             )}

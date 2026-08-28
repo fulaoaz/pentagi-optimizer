@@ -1,21 +1,14 @@
 import type { ColumnDef } from '@tanstack/react-table';
 
-import { Ellipsis, FileText, Pencil, PencilLine, Plus, Trash } from 'lucide-react';
+import { Ellipsis, FileText, Loader2, Pencil, PencilLine, Plus, Trash } from 'lucide-react';
 import { useCallback, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
-import {
-    AppHeader,
-    AppHeaderAction,
-    AppHeaderActions,
-    AppHeaderContent,
-    AppHeaderTitle,
-} from '@/components/layouts/app/app-header';
 import ConfirmationDialog from '@/components/shared/confirmation-dialog';
-import { ErrorState } from '@/components/shared/error-state';
+import { HeaderButton } from '@/components/shared/header-button';
 import { InlineEditInput } from '@/components/shared/inline-edit';
-import { LoadingState } from '@/components/shared/loading-state';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import { ContextMenuItem, ContextMenuSeparator } from '@/components/ui/context-menu';
 import { DataTable, DataTableColumnHeader } from '@/components/ui/data-table';
@@ -26,17 +19,19 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
-import { Spinner } from '@/components/ui/spinner';
+import { Separator } from '@/components/ui/separator';
+import { SidebarTrigger } from '@/components/ui/sidebar';
+import { StatusCard } from '@/components/ui/status-card';
+import { useLocale } from '@/hooks/use-locale';
 import { useTableState } from '@/hooks/use-table-state';
-import { routes } from '@/lib/routes';
 import { mergeHrefWithSearchParams } from '@/lib/url-params';
 import { type Template, useTemplates } from '@/providers/templates-provider';
 
 function Templates() {
     const navigate = useNavigate();
     const location = useLocation();
-    const { deleteTemplate, error, isLoading, refetch, templates, updateTemplate } = useTemplates();
+    const { deleteTemplate, templates, updateTemplate } = useTemplates();
+    const { t } = useLocale();
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [deletingTemplate, setDeletingTemplate] = useState<null | Template>(null);
     const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
@@ -48,7 +43,7 @@ function Templates() {
 
     const handleTemplateOpen = useCallback(
         (templateId: string) => {
-            navigate(mergeHrefWithSearchParams(routes.template(templateId), new URLSearchParams(location.search)));
+            navigate(mergeHrefWithSearchParams(`/templates/${templateId}`, new URLSearchParams(location.search)));
         },
         [navigate, location.search],
     );
@@ -89,14 +84,14 @@ function Templates() {
 
         try {
             await updateTemplate(editingTemplateId, { text: template.text, title: newTitle });
-            toast.success('Template renamed successfully');
+            toast.success(t('templates.renamed'));
             setEditingTemplateId(null);
         } catch {
             // Error already handled in provider with toast
         } finally {
             setIsRenameLoading(false);
         }
-    }, [editingTemplateId, templates, updateTemplate]);
+    }, [editingTemplateId, t, templates, updateTemplate]);
 
     const handleDelete = async () => {
         if (!deletingTemplate) {
@@ -138,7 +133,7 @@ function Templates() {
                                 inputRef={editingInputRef}
                                 onCancel={handleTemplateRenameCancel}
                                 onSave={handleTemplateRenameSave}
-                                placeholder="Template title"
+                                placeholder={t('templates.titlePlaceholder')}
                             />
                         </div>
                     );
@@ -149,7 +144,7 @@ function Templates() {
             header: ({ column }) => (
                 <DataTableColumnHeader
                     column={column}
-                    title="Title"
+                    title={t('templates.title')}
                 />
             ),
             meta: { searchable: true },
@@ -164,7 +159,7 @@ function Templates() {
             header: ({ column }) => (
                 <DataTableColumnHeader
                     column={column}
-                    title="Text"
+                    title={t('templates.text')}
                 />
             ),
             meta: { searchable: true },
@@ -178,7 +173,7 @@ function Templates() {
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button
-                                    aria-label="Open menu"
+                                    aria-label={t('common.openMenu')}
                                     className="size-8 p-0"
                                     onClick={(e) => e.stopPropagation()}
                                     variant="ghost"
@@ -193,11 +188,11 @@ function Templates() {
                             >
                                 <DropdownMenuItem onClick={() => handleTemplateOpen(template.id)}>
                                     <Pencil />
-                                    Edit
+                                    {t('common.edit')}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleTemplateRenameStart(template)}>
                                     <Pencil className="size-3" />
-                                    Rename
+                                    {t('templates.rename')}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
@@ -206,13 +201,13 @@ function Templates() {
                                 >
                                     {deletingIds.has(template.id) ? (
                                         <>
-                                            <Spinner variant="circle" />
-                                            Deleting...
+                                            <Loader2 className="size-4 animate-spin" />
+                                            {t('templates.deleting')}
                                         </>
                                     ) : (
                                         <>
-                                            <Trash />
-                                            Delete
+                                            <Trash className="size-4" />
+                                            {t('common.delete')}
                                         </>
                                     )}
                                 </DropdownMenuItem>
@@ -233,11 +228,11 @@ function Templates() {
         <>
             <ContextMenuItem onClick={() => handleTemplateOpen(template.id)}>
                 <Pencil />
-                Edit
+                {t('common.edit')}
             </ContextMenuItem>
             <ContextMenuItem onClick={() => handleTemplateRenameStart(template)}>
                 <PencilLine />
-                Rename
+                {t('templates.rename')}
             </ContextMenuItem>
             <ContextMenuSeparator />
             <ContextMenuItem
@@ -245,80 +240,58 @@ function Templates() {
                 onClick={() => handleDeleteDialogOpen(template)}
             >
                 <Trash />
-                {deletingIds.has(template.id) ? 'Deleting...' : 'Delete'}
+                {deletingIds.has(template.id) ? t('templates.deleting') : t('common.delete')}
             </ContextMenuItem>
         </>
     );
 
     const pageHeader = (
-        <AppHeader>
-            <AppHeaderContent>
-                <AppHeaderTitle icon={<FileText className="size-4 shrink-0" />}>Templates</AppHeaderTitle>
-            </AppHeaderContent>
-            <AppHeaderActions>
-                <AppHeaderAction
+        <header className="bg-background sticky top-0 z-10 flex h-12 w-full shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+            <div className="flex min-w-0 flex-1 items-center gap-2 px-4">
+                <SidebarTrigger className="-ml-1 shrink-0" />
+                <Separator
+                    className="h-4 shrink-0"
+                    orientation="vertical"
+                />
+                <Breadcrumb className="min-w-0 flex-1">
+                    <BreadcrumbList className="min-w-0 flex-nowrap">
+                        <BreadcrumbItem className="min-w-0">
+                            <FileText className="size-4 shrink-0" />
+                            <BreadcrumbPage className="min-w-0 truncate">{t('title.templates')}</BreadcrumbPage>
+                        </BreadcrumbItem>
+                    </BreadcrumbList>
+                </Breadcrumb>
+            </div>
+            <div className="flex shrink-0 items-center gap-2 px-4">
+                <HeaderButton
                     icon={<Plus />}
-                    label="New Template"
-                    onClick={() => navigate(routes.newTemplate)}
+                    label={t('templates.new')}
+                    onClick={() => navigate('/templates/new')}
                     variant="secondary"
                 />
-            </AppHeaderActions>
-        </AppHeader>
+            </div>
+        </header>
     );
-
-    if (isLoading && !templates.length) {
-        return (
-            <>
-                {pageHeader}
-                <div className="flex flex-1 flex-col gap-4 p-4">
-                    <LoadingState
-                        description="Please wait while we fetch your flow templates"
-                        title="Loading templates..."
-                    />
-                </div>
-            </>
-        );
-    }
-
-    // Error surface only when there's no data — a failed background refetch must not blank a working list.
-    if (error && !templates.length) {
-        return (
-            <>
-                {pageHeader}
-                <div className="flex flex-1 flex-col gap-4 p-4">
-                    <ErrorState
-                        message={error.message}
-                        onRetry={refetch}
-                        title="Error loading templates"
-                    />
-                </div>
-            </>
-        );
-    }
 
     if (!templates.length) {
         return (
             <>
                 {pageHeader}
-                <div className="flex flex-1 flex-col gap-4 p-4">
-                    <Empty>
-                        <EmptyHeader>
-                            <EmptyMedia variant="icon">
-                                <FileText />
-                            </EmptyMedia>
-                            <EmptyTitle>No templates yet</EmptyTitle>
-                            <EmptyDescription>Create your first template to get started</EmptyDescription>
-                        </EmptyHeader>
-                        <EmptyContent>
+                <div className="flex flex-col gap-4 p-4">
+                    <StatusCard
+                        action={
                             <Button
-                                onClick={() => navigate(routes.newTemplate)}
+                                onClick={() => navigate('/templates/new')}
                                 variant="secondary"
                             >
-                                <Plus />
-                                New Template
+                                <Plus className="size-4" />
+                                {t('templates.new')}
                             </Button>
-                        </EmptyContent>
-                    </Empty>
+                        }
+                        description={t('templates.emptyDescription')}
+                        icon={<FileText className="text-muted-foreground size-8" />}
+                        title={t('templates.emptyTitle')}
+                    />
                 </div>
             </>
         );
@@ -331,8 +304,8 @@ function Templates() {
                 <DataTable
                     columns={columns}
                     data={templates}
-                    empty={{ entityName: 'templates' }}
-                    filterPlaceholder="Filter templates..."
+                    empty={{ entityName: t('templates.entityName') }}
+                    filterPlaceholder={t('templates.filterPlaceholder')}
                     filterValue={filter}
                     onFilterChange={setFilter}
                     onRowClick={(template) => {
@@ -344,13 +317,13 @@ function Templates() {
                 />
 
                 <ConfirmationDialog
-                    cancelText="Cancel"
-                    confirmText="Delete"
+                    cancelText={t('common.cancel')}
+                    confirmText={t('common.delete')}
                     handleConfirm={handleDelete}
                     handleOpenChange={setIsDeleteDialogOpen}
                     isOpen={isDeleteDialogOpen}
                     itemName={deletingTemplate?.title}
-                    itemType="template"
+                    itemType={t('title.template')}
                 />
             </div>
         </>

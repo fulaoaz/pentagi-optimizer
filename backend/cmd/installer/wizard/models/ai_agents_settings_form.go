@@ -210,7 +210,7 @@ func (m *AIAgentsSettingsFormModel) GetCurrentConfiguration() string {
 		if val != "" {
 			sections = append(sections, fmt.Sprintf("• %s: %s", label, m.styles.Info.Render(val)))
 		} else {
-			sections = append(sections, fmt.Sprintf("• %s: %s", label, m.styles.Warning.Render("not set")))
+			sections = append(sections, fmt.Sprintf("• %s: %s", label, m.styles.Warning.Render(locale.StatusNotSet)))
 		}
 	}
 

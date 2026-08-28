@@ -4,6 +4,7 @@ import { HardDrive, HardDriveDownload, HardDriveUpload } from 'lucide-react';
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { VectorStoreAction } from '@/graphql/types';
+import { useLocale } from '@/hooks/use-locale';
 import { cn } from '@/lib/utils';
 import { formatName } from '@/lib/utils/format';
 
@@ -20,6 +21,7 @@ const icons: Record<VectorStoreAction, LucideIcon> = {
 const defaultIcon = HardDrive;
 
 function FlowVectorStoreActionIcon({ action, className, tooltip = action }: FlowVectorStoreActionIconProps) {
+    const { t } = useLocale();
     const Icon = action ? icons[action] || defaultIcon : defaultIcon;
     const iconElement = <Icon className={cn('size-3 shrink-0', tooltip && 'cursor-pointer', className)} />;
 
@@ -30,7 +32,9 @@ function FlowVectorStoreActionIcon({ action, className, tooltip = action }: Flow
     return (
         <Tooltip>
             <TooltipTrigger asChild>{iconElement}</TooltipTrigger>
-            <TooltipContent>{formatName(tooltip)}</TooltipContent>
+            <TooltipContent>
+                {action && tooltip === action ? t(`flow.logs.vectorAction.${action}`) : formatName(tooltip)}
+            </TooltipContent>
         </Tooltip>
     );
 }

@@ -876,25 +876,25 @@ func (p *processor) resetPassword(ctx context.Context, stack ProductStack, state
 	}
 
 	if stack != ProductStackPentagi {
-		return fmt.Errorf("reset password operation only supported for PentAGI stack")
+		return fmt.Errorf("只有 PentAGI 服务支持重置密码")
 	}
 
 	if !p.checker.PentagiRunning {
-		return fmt.Errorf("PentAGI must be running to reset password")
+		return fmt.Errorf("请先启动 PentAGI，再重置密码")
 	}
 
 	if state.passwordValue == "" {
-		return fmt.Errorf("password value is required")
+		return fmt.Errorf("请输入新密码")
 	}
 
-	p.appendLog("Resetting admin password...", stack, state)
+	p.appendLog("正在重置管理员密码...", stack, state)
 
 	// perform password reset using PostgreSQL operations
 	if err := p.performPasswordReset(ctx, state.passwordValue, state); err != nil {
-		return fmt.Errorf("failed to reset password: %w", err)
+		return fmt.Errorf("重置密码失败：%w", err)
 	}
 
-	p.appendLog("Password reset completed successfully", stack, state)
+	p.appendLog("管理员密码重置完成", stack, state)
 
 	return nil
 }

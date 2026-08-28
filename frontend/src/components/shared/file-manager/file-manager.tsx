@@ -19,6 +19,7 @@ import {
     ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { useLatestRef } from '@/hooks/use-latest-ref';
+import { useLocale } from '@/hooks/use-locale';
 import { cn } from '@/lib/utils';
 
 import type { FileManagerRowDisplay, FileManagerRowHandlers } from './file-manager-row';
@@ -55,27 +56,10 @@ const EMPTY_ACTIONS: readonly FileManagerAction[] = Object.freeze([]);
 const EMPTY_BULK_ACTIONS: readonly FileManagerBulkAction[] = Object.freeze([]);
 const EMPTY_AREA_ACTIONS: readonly FileManagerEmptyAreaAction[] = Object.freeze([]);
 
-const COLUMN_LABEL_FOR_ARIA: Record<FileManagerSortColumn, string> = {
-    modified: 'modified date',
-    name: 'name',
-    size: 'size',
-};
-
-const defaultSortHeaderAriaLabel = (
-    column: FileManagerSortColumn,
-    direction: FileManagerSortDirection | null,
-): string => {
-    const label = COLUMN_LABEL_FOR_ARIA[column];
-
-    if (direction === 'asc') {
-        return `Sort by ${label} (descending)`;
-    }
-
-    if (direction === 'desc') {
-        return `Clear sorting on ${label}`;
-    }
-
-    return `Sort by ${label} (ascending)`;
+const COLUMN_LABEL_KEY_FOR_ARIA: Record<FileManagerSortColumn, string> = {
+    modified: 'fileManager.column.modified',
+    name: 'fileManager.column.name',
+    size: 'fileManager.column.size',
 };
 
 const renderEmptyAreaItems = (items: readonly FileManagerEmptyAreaAction[]): ReactNode[] => {
@@ -131,6 +115,7 @@ export function FileManager({
     sorting: controlledSorting,
     sortStorageKey,
 }: FileManagerProps) {
+    const { t } = useLocale();
     const effectiveBulkActions = bulkActions ?? EMPTY_BULK_ACTIONS;
     const hasBulkActions = effectiveBulkActions.length > 0;
     const isCheckboxVisible = enableSelection ?? hasBulkActions;
@@ -353,7 +338,21 @@ export function FileManager({
     const formatModified = effectiveLabels.formatModified;
     const effectiveActions = actions ?? EMPTY_ACTIONS;
     const searchQuery = trimmedSearch || undefined;
-    const sortHeaderAriaLabel = effectiveLabels.sortHeaderAriaLabel ?? defaultSortHeaderAriaLabel;
+    const sortHeaderAriaLabel =
+        effectiveLabels.sortHeaderAriaLabel ??
+        ((column: FileManagerSortColumn, direction: FileManagerSortDirection | null): string => {
+            const label = t(COLUMN_LABEL_KEY_FOR_ARIA[column]);
+
+            if (direction === 'asc') {
+                return t('fileManager.sortDescending', { label });
+            }
+
+            if (direction === 'desc') {
+                return t('fileManager.clearSorting', { label });
+            }
+
+            return t('fileManager.sortAscending', { label });
+        });
 
     const renderSortableHeader = (column: FileManagerSortColumn, label: string, isSortable: boolean) => {
         if (!isSortable) {
@@ -430,7 +429,7 @@ export function FileManager({
     // clicks outside any row, which is the entire point.
     const treeBody = (
         <div
-            aria-label="File tree"
+            aria-label={t('common.fileTree')}
             aria-multiselectable={isCheckboxVisible || undefined}
             className={cn(
                 'flex flex-1 flex-col overflow-y-auto py-1 transition-colors',

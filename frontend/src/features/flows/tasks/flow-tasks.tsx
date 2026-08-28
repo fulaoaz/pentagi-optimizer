@@ -10,6 +10,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/
 import { Form, FormControl, FormField } from '@/components/ui/form';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
 import { useAutoScroll } from '@/hooks/use-auto-scroll';
+import { useLocale } from '@/hooks/use-locale';
 import { useFlow } from '@/providers/flow-provider';
 
 import FlowTask from './flow-task';
@@ -27,6 +28,7 @@ const containsSearchValue = (text: null | string | undefined, searchValue: strin
 };
 
 function FlowTasks() {
+    const { t } = useLocale();
     const { flowData, flowId } = useFlow();
 
     const tasks = useMemo(() => flowData?.tasks ?? [], [flowData?.tasks]);
@@ -109,7 +111,7 @@ function FlowTasks() {
                                         <InputGroupInput
                                             {...field}
                                             autoComplete="off"
-                                            placeholder="Search tasks and subtasks..."
+                                            placeholder={t('flow.tasks.searchPlaceholder')}
                                             type="text"
                                         />
                                         {field.value && (
@@ -173,8 +175,8 @@ function FlowTasks() {
                         <EmptyMedia variant="icon">
                             <ListTodo />
                         </EmptyMedia>
-                        <EmptyTitle>No tasks found for this flow</EmptyTitle>
-                        <EmptyDescription>Tasks will appear here once the agent starts working</EmptyDescription>
+                        <EmptyTitle>{t('flow.tasks.emptyTitle')}</EmptyTitle>
+                        <EmptyDescription>{t('flow.tasks.emptyDescription')}</EmptyDescription>
                     </EmptyHeader>
                 </Empty>
             )}

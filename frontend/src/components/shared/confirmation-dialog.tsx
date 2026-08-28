@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 
-import { Trash2 } from 'lucide-react';
+import { Loader2, Trash2 } from 'lucide-react';
 import { cloneElement, isValidElement, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Spinner } from '@/components/ui/spinner';
+import { useLocale } from '@/hooks/use-locale';
 import { cn } from '@/lib/utils';
 
 type ConfirmationDialogIconProps = ReactElement<React.SVGProps<SVGSVGElement>>;
@@ -36,32 +36,39 @@ interface ConfirmationDialogProps {
 
 function ConfirmationDialog({
     cancelIcon,
-    cancelText = 'Cancel',
+    cancelText: cancelTextProp,
     cancelVariant = 'outline',
     confirmIcon = <Trash2 />,
-    confirmText = 'Confirm',
+    confirmText: confirmTextProp,
     confirmVariant = 'destructive',
     description,
     handleConfirm,
     handleOpenChange,
     isOpen,
-    itemName = 'this',
-    itemType = 'item',
+    itemName: itemNameProp,
+    itemType: itemTypeProp,
     title,
 }: ConfirmationDialogProps) {
+    const { t } = useLocale();
     const [isProcessing, setIsProcessing] = useState(false);
+    const cancelText = cancelTextProp ?? t('common.cancel');
+    const confirmText = confirmTextProp ?? t('common.confirm');
+    const itemName = itemNameProp ?? t('common.this');
+    const itemType = itemTypeProp ?? t('common.item');
 
-    // `verb !== 'Confirm'` treats the default confirmText as "no custom verb": a bare
-    // Confirm gets the generic "Confirm Action" title instead of "Confirm <itemType>".
-    const verb = confirmText.trim();
-    const resolvedTitle = title ?? (verb && verb !== 'Confirm' ? `${verb} ${itemType}` : 'Confirm Action');
-
-    const defaultDescription = description || (
-        <>
-            Are you sure you want to {verb.toLowerCase() || 'perform this action on'}{' '}
-            <strong className="text-foreground font-semibold">{itemName}</strong> {itemType}?
-        </>
-    );
+    // Derive a contextual title from confirm verb + item type so callers don't
+    // see "Confirm Action" for a Delete prompt or a Save prompt. Explicit
+    // `title` always wins.
+    const action = confirmText.trim();
+    const hasExplicitAction = Boolean(confirmTextProp?.trim());
+    const resolvedTitle =
+        title ??
+        (hasExplicitAction ? t('confirmation.actionTitle', { action, itemType }) : t('confirmation.defaultTitle'));
+    const defaultDescription =
+        description ??
+        (hasExplicitAction
+            ? t('confirmation.actionDescription', { action: action.toLowerCase(), itemType, name: itemName })
+            : t('confirmation.defaultDescription', { itemType, name: itemName }));
 
     const processIcon = (icon?: ConfirmationDialogIconProps): ConfirmationDialogIconProps | null => {
         if (!icon) {
@@ -128,7 +135,7 @@ function ConfirmationDialog({
                         }}
                         variant={confirmVariant}
                     >
-                        {isProcessing ? <Spinner variant="circle" /> : processIcon(confirmIcon)}
+                        {isProcessing ? <Loader2 className="size-4 animate-spin" /> : processIcon(confirmIcon)}
                         {confirmText}
                     </Button>
                 </DialogFooter>

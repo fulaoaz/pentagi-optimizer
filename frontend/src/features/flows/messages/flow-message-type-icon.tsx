@@ -16,6 +16,7 @@ import {
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { MessageLogType } from '@/graphql/types';
+import { useLocale } from '@/hooks/use-locale';
 import { cn } from '@/lib/utils';
 import { formatName } from '@/lib/utils/format';
 
@@ -41,6 +42,7 @@ const messageTypeIcons: Record<MessageLogType, LucideIcon> = {
 const defaultIcon = Brain;
 
 function FlowMessageTypeIcon({ className, type, tooltip = type }: MessageTypeIconProps) {
+    const { t } = useLocale();
     const Icon = type ? messageTypeIcons[type] || defaultIcon : defaultIcon;
     const iconElement = <Icon className={cn('size-3 shrink-0', className)} />;
 
@@ -51,7 +53,9 @@ function FlowMessageTypeIcon({ className, type, tooltip = type }: MessageTypeIco
     return (
         <Tooltip>
             <TooltipTrigger asChild>{iconElement}</TooltipTrigger>
-            <TooltipContent>{formatName(tooltip)}</TooltipContent>
+            <TooltipContent>
+                {type && tooltip === type ? t(`flow.messages.type.${type}`) : formatName(tooltip)}
+            </TooltipContent>
         </Tooltip>
     );
 }

@@ -3,22 +3,26 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 
 import type { OverwriteOutcome } from '@/components/shared/overwrite';
+import type { Translate } from '@/lib/i18n';
 
+import { useLocale } from '@/hooks/use-locale';
 import { api, getApiErrorMessage, getApiErrorStatusCode } from '@/lib/axios';
 
 import { RESOURCES_COPY_API_PATH } from './resources-constants';
-import { pluralizeItems } from './resources-utils';
 
-export const resourcesCopyFormSchema = z.object({
-    destination: z
-        .string()
-        .trim()
-        .min(1, { message: 'Destination cannot be empty' })
-        .refine((value) => !value.startsWith('/'), { message: 'Destination must be a relative path' })
-        .refine((value) => !value.split('/').includes('..'), { message: 'Destination must not contain ".."' }),
-});
+export const createResourcesCopyFormSchema = (t: Translate) =>
+    z.object({
+        destination: z
+            .string()
+            .trim()
+            .min(1, { message: t('resources.destinationRequired') })
+            .refine((value) => !value.startsWith('/'), { message: t('resources.destinationRelative') })
+            .refine((value) => !value.split('/').includes('..'), {
+                message: t('resources.destinationNoParentSegment'),
+            }),
+    });
 
-export type ResourcesCopyFormValues = z.infer<typeof resourcesCopyFormSchema>;
+export type ResourcesCopyFormValues = z.infer<ReturnType<typeof createResourcesCopyFormSchema>>;
 
 interface CopyRequestBody {
     destination: string;
@@ -45,6 +49,7 @@ interface UseResourcesCopyResult {
 
 /** Wraps `POST /resources/copy` for single and batch copy operations. */
 export function useResourcesCopy(): UseResourcesCopyResult {
+    const { t } = useLocale();
     const [isCopying, setIsCopying] = useState(false);
 
     const copy = useCallback(
@@ -64,10 +69,16 @@ export function useResourcesCopy(): UseResourcesCopyResult {
 
                 const description =
                     sources.length === 1
-                        ? `Copied to /${destination}`
-                        : `Copied ${sources.length} ${pluralizeItems(sources.length)} into /${destination}`;
+                        ? t('resources.copiedTo', { path: `/${destination}` })
+                        : t('resources.copiedManyTo', {
+                              count: t(
+                                  sources.length === 1 ? 'fileManager.itemCountOne' : 'fileManager.itemCountMany',
+                                  { count: sources.length },
+                              ),
+                              path: `/${destination}`,
+                          });
 
-                toast.success('Resource copied', { description });
+                toast.success(t('resources.copied'), { description });
 
                 return { kind: 'ok' };
             } catch (error) {
@@ -75,16 +86,16 @@ export function useResourcesCopy(): UseResourcesCopyResult {
                     return { kind: 'conflict' };
                 }
 
-                const description = getApiErrorMessage(error, 'Failed to copy resource');
+                const description = getApiErrorMessage(error, t('resources.copyFailed'));
 
-                toast.error('Copy failed', { description });
+                toast.error(t('resources.copyFailed'), { description });
 
                 return { kind: 'error' };
             } finally {
                 setIsCopying(false);
             }
         },
-        [],
+        [t],
     );
 
     return {

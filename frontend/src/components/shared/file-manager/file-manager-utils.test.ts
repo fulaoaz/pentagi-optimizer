@@ -119,6 +119,13 @@ describe('formatModifiedRelative', () => {
 
         expect(formatModifiedRelative(iso)).toBe('10m ago');
     });
+
+    it('formats relative time in Chinese', () => {
+        expect(formatModifiedRelative(new Date(NOW - 10_000), 'zh-CN')).toBe('刚刚');
+        expect(formatModifiedRelative(new Date(NOW - 5 * 60_000), 'zh-CN')).toBe('5 分钟前');
+        expect(formatModifiedRelative(new Date(NOW - 3 * 60 * 60_000), 'zh-CN')).toBe('3 小时前');
+        expect(formatModifiedRelative(subMonths(new Date(NOW), 2), 'zh-CN')).toBe('2 个月前');
+    });
 });
 
 describe('formatModifiedAbsolute', () => {
@@ -164,6 +171,11 @@ describe('formatModifiedAbsolute', () => {
         const local = new Date(2026, 2, 14, 10, 5);
 
         expect(formatModifiedAbsolute(local.toISOString())).toBe('14 Mar, 10:05');
+    });
+
+    it('formats absolute dates in Chinese', () => {
+        expect(formatModifiedAbsolute(new Date(2026, 0, 3, 8, 7), 'zh-CN')).toBe('1月3日 08:07');
+        expect(formatModifiedAbsolute(new Date(2024, 5, 1, 6, 30), 'zh-CN')).toBe('2024年6月1日 06:30');
     });
 });
 

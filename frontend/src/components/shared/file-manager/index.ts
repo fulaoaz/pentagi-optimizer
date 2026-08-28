@@ -10,6 +10,7 @@ export {
     deleteAction,
     downloadAction,
 } from './file-manager-actions';
+export { buildFileManagerLabels } from './file-manager-i18n';
 export { getFileTypeIcon } from './file-manager-icons';
 export type { FileTypeIcon } from './file-manager-icons';
 export type {

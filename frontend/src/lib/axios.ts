@@ -4,6 +4,7 @@ import Axios from 'axios';
 
 import { AUTH_STORAGE_KEY } from '@/providers/user-provider';
 
+import { resolveBrowserLocale } from './i18n';
 import { Log } from './log';
 import { routes } from './routes';
 
@@ -59,6 +60,12 @@ const axios = Axios.create({
     },
     timeout: 30_000,
     withCredentials: true,
+});
+
+axios.interceptors.request.use((config) => {
+    config.headers.set('Accept-Language', resolveBrowserLocale());
+
+    return config;
 });
 
 axios.interceptors.response.use(

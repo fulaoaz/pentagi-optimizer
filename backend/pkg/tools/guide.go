@@ -26,6 +26,7 @@ const (
 	guideVectorStoreResultLimit = 3
 	guideVectorStoreDefaultType = "guide"
 	guideNotFoundMessage        = "nothing found in guide store and you need to store it after figure out this case"
+	guideStorageDeferredMessage = "guide was retained in the task log but could not be added to long-term memory because the embedding service is unavailable"
 )
 
 type guide struct {
@@ -296,8 +297,8 @@ func (g *guide) Handle(ctx context.Context, name string, args json.RawMessage) (
 					langfuse.WithEventStatus(err.Error()),
 					langfuse.WithEventLevel(langfuse.ObservationLevelError),
 				)...)
-				logger.WithError(err).Error("failed to store guide")
-				return "", fmt.Errorf("failed to store guide: %w", err)
+				logger.WithError(err).Warn("failed to store guide; continuing without vector memory")
+				return guideStorageDeferredMessage, nil
 			}
 		} else {
 			// Slow path: Guide field exceeds embedding limit.
@@ -313,8 +314,8 @@ func (g *guide) Handle(ctx context.Context, name string, args json.RawMessage) (
 					langfuse.WithEventStatus(err.Error()),
 					langfuse.WithEventLevel(langfuse.ObservationLevelError),
 				)...)
-				logger.WithError(err).Error("failed to store guide with embedding limit")
-				return "", fmt.Errorf("failed to store guide: %w", err)
+				logger.WithError(err).Warn("failed to store guide with embedding limit; continuing without vector memory")
+				return guideStorageDeferredMessage, nil
 			}
 			ids = []string{id}
 			docs = []schema.Document{

@@ -1,16 +1,19 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { AppHeader, AppHeaderContent, AppHeaderTitle } from '@/components/layouts/app/app-header';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
 import { Card, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FlowForm, type FlowFormValues } from '@/features/flows/flow-form';
-import { routes } from '@/lib/routes';
+import { useLocale } from '@/hooks/use-locale';
 import { useFlows } from '@/providers/flows-provider';
 import { useProviders } from '@/providers/providers-provider';
 import { useSystemSettings } from '@/providers/system-settings-provider';
 
 function NewFlow() {
+    const { t } = useLocale();
     const navigate = useNavigate();
 
     const { selectedProvider } = useProviders();
@@ -35,7 +38,7 @@ function NewFlow() {
             const flowId = flowType === 'automation' ? await createFlow(values) : await createFlowWithAssistant(values);
 
             if (flowId) {
-                navigate(routes.flow(flowId, { tab: flowType }));
+                navigate(`/flows/${flowId}?tab=${flowType}`);
             }
         } finally {
             setIsLoading(false);
@@ -44,17 +47,26 @@ function NewFlow() {
 
     return (
         <>
-            <AppHeader>
-                <AppHeaderContent>
-                    <AppHeaderTitle>New flow</AppHeaderTitle>
-                </AppHeaderContent>
-            </AppHeader>
+            <header className="bg-background sticky top-0 z-10 flex h-12 shrink-0 items-center gap-2 border-b px-4">
+                <SidebarTrigger className="-ml-1 shrink-0" />
+                <Separator
+                    className="mr-2 h-4 shrink-0"
+                    orientation="vertical"
+                />
+                <Breadcrumb className="min-w-0 flex-1">
+                    <BreadcrumbList className="min-w-0 flex-nowrap">
+                        <BreadcrumbItem className="min-w-0">
+                            <BreadcrumbPage className="min-w-0 truncate">{t('title.newFlow')}</BreadcrumbPage>
+                        </BreadcrumbItem>
+                    </BreadcrumbList>
+                </Breadcrumb>
+            </header>
             <div className="flex min-h-[calc(100dvh-3rem)] items-center justify-center p-4">
                 <Card className="w-full max-w-2xl">
                     <CardContent className="flex flex-col gap-4 pt-6">
-                        <div className="flex flex-col gap-2 text-center">
-                            <h2 className="text-2xl font-semibold">Create a new flow</h2>
-                            <p className="text-muted-foreground">Describe what you would like PentAGI to test</p>
+                        <div className="text-center">
+                            <h1 className="text-2xl font-semibold">{t('flow.new.title')}</h1>
+                            <p className="text-muted-foreground mt-2">{t('flow.new.description')}</p>
                         </div>
                         <Tabs
                             onValueChange={(value) => setFlowType(value as 'assistant' | 'automation')}
@@ -65,13 +77,13 @@ function NewFlow() {
                                     disabled={isLoading}
                                     value="automation"
                                 >
-                                    Automation
+                                    {t('flow.tabs.automation')}
                                 </TabsTrigger>
                                 <TabsTrigger
                                     disabled={isLoading}
                                     value="assistant"
                                 >
-                                    Assistant
+                                    {t('flow.tabs.assistant')}
                                 </TabsTrigger>
                             </TabsList>
                         </Tabs>
@@ -85,9 +97,9 @@ function NewFlow() {
                             placeholder={
                                 !isLoading
                                     ? flowType === 'automation'
-                                        ? 'Describe what you would like PentAGI to test...'
-                                        : 'What would you like me to help you with?'
-                                    : 'Creating a new flow...'
+                                        ? t('flow.new.automationPlaceholder')
+                                        : t('flow.new.assistantPlaceholder')
+                                    : t('flow.new.creating')
                             }
                             type={flowType}
                         />

@@ -1,7 +1,11 @@
-import { useState } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Languages } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 
+import type { Locale, Translate } from '@/lib/i18n';
 import type { OAuthProvider } from '@/providers/user-provider';
 
 import Github from '@/components/icons/github';
@@ -10,64 +14,69 @@ import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormSubmitButton } from '@/components/ui/form-submit-button';
 import { Input } from '@/components/ui/input';
-import { InputPassword } from '@/components/ui/input-password';
-import { useAppForm } from '@/hooks/use-app-form';
-import { routes } from '@/lib/routes';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useLocale } from '@/hooks/use-locale';
+import { localeNames, locales } from '@/lib/i18n';
 import { useUser } from '@/providers/user-provider';
 
 import { PasswordChangeForm } from './password-change-form';
 
-const formSchema = z.object({
-    mail: z
-        .string()
-        .min(1, {
-            message: 'Login is required',
-        })
-        .refine(
-            (value) => z.string().email().safeParse(value).success || ['admin', 'demo'].includes(value.toLowerCase()),
-            {
-                message: 'Invalid login',
-            },
-        ),
-    password: z.string().min(1, {
-        message: 'Password is required',
-    }),
-});
-
-const errorMessage = 'Invalid login or password';
-const errorProviderMessage = 'Authentication failed';
+// Built inside the component so validation messages follow the active locale;
+// a module-level schema would capture whichever locale was loaded first.
+const buildFormSchema = (t: Translate) =>
+    z.object({
+        mail: z
+            .string()
+            .min(1, {
+                message: t('auth.loginRequired'),
+            })
+            .refine(
+                (value) =>
+                    z.string().email().safeParse(value).success || ['admin', 'demo'].includes(value.toLowerCase()),
+                {
+                    message: t('auth.invalidLogin'),
+                },
+            ),
+        password: z.string().min(1, {
+            message: t('auth.passwordRequired'),
+        }),
+    });
 
 interface AuthProviderAction {
     icon: React.ReactNode;
     id: OAuthProvider;
-    name: string;
+    nameKey: string;
 }
 
 const providerActions: AuthProviderAction[] = [
     {
         icon: <Google className="size-5" />,
         id: 'google',
-        name: 'Continue with Google',
+        nameKey: 'auth.continueWithGoogle',
     },
     {
         icon: <Github className="size-5" />,
         id: 'github',
-        name: 'Continue with GitHub',
+        nameKey: 'auth.continueWithGithub',
     },
 ];
 
 interface LoginFormProps {
-    providers: string[];
+    providers: string[]; // OAuth providers: ['google', 'github']
     returnUrl?: string;
 }
 
-function LoginForm({ providers, returnUrl = routes.newFlow }: LoginFormProps) {
-    const form = useAppForm<z.infer<typeof formSchema>>({
+function LoginForm({ providers, returnUrl = '/flows/new' }: LoginFormProps) {
+    const { locale, setLocale, t } = useLocale();
+    const formSchema = useMemo(() => buildFormSchema(t), [t]);
+    const errorMessage = t('auth.invalidLoginOrPassword');
+    const errorProviderMessage = t('auth.providerFailed');
+    const form = useForm<z.infer<typeof formSchema>>({
         defaultValues: {
             mail: '',
             password: '',
         },
-        schema: formSchema,
+        resolver: zodResolver(formSchema),
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<null | string>(null);
@@ -139,6 +148,8 @@ function LoginForm({ providers, returnUrl = routes.newFlow }: LoginFormProps) {
         }
     };
 
+    // If password change is required, show password change form.
+    // Also check isAuthenticated() to ensure the user has a valid session.
     // If the session expired and user refreshed the page, the old authInfo may still
     // be in memory (race condition between clearAuth() and navigate()), but we must
     // NOT show the password change form because:
@@ -154,14 +165,13 @@ function LoginForm({ providers, returnUrl = routes.newFlow }: LoginFormProps) {
     if (shouldShowPasswordChange) {
         return (
             <div className="mx-auto flex w-[350px] flex-col gap-6">
-                <h1 className="text-center text-3xl font-bold">Update Password</h1>
-                <p className="text-muted-foreground text-center text-sm">
-                    You need to change your password before continuing.
-                </p>
+                <h1 className="text-center text-3xl font-bold">{t('auth.updatePassword')}</h1>
+                <p className="text-muted-foreground text-center text-sm">{t('auth.passwordChangeHint')}</p>
                 <PasswordChangeForm
-                    layout="vertical"
+                    isModal={false}
                     onSkip={handleSkipPasswordChange}
                     onSuccess={handlePasswordChangeSuccess}
+                    showSkip={true}
                 />
             </div>
         );
@@ -171,10 +181,34 @@ function LoginForm({ providers, returnUrl = routes.newFlow }: LoginFormProps) {
         <Form {...form}>
             <form
                 className="mx-auto grid w-[350px] gap-8"
-                noValidate
                 onSubmit={form.handleSubmit(handleSubmit)}
             >
-                <h1 className="text-center text-3xl font-bold">PentAGI</h1>
+                <div className="space-y-3">
+                    <h1 className="text-center text-3xl font-bold">PentAGI</h1>
+                    <div className="flex items-center justify-center gap-2 text-sm">
+                        <Languages
+                            aria-hidden="true"
+                            className="text-muted-foreground size-4"
+                        />
+                        <span className="text-muted-foreground">{t('settings.language')}</span>
+                        <Tabs
+                            onValueChange={(value) => setLocale(value as Locale)}
+                            value={locale}
+                        >
+                            <TabsList className="h-8 p-0.5">
+                                {locales.map((value) => (
+                                    <TabsTrigger
+                                        className="h-7 px-2 text-xs"
+                                        key={value}
+                                        value={value}
+                                    >
+                                        {localeNames[value]}
+                                    </TabsTrigger>
+                                ))}
+                            </TabsList>
+                        </Tabs>
+                    </div>
+                </div>
 
                 {providers?.length > 0 && (
                     <>
@@ -190,7 +224,7 @@ function LoginForm({ providers, returnUrl = routes.newFlow }: LoginFormProps) {
                                         variant="secondary"
                                     >
                                         {provider.icon}
-                                        {provider.name}
+                                        {t(provider.nameKey)}
                                     </Button>
                                 ))}
                         </div>
@@ -200,7 +234,7 @@ function LoginForm({ providers, returnUrl = routes.newFlow }: LoginFormProps) {
                                 <div className="w-full border-t border-gray-300" />
                             </div>
                             <div className="relative flex justify-center text-sm">
-                                <span className="bg-background px-2">or</span>
+                                <span className="bg-background px-2">{t('auth.or')}</span>
                             </div>
                         </div>
                     </>
@@ -212,12 +246,12 @@ function LoginForm({ providers, returnUrl = routes.newFlow }: LoginFormProps) {
                         name="mail"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Login</FormLabel>
+                                <FormLabel>{t('auth.login')}</FormLabel>
                                 <FormControl>
                                     <Input
                                         {...field}
                                         autoFocus
-                                        placeholder="Enter your email"
+                                        placeholder={t('auth.enterEmail')}
                                     />
                                 </FormControl>
                                 <FormMessage />
@@ -230,11 +264,12 @@ function LoginForm({ providers, returnUrl = routes.newFlow }: LoginFormProps) {
                         name="password"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Password</FormLabel>
+                                <FormLabel>{t('auth.password')}</FormLabel>
                                 <FormControl>
-                                    <InputPassword
+                                    <Input
                                         {...field}
-                                        placeholder="Enter your password"
+                                        placeholder={t('auth.enterPassword')}
+                                        type="password"
                                     />
                                 </FormControl>
                                 <FormMessage />
@@ -243,7 +278,7 @@ function LoginForm({ providers, returnUrl = routes.newFlow }: LoginFormProps) {
                     />
 
                     <FormSubmitButton className="w-full">
-                        <span>Sign in</span>
+                        <span>{t('auth.signIn')}</span>
                     </FormSubmitButton>
 
                     {error && <FormMessage>{error}</FormMessage>}

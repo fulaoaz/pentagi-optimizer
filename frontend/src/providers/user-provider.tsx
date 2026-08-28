@@ -5,10 +5,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import type { AuthInfo } from '@/models/info';
-import type { User } from '@/models/user';
 
+import { useLocale } from '@/hooks/use-locale';
 import { api } from '@/lib/axios';
-import { routes } from '@/lib/routes';
 import { getReturnUrlParam } from '@/lib/utils/auth';
 import { baseUrl } from '@/models/api';
 
@@ -33,7 +32,6 @@ interface UserContextType {
     login: (credentials: LoginCredentials) => Promise<LoginResult>;
     loginWithOAuth: (provider: OAuthProvider) => Promise<LoginResult>;
     logout: (returnUrl?: string) => Promise<void>;
-    patchUser: (patch: Partial<User>) => void;
     refreshAuthInfo: () => Promise<void>;
     setAuth: (authInfo: AuthInfo) => void;
 }
@@ -45,6 +43,7 @@ export const AUTH_STORAGE_KEY = 'auth';
 export function UserProvider({ children }: { children: ReactNode }) {
     const navigate = useNavigate();
     const location = useLocation();
+    const { t } = useLocale();
     const [authInfo, setAuthInfo] = useState<AuthInfo | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -121,17 +120,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
         return expirationDate > now;
     }, [authInfo]);
 
-    const patchUser = useCallback(
-        (patch: Partial<User>) => {
-            if (!authInfo?.user) {
-                return;
-            }
-
-            setAuth({ ...authInfo, user: { ...authInfo.user, ...patch } });
-        },
-        [authInfo, setAuth],
-    );
-
     const refreshAuthInfo = useCallback(async () => {
         try {
             const info = await api.get<AuthInfo>('/info');
@@ -142,13 +130,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
                 clearAuth();
             }
         } catch {
-            // A transient /info failure (network, 5xx, timeout) is not auth loss — the axios
-            // interceptor hard-redirects on a real 401/403. Keep the current session.
+            clearAuth();
         }
     }, [setAuth, clearAuth]);
 
     useEffect(() => {
-        if (location.pathname === routes.login() && !isLoading) {
+        if (location.pathname === '/login' && !isLoading) {
             // eslint-disable-next-line react-hooks/set-state-in-effect -- refreshAuthInfo's setState runs after an async fetch, not synchronously
             refreshAuthInfo();
         }
@@ -161,15 +148,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
             try {
                 await api.get('/auth/logout');
-                toast.success('Successfully logged out');
+                toast.success(t('auth.logoutSuccess'));
             } catch {
-                toast.error('Logout failed, but clearing local session');
+                toast.error(t('auth.logoutFailedCleared'));
             } finally {
                 clearAuth();
-                window.location.href = `${routes.login()}${finalReturnUrl}`;
+                window.location.href = `/login${finalReturnUrl}`;
             }
         },
-        [clearAuth, location.pathname],
+        [clearAuth, location.pathname, t],
     );
 
     const login = useCallback(
@@ -178,7 +165,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
                 const loginResponse = await api.post<unknown>('/auth/login', credentials);
 
                 if (loginResponse?.status !== 'success') {
-                    const errorMessage = 'Invalid login or password';
+                    const errorMessage = t('auth.invalidLoginOrPassword');
                     toast.error(errorMessage);
 
                     return { error: errorMessage, success: false };
@@ -188,7 +175,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
                 const infoResponse = await api.get<AuthInfo>('/info');
 
                 if (infoResponse?.status !== 'success' || !infoResponse.data) {
-                    const errorMessage = 'Failed to load user information';
+                    const errorMessage = t('auth.loadUserFailed');
                     toast.error(errorMessage);
 
                     return { error: errorMessage, success: false };
@@ -197,25 +184,25 @@ export function UserProvider({ children }: { children: ReactNode }) {
                 setAuth(infoResponse.data);
 
                 if (infoResponse.data.user?.type === 'local' && infoResponse.data.user.password_change_required) {
-                    toast.warning('Password change required');
+                    toast.warning(t('auth.passwordChangeRequired'));
 
                     return { passwordChangeRequired: true, success: true };
                 }
 
                 return { success: true };
             } catch {
-                const errorMessage = 'Login failed. Please try again.';
+                const errorMessage = t('auth.loginFailed');
                 toast.error(errorMessage);
 
                 return { error: errorMessage, success: false };
             }
         },
-        [setAuth],
+        [setAuth, t],
     );
 
     const loginWithOAuth = useCallback(
         async (provider: OAuthProvider): Promise<LoginResult> => {
-            const returnOAuthUri = routes.oauthResult;
+            const returnOAuthUri = '/oauth/result';
             const width = 500;
             const height = 600;
             const left = window.screenX + (window.outerWidth - width) / 2;
@@ -228,7 +215,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
             );
 
             if (!popup) {
-                const errorMessage = 'Popup blocked. Please allow popups for this site.';
+                const errorMessage = t('auth.popupBlocked');
                 toast.error(errorMessage);
 
                 return {
@@ -248,7 +235,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
                         clearInterval(popupCheck);
                         clearTimeout(timeoutId);
                         window.removeEventListener('message', messageHandler);
-                        const errorMessage = 'Authentication cancelled';
+                        const errorMessage = t('auth.authenticationCancelled');
                         toast.info(errorMessage);
                         resolve({
                             error: errorMessage,
@@ -267,7 +254,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
                             popup.close();
                         }
 
-                        const errorMessage = 'Authentication timeout';
+                        const errorMessage = t('auth.authenticationTimeout');
                         toast.error(errorMessage);
                         resolve({
                             error: errorMessage,
@@ -313,7 +300,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
                     }
 
                     cleanup();
-                    const errorMessage = event.data.error || 'Authentication failed';
+                    const errorMessage = event.data.error || t('auth.providerFailed');
                     toast.error(errorMessage);
                     resolve({
                         error: errorMessage,
@@ -324,12 +311,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
                 window.addEventListener('message', messageHandler);
             });
         },
-        [setAuth],
+        [setAuth, t],
     );
 
     useEffect(() => {
         const updateAuth = async () => {
-            const publicRoutes = [routes.login(), routes.oauthResult];
+            const publicRoutes = ['/login', '/oauth/result'];
 
             if (publicRoutes.includes(location.pathname)) {
                 return;
@@ -350,12 +337,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
                     setAuth(info.data);
                 } else {
                     clearAuth();
-                    toast.error('Session expired. Please login again.');
-                    navigate(routes.login(location.pathname));
+                    toast.error(t('auth.sessionExpired'));
+                    const returnParam = getReturnUrlParam(location.pathname);
+                    navigate(`/login${returnParam}`);
                 }
             } catch {
-                // A transient /info failure on navigation must not log the user out — a network
-                // blip is not session expiry; the interceptor redirects on a real 401/403.
+                clearAuth();
+                toast.error(t('auth.sessionExpired'));
+                const returnParam = getReturnUrlParam(location.pathname);
+                navigate(`/login${returnParam}`);
             }
         };
 
@@ -385,7 +375,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
                 login,
                 loginWithOAuth,
                 logout,
-                patchUser,
                 refreshAuthInfo,
                 setAuth,
             }}

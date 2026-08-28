@@ -233,6 +233,26 @@ func TestErrorResponse(t *testing.T) {
 	assert.Equal(t, "internal server error", body["msg"])
 }
 
+func TestErrorResponse_SimplifiedChinese(t *testing.T) {
+	t.Parallel()
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/test", nil)
+	c.Request.Header.Set("Accept-Language", "zh-CN")
+
+	Error(c, ErrResourcesNotFound, errors.New("resource record missing"))
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Equal(t, responseLanguageChinese, w.Header().Get("Content-Language"))
+
+	var body map[string]any
+	err := json.Unmarshal(w.Body.Bytes(), &body)
+	require.NoError(t, err)
+	assert.Equal(t, "Resources.NotFound", body["code"])
+	assert.Equal(t, "未找到资源", body["msg"])
+}
+
 func TestErrorResponse_DevMode(t *testing.T) {
 	// Save original version and restore after test
 	oldVer := version.PackageVer

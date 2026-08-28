@@ -1,3 +1,4 @@
+import { enUS, zhCN } from 'date-fns/locale';
 import { Image } from 'lucide-react';
 import { memo, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -6,6 +7,7 @@ import type { ScreenshotFragmentFragment } from '@/graphql/types';
 
 import { buttonVariants } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useLocale } from '@/hooks/use-locale';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/utils/format';
 import { baseUrl } from '@/models/api';
@@ -15,6 +17,7 @@ interface FlowScreenshotProps {
 }
 
 function FlowScreenshot({ screenshot }: FlowScreenshotProps) {
+    const { locale, t } = useLocale();
     const [isExpanded, setIsExpanded] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
     const imageRef = useRef<HTMLDivElement>(null);
@@ -62,7 +65,7 @@ function FlowScreenshot({ screenshot }: FlowScreenshotProps) {
                                     <span className="truncate font-semibold">{screenshot.url}</span>
                                 </Link>
                             </TooltipTrigger>
-                            <TooltipContent>Source URL</TooltipContent>
+                            <TooltipContent>{t('flow.logs.sourceUrl')}</TooltipContent>
                         </Tooltip>
                     </div>
 
@@ -90,7 +93,7 @@ function FlowScreenshot({ screenshot }: FlowScreenshotProps) {
                 </div>
             </div>
             <div className="text-muted-foreground/50 mt-1 flex items-center gap-1 px-1 text-xs">
-                {formatDate(new Date(screenshot.createdAt))}
+                {formatDate(new Date(screenshot.createdAt), locale === 'zh-CN' ? zhCN : enUS)}
             </div>
         </div>
     );

@@ -12,6 +12,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
+import { useLocale } from '@/hooks/use-locale';
 
 export interface UnsavedChangesDialogProps {
     /** When `false`, the "Save & leave" button is disabled (e.g. form is invalid). */
@@ -32,8 +33,8 @@ export interface UnsavedChangesDialogProps {
 
 function UnsavedChangesDialog({
     canSave,
-    description = 'You have unsaved changes on this page. Would you like to save them before leaving?',
-    discardText = 'Discard',
+    description,
+    discardText,
     handleCancel,
     handleDiscard,
     handleOpenChange,
@@ -41,9 +42,15 @@ function UnsavedChangesDialog({
     isOpen,
     isSavingFromDialog,
     saveIcon = <Save />,
-    saveText = 'Save',
-    title = 'Unsaved changes',
+    saveText,
+    title,
 }: UnsavedChangesDialogProps) {
+    const { t } = useLocale();
+    const resolvedDescription = description ?? t('unsaved.description');
+    const resolvedDiscardText = discardText ?? t('unsaved.discard');
+    const resolvedSaveText = saveText ?? t('unsaved.save');
+    const resolvedTitle = title ?? t('unsaved.title');
+
     return (
         <Dialog
             onOpenChange={handleOpenChange}
@@ -63,8 +70,8 @@ function UnsavedChangesDialog({
                 }}
             >
                 <DialogHeader>
-                    <DialogTitle>{title}</DialogTitle>
-                    <DialogDescription>{description}</DialogDescription>
+                    <DialogTitle>{resolvedTitle}</DialogTitle>
+                    <DialogDescription>{resolvedDescription}</DialogDescription>
                 </DialogHeader>
                 <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                     <Button
@@ -72,14 +79,14 @@ function UnsavedChangesDialog({
                         onClick={handleCancel}
                         variant="outline"
                     >
-                        Cancel
+                        {t('unsaved.cancel')}
                     </Button>
                     <Button
                         disabled={isSavingFromDialog}
                         onClick={handleDiscard}
                         variant="destructive"
                     >
-                        {discardText}
+                        {resolvedDiscardText}
                     </Button>
                     <Button
                         disabled={isSavingFromDialog || !canSave}
@@ -89,7 +96,7 @@ function UnsavedChangesDialog({
                         variant="default"
                     >
                         {isSavingFromDialog ? <Spinner variant="circle" /> : saveIcon}
-                        {saveText}
+                        {resolvedSaveText}
                     </Button>
                 </DialogFooter>
             </DialogContent>

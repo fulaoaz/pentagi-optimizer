@@ -1,3 +1,4 @@
+import { enUS, zhCN } from 'date-fns/locale';
 import { Copy } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';
 
@@ -7,6 +8,7 @@ import Markdown from '@/components/shared/markdown';
 import Terminal from '@/components/shared/terminal';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { MessageLogType, ResultFormat } from '@/graphql/types';
+import { useLocale } from '@/hooks/use-locale';
 import { copyMessageToClipboard } from '@/lib/clipboard';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/utils/format';
@@ -27,6 +29,7 @@ const containsSearchValue = (text: null | string | undefined, searchValue: strin
 };
 
 function FlowMessage({ log, searchValue = '' }: FlowMessageProps) {
+    const { locale, t } = useLocale();
     const { createdAt, message, result, resultFormat = ResultFormat.Plain, thinking, type } = log;
     const isReportMessage = type === MessageLogType.Report;
 
@@ -84,13 +87,16 @@ function FlowMessage({ log, searchValue = '' }: FlowMessageProps) {
     }, []);
 
     const handleCopy = useCallback(async () => {
-        await copyMessageToClipboard({
-            message,
-            result,
-            resultFormat,
-            thinking,
-        });
-    }, [thinking, message, result, resultFormat]);
+        await copyMessageToClipboard(
+            {
+                message,
+                result,
+                resultFormat,
+                thinking,
+            },
+            t,
+        );
+    }, [thinking, message, result, resultFormat, t]);
 
     const shouldShowThinking = thinking && (!message || isThinkingVisible);
 
@@ -158,19 +164,22 @@ function FlowMessage({ log, searchValue = '' }: FlowMessageProps) {
                     resultFormat === ResultFormat.Terminal && isDetailsVisible ? 'w-full' : '',
                 )}
             >
+                {/* Thinking toggle button */}
                 {shouldShowThinkingToggle && (
                     <div className="text-muted-foreground mb-2 text-xs">
                         <div
                             className="cursor-pointer"
                             onClick={toggleThinking}
                         >
-                            {isThinkingVisible ? 'Hide thinking' : 'Show thinking'}
+                            {isThinkingVisible ? t('flow.messages.hideThinking') : t('flow.messages.showThinking')}
                         </div>
                     </div>
                 )}
 
+                {/* Thinking content */}
                 {renderThinkingContent()}
 
+                {/* Main message content */}
                 {message && (
                     <Markdown
                         className="prose-xs prose-fixed wrap-break-word"
@@ -180,13 +189,14 @@ function FlowMessage({ log, searchValue = '' }: FlowMessageProps) {
                     </Markdown>
                 )}
 
+                {/* Result details */}
                 {result && (
                     <div className="text-muted-foreground mt-2 text-xs">
                         <div
                             className="cursor-pointer"
                             onClick={toggleDetails}
                         >
-                            {isDetailsVisible ? 'Hide details' : 'Show details'}
+                            {isDetailsVisible ? t('flow.messages.hideDetails') : t('flow.messages.showDetails')}
                         </div>
                         {renderDetailsContent()}
                     </div>
@@ -205,15 +215,12 @@ function FlowMessage({ log, searchValue = '' }: FlowMessageProps) {
                             onClick={handleCopy}
                         />
                     </TooltipTrigger>
-                    <TooltipContent>Copy</TooltipContent>
+                    <TooltipContent>{t('flow.messages.copy')}</TooltipContent>
                 </Tooltip>
-                <span className="text-muted-foreground/50">{formatDate(new Date(createdAt))}</span>
-                <span
-                    className="text-muted-foreground/50"
-                    data-slot="flow-message-id"
-                >
-                    {log.id}
+                <span className="text-muted-foreground/50">
+                    {formatDate(new Date(createdAt), locale === 'zh-CN' ? zhCN : enUS)}
                 </span>
+                <span className="text-muted-foreground/50">{log.id}</span>
             </div>
         </div>
     );

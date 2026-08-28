@@ -20,6 +20,8 @@ import {
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { AgentType } from '@/graphql/types';
+import { useLocale } from '@/hooks/use-locale';
+import { translateAgentName } from '@/lib/i18n/settings-labels';
 import { cn } from '@/lib/utils';
 import { formatName } from '@/lib/utils/format';
 
@@ -49,6 +51,7 @@ const icons: Record<AgentType, LucideIcon> = {
 const defaultIcon = HelpCircle;
 
 function FlowAgentIcon({ className, type, tooltip = type }: FlowAgentIconProps) {
+    const { t } = useLocale();
     const Icon = type ? icons[type] || defaultIcon : defaultIcon;
     const iconElement = <Icon className={cn('size-3 shrink-0', className)} />;
 
@@ -59,7 +62,9 @@ function FlowAgentIcon({ className, type, tooltip = type }: FlowAgentIconProps) 
     return (
         <Tooltip>
             <TooltipTrigger asChild>{iconElement}</TooltipTrigger>
-            <TooltipContent>{formatName(tooltip)}</TooltipContent>
+            <TooltipContent>
+                {type && tooltip === type ? translateAgentName(type, t) : formatName(tooltip)}
+            </TooltipContent>
         </Tooltip>
     );
 }

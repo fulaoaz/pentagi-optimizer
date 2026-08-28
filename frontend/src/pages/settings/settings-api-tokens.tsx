@@ -1,26 +1,32 @@
 import type { ColumnDef } from '@tanstack/react-table';
 
-import { useMutation, useQuery, useSubscription } from '@apollo/client/react';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { format } from 'date-fns';
-import { enUS } from 'date-fns/locale';
-import { CalendarIcon, Check, Copy, Ellipsis, ExternalLink, Key, Pencil, Plus, Trash, X } from 'lucide-react';
+import { enUS, zhCN } from 'date-fns/locale';
+import {
+    AlertCircle,
+    CalendarIcon,
+    Check,
+    Copy,
+    Ellipsis,
+    ExternalLink,
+    Key,
+    Loader2,
+    Pencil,
+    Plus,
+    Trash,
+    X,
+} from 'lucide-react';
 import { useCallback, useId, useMemo, useState } from 'react';
-import { type Control, Controller, useFormState } from 'react-hook-form';
+import { type Control, Controller, useForm, useFormState } from 'react-hook-form';
 import { toast } from 'sonner';
 import * as z from 'zod';
 
 import type { ApiTokenFragmentFragment } from '@/graphql/types';
+import type { Translate } from '@/lib/i18n';
 
-import {
-    AppHeader,
-    AppHeaderAction,
-    AppHeaderActions,
-    AppHeaderContent,
-    AppHeaderTitle,
-} from '@/components/layouts/app/app-header';
 import ConfirmationDialog from '@/components/shared/confirmation-dialog';
-import { ErrorState } from '@/components/shared/error-state';
-import { LoadingState } from '@/components/shared/loading-state';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -34,22 +40,21 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Spinner } from '@/components/ui/spinner';
+import { StatusCard } from '@/components/ui/status-card';
 import {
-    ApiTokenCreatedDocument,
-    ApiTokenDeletedDocument,
-    ApiTokensDocument,
-    ApiTokenUpdatedDocument,
-    CreateApiTokenDocument,
-    DeleteApiTokenDocument,
     TokenStatus as TokenStatusEnum,
-    UpdateApiTokenDocument,
+    useApiTokenCreatedSubscription,
+    useApiTokenDeletedSubscription,
+    useApiTokensQuery,
+    useApiTokenUpdatedSubscription,
+    useCreateApiTokenMutation,
+    useDeleteApiTokenMutation,
+    useUpdateApiTokenMutation,
 } from '@/graphql/types';
-import { useAppForm } from '@/hooks/use-app-form';
+import { useLocale } from '@/hooks/use-locale';
 import { useTableState } from '@/hooks/use-table-state';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/utils/format';
@@ -57,31 +62,32 @@ import { baseUrl } from '@/models/api';
 
 type APIToken = ApiTokenFragmentFragment;
 
-// 100 mirrors the backend cap (server/models/api_tokens.go + the createAPIToken/updateAPIToken resolvers).
-export const tokenNameSchema = z.string().trim().max(100, 'Token name must be 100 characters or less').default('');
+const buildTokenNameSchema = (t: Translate) => z.string().trim().max(255, t('settings.apiTokens.nameMax')).default('');
 
-const createTokenFormSchema = z.object({
-    // Nullable in form input (the date picker starts empty); the refine gates
-    // `formState.isValid` so the Create button stays disabled until a date is set.
-    expiresAt: z
-        .date()
-        .nullable()
-        .refine((value) => value !== null, { message: 'Expiration date is required' }),
-    name: tokenNameSchema,
-});
+const buildCreateTokenFormSchema = (t: Translate) =>
+    z.object({
+        // Nullable in the form state (the date picker starts empty) but required
+        // for submission — the refine drives `formState.isValid`, which gates the
+        // Create button without manual checks. Kept as `Date | null` in the
+        // inferred type so `defaultValues` can be `null` without a cast.
+        expiresAt: z
+            .date()
+            .nullable()
+            .refine((value) => value !== null, { message: t('settings.apiTokens.expirationRequired') }),
+        name: buildTokenNameSchema(t),
+    });
 
-const editTokenFormSchema = z.object({
-    name: tokenNameSchema,
-    status: z.nativeEnum(TokenStatusEnum),
-});
+const buildEditTokenFormSchema = (t: Translate) =>
+    z.object({
+        name: buildTokenNameSchema(t),
+        status: z.nativeEnum(TokenStatusEnum),
+    });
 
-type CreateTokenFormInput = z.input<typeof createTokenFormSchema>;
-type CreateTokenFormValues = z.output<typeof createTokenFormSchema>;
-type EditTokenFormInput = z.input<typeof editTokenFormSchema>;
-type EditTokenFormValues = z.output<typeof editTokenFormSchema>;
+type CreateTokenFormValues = z.infer<ReturnType<typeof buildCreateTokenFormSchema>>;
+type EditTokenFormValues = z.infer<ReturnType<typeof buildEditTokenFormSchema>>;
 
-const CREATE_TOKEN_DEFAULTS: CreateTokenFormInput = { expiresAt: null, name: '' };
-const EDIT_TOKEN_DEFAULTS: EditTokenFormInput = { name: '', status: TokenStatusEnum.Active };
+const CREATE_TOKEN_DEFAULTS: CreateTokenFormValues = { expiresAt: null, name: '' };
+const EDIT_TOKEN_DEFAULTS: EditTokenFormValues = { name: '', status: TokenStatusEnum.Active };
 
 const isTokenExpired = (token: APIToken): boolean => {
     const expiresAt = new Date(token.createdAt);
@@ -101,19 +107,20 @@ const getTokenExpirationDate = (token: APIToken): Date => {
 
 const getStatusDisplay = (
     token: APIToken,
+    t: Translate,
 ): { label: string; variant: 'default' | 'destructive' | 'outline' | 'secondary' } => {
     const expired = isTokenExpired(token);
 
     if (expired) {
-        return { label: 'expired', variant: 'destructive' };
+        return { label: t('settings.apiTokens.expired'), variant: 'destructive' };
     }
 
     if (token.status === 'active') {
-        return { label: 'active', variant: 'default' };
+        return { label: t('settings.apiTokens.active'), variant: 'default' };
     }
 
     if (token.status === 'revoked') {
-        return { label: 'revoked', variant: 'outline' };
+        return { label: t('settings.apiTokens.revoked'), variant: 'outline' };
     }
 
     return { label: token.status, variant: 'secondary' };
@@ -139,6 +146,47 @@ const copyToClipboard = async (text: string): Promise<boolean> => {
     }
 };
 
+function SettingsAPITokensHeader({ onCreateClick }: { onCreateClick: () => void }) {
+    const { t } = useLocale();
+
+    return (
+        <div className="flex items-center justify-between gap-4">
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
+                <p className="text-muted-foreground truncate">{t('settings.apiTokens.manage')}</p>
+                <div className="flex gap-4 text-sm">
+                    <a
+                        className="text-primary inline-flex items-center gap-1 underline hover:no-underline"
+                        href={`${window.location.origin}${baseUrl}/graphql/playground`}
+                        rel="noopener noreferrer"
+                        target="_blank"
+                    >
+                        GraphQL Playground
+                        <ExternalLink className="size-3" />
+                    </a>
+                    <a
+                        className="text-primary inline-flex items-center gap-1 underline hover:no-underline"
+                        href={`${window.location.origin}${baseUrl}/swagger/index.html`}
+                        rel="noopener noreferrer"
+                        target="_blank"
+                    >
+                        Swagger UI
+                        <ExternalLink className="size-3" />
+                    </a>
+                </div>
+            </div>
+
+            <Button
+                className="shrink-0"
+                onClick={onCreateClick}
+                variant="secondary"
+            >
+                <Plus className="size-4" />
+                {t('settings.apiTokens.createToken')}
+            </Button>
+        </div>
+    );
+}
+
 const createNewTokenPlaceholder: APIToken = {
     createdAt: new Date().toISOString(),
     id: 'create-new',
@@ -160,27 +208,28 @@ function CreateRowActions({
     onCancel,
     onSubmit,
 }: {
-    control: Control<CreateTokenFormInput>;
+    control: Control<CreateTokenFormValues>;
     isLoading: boolean;
     onCancel: () => void;
     onSubmit: () => void;
 }) {
+    const { t } = useLocale();
     const { isValid } = useFormState({ control });
 
     return (
         <div className="flex justify-end">
             <Button
-                aria-label={isLoading ? 'Submitting…' : 'Submit'}
+                aria-label={isLoading ? t('common.submitting') : t('common.submit')}
                 className="shrink-0"
                 disabled={isLoading || !isValid}
                 onClick={onSubmit}
                 size="icon-sm"
                 variant="ghost"
             >
-                {isLoading ? <Spinner variant="circle" /> : <Check />}
+                {isLoading ? <Loader2 className="animate-spin" /> : <Check />}
             </Button>
             <Button
-                aria-label="Cancel"
+                aria-label={t('common.cancel')}
                 className="shrink-0"
                 onClick={onCancel}
                 size="icon-sm"
@@ -198,27 +247,28 @@ function EditRowActions({
     onCancel,
     onSubmit,
 }: {
-    control: Control<EditTokenFormInput>;
+    control: Control<EditTokenFormValues>;
     isLoading: boolean;
     onCancel: () => void;
     onSubmit: () => void;
 }) {
+    const { t } = useLocale();
     const { isValid } = useFormState({ control });
 
     return (
         <div className="flex justify-end">
             <Button
-                aria-label={isLoading ? 'Submitting…' : 'Submit'}
+                aria-label={isLoading ? t('common.submitting') : t('common.submit')}
                 className="shrink-0"
                 disabled={isLoading || !isValid}
                 onClick={onSubmit}
                 size="icon-sm"
                 variant="ghost"
             >
-                {isLoading ? <Spinner variant="circle" /> : <Check />}
+                {isLoading ? <Loader2 className="animate-spin" /> : <Check />}
             </Button>
             <Button
-                aria-label="Cancel"
+                aria-label={t('common.cancel')}
                 className="shrink-0"
                 onClick={onCancel}
                 size="icon-sm"
@@ -231,15 +281,17 @@ function EditRowActions({
 }
 
 function SettingsAPITokens() {
-    const { data, error, loading: isLoading, refetch } = useQuery(ApiTokensDocument);
-    const [createAPIToken, { loading: isCreateLoading }] = useMutation(CreateApiTokenDocument);
-    const [updateAPIToken, { loading: isUpdateLoading }] = useMutation(UpdateApiTokenDocument);
-    const [deleteAPIToken, { loading: isDeleteLoading }] = useMutation(DeleteApiTokenDocument);
+    const { locale, t } = useLocale();
+    const { data, error, loading: isLoading } = useApiTokensQuery();
+    const [createAPIToken, { error: createError, loading: isCreateLoading }] = useCreateApiTokenMutation();
+    const [updateAPIToken, { error: updateError, loading: isUpdateLoading }] = useUpdateApiTokenMutation();
+    const [deleteAPIToken, { error: deleteError, loading: isDeleteLoading }] = useDeleteApiTokenMutation();
 
     const [editingTokenId, setEditingTokenId] = useState<null | string>(null);
     const [creatingToken, setCreatingToken] = useState(false);
     const [tokenSecret, setTokenSecret] = useState<null | string>(null);
     const [showTokenDialog, setShowTokenDialog] = useState(false);
+    const [deleteErrorMessage, setDeleteErrorMessage] = useState<null | string>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [deletingToken, setDeletingToken] = useState<APIToken | null>(null);
 
@@ -247,34 +299,39 @@ function SettingsAPITokens() {
     // the row re-mounts due to subscription-driven refetches.
     const createNameFieldId = useId();
     const editNameFieldId = useId();
+    const createTokenFormSchema = useMemo(() => buildCreateTokenFormSchema(t), [t]);
+    const editTokenFormSchema = useMemo(() => buildEditTokenFormSchema(t), [t]);
+    const dateLocale = locale === 'zh-CN' ? zhCN : enUS;
 
     // Form state lives in the parent so that subscription-driven DataTable
     // re-renders and row remounts cannot drop user input. <Controller> in each
     // cell re-subscribes to this state on remount — no values are lost.
-    const createForm = useAppForm<CreateTokenFormInput, unknown, CreateTokenFormValues>({
+    const createForm = useForm<CreateTokenFormValues>({
         defaultValues: CREATE_TOKEN_DEFAULTS,
-        schema: createTokenFormSchema,
+        mode: 'onChange',
+        resolver: zodResolver(createTokenFormSchema),
     });
-    const editForm = useAppForm<EditTokenFormInput, unknown, EditTokenFormValues>({
+    const editForm = useForm<EditTokenFormValues>({
         defaultValues: EDIT_TOKEN_DEFAULTS,
-        schema: editTokenFormSchema,
+        mode: 'onChange',
+        resolver: zodResolver(editTokenFormSchema),
     });
 
     const { filter, pageIndex: currentPage, setFilter, setPage: handlePageChange } = useTableState();
 
-    useSubscription(ApiTokenCreatedDocument, {
+    useApiTokenCreatedSubscription({
         onData: ({ client }) => {
             client.refetchQueries({ include: ['apiTokens'] });
         },
     });
 
-    useSubscription(ApiTokenUpdatedDocument, {
+    useApiTokenUpdatedSubscription({
         onData: ({ client }) => {
             client.refetchQueries({ include: ['apiTokens'] });
         },
     });
 
-    useSubscription(ApiTokenDeletedDocument, {
+    useApiTokenDeletedSubscription({
         onData: ({ client }) => {
             client.refetchQueries({ include: ['apiTokens'] });
         },
@@ -308,7 +365,7 @@ function SettingsAPITokens() {
                     refetchQueries: ['apiTokens'],
                     variables: {
                         input: {
-                            name: values.name?.trim() || null,
+                            name: values.name.trim() || null,
                             status: values.status,
                         },
                         tokenId,
@@ -318,9 +375,7 @@ function SettingsAPITokens() {
                 setEditingTokenId(null);
                 editForm.reset(EDIT_TOKEN_DEFAULTS);
             } catch (error) {
-                toast.error('Failed to update token', {
-                    description: error instanceof Error ? error.message : undefined,
-                });
+                console.error('Failed to update token:', error);
             }
         },
         [editForm, updateAPIToken],
@@ -329,10 +384,7 @@ function SettingsAPITokens() {
     const handleCreateNew = useCallback(() => {
         setCreatingToken(true);
         createForm.reset(CREATE_TOKEN_DEFAULTS);
-        // The create row is prepended at data index 0, so an active filter or a non-first
-        // page would hide it. Clearing the filter also resets pageIndex to 0.
-        setFilter('');
-    }, [createForm, setFilter]);
+    }, [createForm]);
 
     const handleCancelCreate = useCallback(() => {
         setCreatingToken(false);
@@ -358,7 +410,7 @@ function SettingsAPITokens() {
                 refetchQueries: ['apiTokens'],
                 variables: {
                     input: {
-                        name: values.name?.trim() || null,
+                        name: values.name.trim() || null,
                         ttl,
                     },
                 },
@@ -372,9 +424,7 @@ function SettingsAPITokens() {
             setCreatingToken(false);
             createForm.reset(CREATE_TOKEN_DEFAULTS);
         } catch (error) {
-            toast.error('Failed to create token', {
-                description: error instanceof Error ? error.message : undefined,
-            });
+            console.error('Failed to create token:', error);
         }
     }, [createAPIToken, createForm]);
 
@@ -390,32 +440,36 @@ function SettingsAPITokens() {
             }
 
             try {
+                setDeleteErrorMessage(null);
+
                 await deleteAPIToken({
                     refetchQueries: ['apiTokens'],
                     variables: { tokenId },
                 });
 
                 setDeletingToken(null);
+                setDeleteErrorMessage(null);
             } catch (error) {
-                toast.error('Failed to delete token', {
-                    description: error instanceof Error ? error.message : undefined,
-                });
+                setDeleteErrorMessage(error instanceof Error ? error.message : t('settings.apiTokens.deleteError'));
             }
         },
-        [deleteAPIToken],
+        [deleteAPIToken, t],
     );
 
-    const handleCopyTokenId = useCallback(async (tokenId: string) => {
-        const success = await copyToClipboard(tokenId);
+    const handleCopyTokenId = useCallback(
+        async (tokenId: string) => {
+            const success = await copyToClipboard(tokenId);
 
-        if (success) {
-            toast.success('Token ID copied to clipboard');
+            if (success) {
+                toast.success(t('settings.apiTokens.copiedId'));
 
-            return;
-        }
+                return;
+            }
 
-        toast.error('Failed to copy token ID to clipboard');
-    }, []);
+            toast.error(t('settings.apiTokens.copyIdFailed'));
+        },
+        [t],
+    );
 
     const columns: ColumnDef<APIToken>[] = useMemo(
         () => [
@@ -438,7 +492,7 @@ function SettingsAPITokens() {
                                         autoFocus
                                         className="h-8"
                                         id={createNameFieldId}
-                                        placeholder="Token name (optional)"
+                                        placeholder={t('settings.apiTokens.namePlaceholder')}
                                     />
                                 )}
                             />
@@ -457,7 +511,7 @@ function SettingsAPITokens() {
                                         autoFocus
                                         className="h-8"
                                         id={editNameFieldId}
-                                        placeholder="Token name (optional)"
+                                        placeholder={t('settings.apiTokens.namePlaceholder')}
                                     />
                                 )}
                             />
@@ -466,7 +520,11 @@ function SettingsAPITokens() {
 
                     return (
                         <div className="font-medium">
-                            {token.name || <span className="text-muted-foreground font-normal italic">(unnamed)</span>}
+                            {token.name || (
+                                <span className="text-muted-foreground font-normal italic">
+                                    {t('settings.apiTokens.unnamed')}
+                                </span>
+                            )}
                         </div>
                     );
                 },
@@ -474,7 +532,7 @@ function SettingsAPITokens() {
                 header: ({ column }) => (
                     <DataTableColumnHeader
                         column={column}
-                        title="Name"
+                        title={t('settings.apiTokens.name')}
                     />
                 ),
                 meta: { searchable: true },
@@ -487,7 +545,7 @@ function SettingsAPITokens() {
                     const isCreating = token.id === 'create-new';
 
                     if (isCreating) {
-                        return <div className="text-muted-foreground text-sm">N/A</div>;
+                        return <div className="text-muted-foreground text-sm">{t('common.notAvailable')}</div>;
                     }
 
                     const tokenId = row.getValue('tokenId') as string;
@@ -496,7 +554,7 @@ function SettingsAPITokens() {
                         <div className="flex items-center gap-2">
                             <code className="text-sm">{tokenId}</code>
                             <Button
-                                aria-label="Copy token ID"
+                                aria-label={t('settings.apiTokens.copyIdAria')}
                                 className="size-6 p-0"
                                 onClick={() => handleCopyTokenId(tokenId)}
                                 variant="ghost"
@@ -510,10 +568,10 @@ function SettingsAPITokens() {
                 header: ({ column }) => (
                     <DataTableColumnHeader
                         column={column}
-                        title="Token ID"
+                        title={t('settings.apiTokens.tokenId')}
                     />
                 ),
-                meta: { columnMenuLabel: 'Token ID', searchable: true },
+                meta: { columnMenuLabel: t('settings.apiTokens.tokenId'), searchable: true },
                 size: 200,
             },
             {
@@ -523,12 +581,12 @@ function SettingsAPITokens() {
                     const isCreating = token.id === 'create-new';
 
                     if (isCreating) {
-                        return <Badge variant="default">active</Badge>;
+                        return <Badge variant="default">{t('settings.apiTokens.active')}</Badge>;
                     }
 
                     const isEditing = editingTokenId === token.tokenId;
                     const expired = isTokenExpired(token);
-                    const statusDisplay = getStatusDisplay(token);
+                    const statusDisplay = getStatusDisplay(token, t);
 
                     if (isEditing) {
                         if (expired) {
@@ -549,8 +607,12 @@ function SettingsAPITokens() {
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectGroup>
-                                                <SelectItem value={TokenStatusEnum.Active}>active</SelectItem>
-                                                <SelectItem value={TokenStatusEnum.Revoked}>revoked</SelectItem>
+                                                <SelectItem value={TokenStatusEnum.Active}>
+                                                    {t('settings.apiTokens.active')}
+                                                </SelectItem>
+                                                <SelectItem value={TokenStatusEnum.Revoked}>
+                                                    {t('settings.apiTokens.revoked')}
+                                                </SelectItem>
                                             </SelectGroup>
                                         </SelectContent>
                                     </Select>
@@ -564,7 +626,7 @@ function SettingsAPITokens() {
                 header: ({ column }) => (
                     <DataTableColumnHeader
                         column={column}
-                        title="Status"
+                        title={t('settings.apiTokens.status')}
                     />
                 ),
                 meta: { searchable: true },
@@ -598,9 +660,15 @@ function SettingsAPITokens() {
                                             >
                                                 <CalendarIcon className="mr-2 size-4" />
                                                 {field.value ? (
-                                                    format(field.value, 'd MMM yyyy', { locale: enUS })
+                                                    format(
+                                                        field.value,
+                                                        locale === 'zh-CN' ? 'yyyy年M月d日' : 'd MMM yyyy',
+                                                        {
+                                                            locale: dateLocale,
+                                                        },
+                                                    )
                                                 ) : (
-                                                    <span>Pick date</span>
+                                                    <span>{t('settings.apiTokens.pickDate')}</span>
                                                 )}
                                             </Button>
                                         </PopoverTrigger>
@@ -624,12 +692,12 @@ function SettingsAPITokens() {
                     const expiresAt = getTokenExpirationDate(token);
                     const expiresAtString = expiresAt.toISOString();
 
-                    return <div className="text-sm">{formatDate(new Date(expiresAtString))}</div>;
+                    return <div className="text-sm">{formatDate(new Date(expiresAtString), dateLocale)}</div>;
                 },
                 header: ({ column }) => (
                     <DataTableColumnHeader
                         column={column}
-                        title="Expires"
+                        title={t('settings.apiTokens.expires')}
                     />
                 ),
                 size: 150,
@@ -647,20 +715,20 @@ function SettingsAPITokens() {
                     const isCreating = token.id === 'create-new';
 
                     if (isCreating) {
-                        return <div className="text-muted-foreground text-sm">N/A</div>;
+                        return <div className="text-muted-foreground text-sm">{t('common.notAvailable')}</div>;
                     }
 
                     const dateString = row.getValue('createdAt') as string;
 
-                    return <div className="text-sm">{formatDate(new Date(dateString))}</div>;
+                    return <div className="text-sm">{formatDate(new Date(dateString), dateLocale)}</div>;
                 },
                 header: ({ column }) => (
                     <DataTableColumnHeader
                         column={column}
-                        title="Created"
+                        title={t('settings.apiTokens.created')}
                     />
                 ),
-                meta: { columnMenuLabel: 'Created' },
+                meta: { columnMenuLabel: t('settings.apiTokens.created') },
                 size: 120,
                 sortingFn: (rowA, rowB) => {
                     const dateA = new Date(rowA.getValue('createdAt') as string);
@@ -702,7 +770,7 @@ function SettingsAPITokens() {
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button
-                                        aria-label="Open menu"
+                                        aria-label={t('common.openMenu')}
                                         className="shrink-0"
                                         size="icon-sm"
                                         variant="ghost"
@@ -716,11 +784,11 @@ function SettingsAPITokens() {
                                 >
                                     <DropdownMenuItem onClick={() => handleEdit(token)}>
                                         <Pencil />
-                                        Edit
+                                        {t('common.edit')}
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handleCopyTokenId(token.tokenId)}>
                                         <Copy />
-                                        Copy Token ID
+                                        {t('settings.apiTokens.copyId')}
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
@@ -729,13 +797,13 @@ function SettingsAPITokens() {
                                     >
                                         {isDeleteLoading && deletingToken?.tokenId === token.tokenId ? (
                                             <>
-                                                <Spinner variant="circle" />
-                                                Deleting...
+                                                <Loader2 className="animate-spin" />
+                                                {t('common.deleting')}
                                             </>
                                         ) : (
                                             <>
                                                 <Trash />
-                                                Delete
+                                                {t('common.delete')}
                                             </>
                                         )}
                                     </DropdownMenuItem>
@@ -754,6 +822,7 @@ function SettingsAPITokens() {
         [
             createForm.control,
             createNameFieldId,
+            dateLocale,
             deletingToken,
             editForm.control,
             editNameFieldId,
@@ -768,6 +837,8 @@ function SettingsAPITokens() {
             isCreateLoading,
             isDeleteLoading,
             isUpdateLoading,
+            locale,
+            t,
         ],
     );
 
@@ -781,11 +852,11 @@ function SettingsAPITokens() {
                 <>
                     <ContextMenuItem onClick={() => handleEdit(token)}>
                         <Pencil />
-                        Edit
+                        {t('common.edit')}
                     </ContextMenuItem>
                     <ContextMenuItem onClick={() => handleCopyTokenId(token.tokenId)}>
                         <Copy />
-                        Copy Token ID
+                        {t('settings.apiTokens.copyId')}
                     </ContextMenuItem>
                     <ContextMenuSeparator />
                     <ContextMenuItem
@@ -793,94 +864,39 @@ function SettingsAPITokens() {
                         onClick={() => handleDeleteDialogOpen(token)}
                     >
                         <Trash />
-                        {isDeleteLoading && deletingToken?.tokenId === token.tokenId ? 'Deleting...' : 'Delete'}
+                        {isDeleteLoading && deletingToken?.tokenId === token.tokenId
+                            ? t('common.deleting')
+                            : t('common.delete')}
                     </ContextMenuItem>
                 </>
             );
         },
-        [deletingToken, handleCopyTokenId, handleDeleteDialogOpen, handleEdit, isDeleteLoading],
+        [deletingToken, handleCopyTokenId, handleDeleteDialogOpen, handleEdit, isDeleteLoading, t],
     );
 
-    const pageHeader = (
-        <AppHeader>
-            <AppHeaderContent>
-                <AppHeaderTitle icon={<Key className="size-4 shrink-0" />}>API Tokens</AppHeaderTitle>
-            </AppHeaderContent>
-            <AppHeaderActions>
-                <AppHeaderAction
-                    icon={<Plus />}
-                    label="Create Token"
-                    onClick={handleCreateNew}
-                    variant="secondary"
-                />
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button
-                            aria-label="Developer tools"
-                            className="size-8 p-0"
-                            size="sm"
-                            variant="ghost"
-                        >
-                            <Ellipsis />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                        align="end"
-                        className="min-w-44"
-                    >
-                        <DropdownMenuItem asChild>
-                            <a
-                                href={`${baseUrl}/graphql/playground`}
-                                rel="noopener noreferrer"
-                                target="_blank"
-                            >
-                                <ExternalLink />
-                                GraphQL Playground
-                            </a>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                            <a
-                                href={`${baseUrl}/swagger/index.html`}
-                                rel="noopener noreferrer"
-                                target="_blank"
-                            >
-                                <ExternalLink />
-                                Swagger UI
-                            </a>
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </AppHeaderActions>
-        </AppHeader>
-    );
-
-    if (isLoading && !data) {
+    if (isLoading) {
         return (
-            <>
-                {pageHeader}
-                <div className="flex flex-1 flex-col gap-4 p-4">
-                    <LoadingState
-                        description="Please wait while we fetch your API tokens"
-                        title="Loading tokens..."
-                    />
-                </div>
-            </>
+            <div className="flex flex-col gap-4">
+                <SettingsAPITokensHeader onCreateClick={handleCreateNew} />
+                <StatusCard
+                    description={t('settings.apiTokens.loadingDescription')}
+                    icon={<Loader2 className="text-muted-foreground size-16 animate-spin" />}
+                    title={t('settings.apiTokens.loadingTitle')}
+                />
+            </div>
         );
     }
 
-    // Error surface only when there's no data — a failed background refetch must not blank a working list.
-    if (error && !data) {
+    if (error) {
         return (
-            <>
-                {pageHeader}
-                <div className="flex flex-1 flex-col gap-4 p-4">
-                    <ErrorState
-                        message={error.message}
-                        onRetry={refetch}
-                        title="Error loading tokens"
-                    />
-                </div>
-            </>
+            <div className="flex flex-col gap-4">
+                <SettingsAPITokensHeader onCreateClick={handleCreateNew} />
+                <Alert variant="destructive">
+                    <AlertCircle className="size-4" />
+                    <AlertTitle>{t('settings.apiTokens.loadingError')}</AlertTitle>
+                    <AlertDescription>{error.message}</AlertDescription>
+                </Alert>
+            </div>
         );
     }
 
@@ -888,109 +904,115 @@ function SettingsAPITokens() {
 
     if (tokens.length === 0 && !creatingToken) {
         return (
-            <>
-                {pageHeader}
-                <div className="flex flex-1 flex-col gap-4 p-4">
-                    <Empty>
-                        <EmptyHeader>
-                            <EmptyMedia variant="icon">
-                                <Key />
-                            </EmptyMedia>
-                            <EmptyTitle>No API tokens configured</EmptyTitle>
-                            <EmptyDescription>
-                                Create your first API token to access PentAGI programmatically
-                            </EmptyDescription>
-                        </EmptyHeader>
-                        <EmptyContent>
-                            <Button
-                                onClick={handleCreateNew}
-                                variant="secondary"
-                            >
-                                <Plus />
-                                Create Token
-                            </Button>
-                        </EmptyContent>
-                    </Empty>
-                </div>
-            </>
+            <div className="flex flex-col gap-4">
+                <SettingsAPITokensHeader onCreateClick={handleCreateNew} />
+                <StatusCard
+                    action={
+                        <Button
+                            onClick={handleCreateNew}
+                            variant="secondary"
+                        >
+                            <Plus className="size-4" />
+                            {t('settings.apiTokens.createToken')}
+                        </Button>
+                    }
+                    description={t('settings.apiTokens.createDescription')}
+                    icon={<Key className="text-muted-foreground size-8" />}
+                    title={t('settings.apiTokens.createTitle')}
+                />
+            </div>
         );
     }
 
     return (
-        <>
-            {pageHeader}
-            <div className="flex flex-1 flex-col gap-4 p-4">
-                <DataTable<APIToken>
-                    columns={columns}
-                    data={creatingToken ? [createNewTokenPlaceholder, ...tokens] : tokens}
-                    empty={{ entityName: 'API tokens' }}
-                    filterPlaceholder="Filter tokens..."
-                    filterValue={filter}
-                    onFilterChange={setFilter}
-                    onPageChange={handlePageChange}
-                    pageIndex={currentPage}
-                    renderRowContextMenu={renderRowContextMenu}
-                />
+        <div className="flex flex-col gap-4">
+            <SettingsAPITokensHeader onCreateClick={handleCreateNew} />
 
-                <Dialog
-                    onOpenChange={setShowTokenDialog}
-                    open={showTokenDialog}
-                >
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>API Token Created</DialogTitle>
-                            <DialogDescription>
-                                Copy this token now. You won't be able to see it again for security reasons.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="bg-muted rounded p-4">
-                            <code className="text-sm break-all">{tokenSecret}</code>
-                        </div>
-                        <div className="flex gap-2">
-                            <Button
-                                className="flex-1"
-                                onClick={async () => {
-                                    if (tokenSecret) {
-                                        const success = await copyToClipboard(tokenSecret);
+            {(createError || updateError || deleteError || deleteErrorMessage) && (
+                <Alert variant="destructive">
+                    <AlertCircle className="size-4" />
+                    <AlertTitle>{t('common.error')}</AlertTitle>
+                    <AlertDescription>
+                        {createError?.message || updateError?.message || deleteError?.message || deleteErrorMessage}
+                    </AlertDescription>
+                </Alert>
+            )}
 
-                                        if (success) {
-                                            toast.success('Token copied to clipboard');
-                                        } else {
-                                            toast.error('Failed to copy token to clipboard');
-                                        }
+            <DataTable<APIToken>
+                columns={columns}
+                data={creatingToken ? [createNewTokenPlaceholder, ...tokens] : tokens}
+                empty={{ entityName: 'API tokens' }}
+                filterPlaceholder={t('settings.apiTokens.filterPlaceholder')}
+                filterValue={filter}
+                onFilterChange={setFilter}
+                onPageChange={handlePageChange}
+                pageIndex={currentPage}
+                renderRowContextMenu={renderRowContextMenu}
+            />
+
+            <Dialog
+                onOpenChange={setShowTokenDialog}
+                open={showTokenDialog}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{t('settings.apiTokens.secretTitle')}</DialogTitle>
+                        <DialogDescription>{t('settings.apiTokens.secretDescription')}</DialogDescription>
+                    </DialogHeader>
+                    <div className="bg-muted rounded p-4">
+                        <code className="text-sm break-all">{tokenSecret}</code>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button
+                            className="flex-1"
+                            onClick={async () => {
+                                if (tokenSecret) {
+                                    const success = await copyToClipboard(tokenSecret);
+
+                                    if (success) {
+                                        toast.success(t('settings.apiTokens.copiedToken'));
+                                    } else {
+                                        toast.error(t('settings.apiTokens.copyTokenFailed'));
                                     }
-                                }}
-                                variant="secondary"
-                            >
-                                <Copy />
-                                Copy Token
-                            </Button>
-                            <Button
-                                className="flex-1"
-                                onClick={() => {
-                                    setShowTokenDialog(false);
-                                    setTokenSecret(null);
-                                }}
-                                variant="outline"
-                            >
-                                Close
-                            </Button>
-                        </div>
-                    </DialogContent>
-                </Dialog>
+                                }
+                            }}
+                            variant="secondary"
+                        >
+                            <Copy className="size-4" />
+                            {t('settings.apiTokens.copyToken')}
+                        </Button>
+                        <Button
+                            className="flex-1"
+                            onClick={() => {
+                                setShowTokenDialog(false);
+                                setTokenSecret(null);
+                            }}
+                            variant="outline"
+                        >
+                            {t('common.close')}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
-                <ConfirmationDialog
-                    cancelText="Cancel"
-                    confirmText="Delete"
-                    handleConfirm={() => handleDelete(deletingToken?.tokenId)}
-                    handleOpenChange={setIsDeleteDialogOpen}
-                    isOpen={isDeleteDialogOpen}
-                    itemName={deletingToken?.name || deletingToken?.tokenId}
-                    itemType="token"
-                />
-            </div>
-        </>
+            <ConfirmationDialog
+                cancelText={t('common.cancel')}
+                confirmText={t('common.delete')}
+                description={t('settings.apiTokens.deleteDescription', {
+                    name: deletingToken?.name || deletingToken?.tokenId || '',
+                })}
+                handleConfirm={() => handleDelete(deletingToken?.tokenId)}
+                handleOpenChange={setIsDeleteDialogOpen}
+                isOpen={isDeleteDialogOpen}
+                itemName={deletingToken?.name || deletingToken?.tokenId}
+                itemType="token"
+                title={t('settings.apiTokens.deleteTitle')}
+            />
+        </div>
     );
 }
+
+// Helper subcomponents so we can use useFormState/useWatch without subscribing
+// the whole table to every keystroke. Each watches its own form's validity.
 
 export default SettingsAPITokens;

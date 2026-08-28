@@ -1,8 +1,24 @@
 # PentAGI Optimizer
 
-基于 [vxcontrol/pentagi](https://github.com/vxcontrol/pentagi) 的增强维护版：在保持上游任务流、智能体编排与 Docker 隔离能力不变的前提下，扩展外部接入能力与漏洞情报工具链。
+<div align="center" style="font-size: 1.5em; margin: 20px 0;">
+    <strong>P</strong>enetration testing <strong>A</strong>rtificial <strong>G</strong>eneral <strong>I</strong>ntelligence
+</div>
 
-> 简体中文维护版（界面汉化）在 [fulaoaz/pentagi](https://github.com/fulaoaz/pentagi)，本仓库专注于能力增强，两个仓库独立演进。
+<div align="center">
+
+[简体中文](README.md) | [English](README.en.md) | [汉化维护与上游同步](UPSTREAM_SYNC.zh-CN.md)
+
+</div>
+
+## 这是什么
+
+**PentAGI Optimizer** 基于 [fulaoaz/pentagi](https://github.com/fulaoaz/pentagi) 简体中文维护版独立演进：完整保留汉化版的中文默认、英文可选界面与全部修复，再叠加外部接入协议和漏洞情报工具链。
+
+- 网页首次打开默认显示简体中文，登录页和侧边栏用户菜单可随时切换 English；
+- 保持与上游 [vxcontrol/pentagi](https://github.com/vxcontrol/pentagi) 的兼容性；
+- 镜像发布到 GitHub Container Registry：`ghcr.io/fulaoaz/pentagi-optimizer`。
+
+项目发布说明、界面预览与部署体验见：[浮潦の小窝 - PentAGI Optimizer 发布](https://fulao.cc/2026/08/27/pentagi-optimizer/)。
 
 ## 新增能力
 
@@ -13,7 +29,7 @@
 - `GET /mcp/sse`：SSE 流式传输，兼容 Claude Desktop 等 MCP 客户端；
 - `POST /mcp/message`：JSON-RPC 消息端点；
 - `POST /mcp`：单次会话端点；
-- 可配置 `MCP_API_KEY`：设置后所有 MCP 端点要求 `Authorization: Bearer <key>`，使用常量时间比较防时序攻击。
+- 可配置 `MCP_API_KEY`：设置后所有 MCP 端点要求 `Authorization: Bearer <key>`，密钥比较使用常量时间算法防时序攻击。
 
 默认未配置 Key 时保持匿名本地模式，适合只在本机使用 MCP 客户端的场景。
 
@@ -32,9 +48,9 @@
 
 ### 发布与 CI
 
-- Docker 镜像发布到 GitHub Container Registry：`ghcr.io/fulaoaz/pentagi-optimizer`；
-- 修复 Windows 环境下脚本可执行位丢失导致的 CI 失败；
-- lint、单元测试、E2E 与镜像构建全链路在 GitHub Actions 中自动执行。
+- Docker 镜像发布到 `ghcr.io/fulaoaz/pentagi-optimizer`；
+- lint、单元测试、E2E 与镜像构建全链路在 GitHub Actions 自动执行；
+- 修复 Windows 环境下脚本可执行位丢失导致的 CI 失败。
 
 ## 快速开始
 
@@ -74,7 +90,7 @@ docker compose up -d
 | `CVE_ENABLED` | `true` | 启用 NVD CVE 详情工具 |
 | `KEV_ENABLED` | `true` | 启用 CISA KEV 目录工具 |
 
-其余配置与上游一致，详见上游 [docs/config.md](https://github.com/vxcontrol/pentagi/blob/main/backend/docs/config.md)。
+其余配置与汉化版/上游一致，详见上游 [docs/config.md](https://github.com/vxcontrol/pentagi/blob/main/backend/docs/config.md)。
 
 ## 开发
 
@@ -88,11 +104,12 @@ go test ./pkg/tools/...
 
 ### 2026-08-27
 
-- 新增 `kev` 工具：CISA KEV 已知被利用漏洞目录查询（CVE/厂商/产品过滤、按收录日期排序、勒索软件标记）。
-- 新增 `cve` 工具：NVD CVE 详情查询。
-- 新增 `cvss` 工具：本地 CVSS 3.0/3.1 精确评分与 4.0 近似评分。
-- 新增 `eppss` 工具：FIRST.org EPSS 利用概率查询。
-- 新增 MCP 协议桥（SSE + JSON-RPC）与可配置 Bearer 认证。
+- 合并汉化版 `main`：中文默认、英文可选的界面与安装器本地化全部纳入 Optimizer；
+- 新增 `kev` 工具：CISA KEV 已知被利用漏洞目录查询（CVE/厂商/产品过滤、按收录日期排序、勒索软件标记）；
+- 新增 `cve` 工具：NVD CVE 详情查询；
+- 新增 `cvss` 工具：本地 CVSS 3.0/3.1 精确评分与 4.0 近似评分；
+- 新增 `eppss` 工具：FIRST.org EPSS 利用概率查询；
+- 新增 MCP 协议桥（SSE + JSON-RPC）与可配置 Bearer 认证；
 - CI 迁移至 GHCR 发布，修复脚本执行位问题。
 
 ## 许可证

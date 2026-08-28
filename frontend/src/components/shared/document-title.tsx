@@ -1,9 +1,16 @@
+import type { ComponentType } from 'react';
+
 import { useMatches } from 'react-router-dom';
 
-import { type ApolloTitleComponent, isApolloTitle } from '@/lib/route-titles/apollo-title';
+import type { Translate } from '@/lib/i18n';
+
+import { useLocale } from '@/hooks/use-locale';
+import { isApolloTitle } from '@/lib/route-titles/apollo-title';
 import { renderTitle, type RouteParams } from '@/lib/route-titles/render-title';
 
-type TitleResolver = ((params: RouteParams) => string) | ApolloTitleComponent | string;
+type TitleComponent = ComponentType<{ params: RouteParams }>;
+
+type TitleResolver = ((params: RouteParams, t: Translate) => string) | string | TitleComponent;
 
 const hasTitle = (handle: unknown): handle is { title: TitleResolver } => {
     if (typeof handle !== 'object' || handle === null || !('title' in handle)) {
@@ -35,6 +42,7 @@ const hasTitle = (handle: unknown): handle is { title: TitleResolver } => {
  */
 export function DocumentTitle() {
     const matches = useMatches();
+    const { t } = useLocale();
     const match = matches.findLast((m) => hasTitle(m.handle));
 
     if (!match || !hasTitle(match.handle)) {
@@ -43,8 +51,9 @@ export function DocumentTitle() {
 
     const value = match.handle.title;
 
+    // A string handle is a translation key, not literal display text.
     if (typeof value === 'string') {
-        return renderTitle(value);
+        return renderTitle(t(value));
     }
 
     if (isApolloTitle(value)) {
@@ -53,5 +62,5 @@ export function DocumentTitle() {
         return <TitleComp params={match.params} />;
     }
 
-    return renderTitle(value(match.params));
+    return renderTitle(value(match.params, t));
 }

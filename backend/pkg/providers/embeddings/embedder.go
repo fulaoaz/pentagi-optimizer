@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"pentagi/pkg/config"
 	"pentagi/pkg/observability/langfuse"
@@ -13,6 +14,7 @@ import (
 	"github.com/vxcontrol/langchaingo/embeddings/huggingface"
 	"github.com/vxcontrol/langchaingo/embeddings/jina"
 	"github.com/vxcontrol/langchaingo/embeddings/voyageai"
+	"github.com/vxcontrol/langchaingo/httputil"
 	"github.com/vxcontrol/langchaingo/llms/googleai"
 	hgclient "github.com/vxcontrol/langchaingo/llms/huggingface"
 	"github.com/vxcontrol/langchaingo/llms/mistral"
@@ -302,7 +304,6 @@ func newHuggingface(cfg *config.Config, httpClient *http.Client) (embeddings.Emb
 }
 
 func newGoogleAI(cfg *config.Config, httpClient *http.Client) (embeddings.Embedder, error) {
-	// EmbeddingURL is not supported for googleai
 	model, provider := cfg.EmbeddingModel, "googleai"
 	if model == "" {
 		model = "embedding-001"
@@ -319,7 +320,21 @@ func newGoogleAI(cfg *config.Config, httpClient *http.Client) (embeddings.Embedd
 	if cfg.EmbeddingModel != "" {
 		opts = append(opts, googleai.WithDefaultEmbeddingModel(cfg.EmbeddingModel))
 	}
-	if httpClient != nil {
+	if cfg.EmbeddingURL != "" {
+		if _, err := url.ParseRequestURI(cfg.EmbeddingURL); err != nil {
+			return nil, fmt.Errorf("failed to parse embedding server URL: %w", err)
+		}
+
+		metadata["url"] = cfg.EmbeddingURL
+		opts = append(opts, googleai.WithHTTPClient(&http.Client{
+			Transport: &httputil.ApiKeyTransport{
+				Transport: http.DefaultTransport,
+				APIKey:    cfg.EmbeddingKey,
+				BaseURL:   cfg.EmbeddingURL,
+				ProxyURL:  cfg.ProxyURL,
+			},
+		}))
+	} else if httpClient != nil {
 		opts = append(opts, googleai.WithHTTPClient(httpClient))
 	}
 

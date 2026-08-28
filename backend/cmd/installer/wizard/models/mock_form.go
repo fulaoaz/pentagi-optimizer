@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"pentagi/cmd/installer/wizard/controller"
+	"pentagi/cmd/installer/wizard/locale"
 	"pentagi/cmd/installer/wizard/styles"
 	"pentagi/cmd/installer/wizard/window"
 
@@ -67,17 +68,17 @@ func (m *MockFormModel) GetFormOverview() string {
 	sections = append(sections, m.GetStyles().Paragraph.Render(m.description))
 	sections = append(sections, "")
 
-	sections = append(sections, m.GetStyles().Warning.Render("🚧 This screen is under development"))
+	sections = append(sections, m.GetStyles().Warning.Render(locale.MockScreenUnderDevelopment))
 	sections = append(sections, "")
-	sections = append(sections, "This configuration screen will be available in a future update.")
+	sections = append(sections, locale.MockScreenAvailableLater)
 	sections = append(sections, "")
-	sections = append(sections, "Press Enter or Esc to go back to the main menu.")
+	sections = append(sections, locale.MockScreenBackInstruction)
 
 	return strings.Join(sections, "\n")
 }
 
 func (m *MockFormModel) GetCurrentConfiguration() string {
-	return m.GetStyles().Info.Render("⏳ Configuration pending migration")
+	return m.GetStyles().Info.Render(locale.MockScreenMigrationPending)
 }
 
 func (m *MockFormModel) IsConfigured() bool {
@@ -87,16 +88,16 @@ func (m *MockFormModel) IsConfigured() bool {
 func (m *MockFormModel) GetHelpContent() string {
 	var sections []string
 
-	sections = append(sections, m.GetStyles().Subtitle.Render("Development Notice"))
+	sections = append(sections, m.GetStyles().Subtitle.Render(locale.MockScreenDevelopmentNotice))
 	sections = append(sections, "")
-	sections = append(sections, "This configuration screen is currently being migrated to the new interface.")
+	sections = append(sections, locale.MockScreenMigrationDescription)
 	sections = append(sections, "")
-	sections = append(sections, "Expected features:")
-	sections = append(sections, "• Modern form interface")
-	sections = append(sections, "• Improved validation")
-	sections = append(sections, "• Enhanced user experience")
+	sections = append(sections, locale.MockScreenExpectedFeatures)
+	sections = append(sections, locale.MockScreenModernForm)
+	sections = append(sections, locale.MockScreenImprovedValidation)
+	sections = append(sections, locale.MockScreenEnhancedUserExperience)
 	sections = append(sections, "")
-	sections = append(sections, "Please check back in a future update.")
+	sections = append(sections, locale.MockScreenCheckLater)
 
 	return strings.Join(sections, "\n")
 }

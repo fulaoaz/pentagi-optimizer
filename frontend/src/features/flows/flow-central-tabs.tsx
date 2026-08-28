@@ -4,8 +4,10 @@ import FlowDashboard from '@/features/flows/dashboard/flow-dashboard';
 import FlowAssistantMessages from '@/features/flows/messages/flow-assistant-messages';
 import FlowAutomationMessages from '@/features/flows/messages/flow-automation-messages';
 import { useFlowTabDetection } from '@/hooks/use-flow-tab-detection';
+import { useLocale } from '@/hooks/use-locale';
 
 function FlowCentralTabs() {
+    const { t } = useLocale();
     const { handleTabChange, resolvedTab } = useFlowTabDetection();
 
     return (
@@ -17,9 +19,9 @@ function FlowCentralTabs() {
             <div className="max-w-full">
                 <ScrollArea className="w-full pb-3">
                     <TabsList className="flex w-fit">
-                        <TabsTrigger value="automation">Automation</TabsTrigger>
-                        <TabsTrigger value="assistant">Assistant</TabsTrigger>
-                        <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+                        <TabsTrigger value="automation">{t('flow.tabs.automation')}</TabsTrigger>
+                        <TabsTrigger value="assistant">{t('flow.tabs.assistant')}</TabsTrigger>
+                        <TabsTrigger value="dashboard">{t('flow.tabs.dashboard')}</TabsTrigger>
                     </TabsList>
                     <ScrollBar orientation="horizontal" />
                 </ScrollArea>

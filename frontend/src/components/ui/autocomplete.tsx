@@ -13,6 +13,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverAnchor } from '@/components/ui/popover';
 import { useLatestRef } from '@/hooks/use-latest-ref';
+import { useLocale } from '@/hooks/use-locale';
 import { cn } from '@/lib/utils';
 
 interface AutocompleteContextValue {
@@ -201,6 +202,7 @@ function Autocomplete({
     shouldFilter,
     value: valueProp,
 }: AutocompleteProps) {
+    const { t } = useLocale();
     const [inputValue, setInputValue] = useControllable<string>(valueProp, defaultValue, onValueChange);
     const [open, setOpen] = useControllable<boolean>(openProp, defaultOpen, onOpenChange);
     const inputRef = React.useRef<HTMLInputElement | null>(null);
@@ -256,7 +258,7 @@ function Autocomplete({
             >
                 <Command
                     filter={filter ?? substringFilter}
-                    label="Suggestions"
+                    label={t('common.suggestions')}
                     shouldFilter={shouldFilter}
                 >
                     {children}

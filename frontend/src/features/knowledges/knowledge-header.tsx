@@ -1,21 +1,20 @@
 import type { ReactNode } from 'react';
 
-import { Ellipsis, HatGlasses, LibraryBig, Pencil, Save, Trash } from 'lucide-react';
+import { Ellipsis, HatGlasses, LibraryBig, Loader2, Pencil, Trash } from 'lucide-react';
 import { useCallback, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import type { KnowledgeDocumentFragmentFragment } from '@/graphql/types';
 
-import { AppHeader, AppHeaderAction, AppHeaderActions, AppHeaderContent } from '@/components/layouts/app/app-header';
 import ConfirmationDialog from '@/components/shared/confirmation-dialog';
 import {
     DetailNavigationButtons,
     DetailNavigationSheet,
     DetailNavigationToolbar,
 } from '@/components/shared/detail-navigation';
+import { HeaderButton } from '@/components/shared/header-button';
 import { InlineEditInput, useInlineEdit } from '@/components/shared/inline-edit';
-import { type EditorViewMode, EditorViewModeToggle } from '@/components/shared/markdown-editor';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
@@ -26,17 +25,23 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Separator } from '@/components/ui/separator';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
-import { routes } from '@/lib/routes';
+import { useLocale } from '@/hooks/use-locale';
 import { cn } from '@/lib/utils';
 import { type Knowledge, useKnowledges } from '@/providers/knowledges-provider';
 
+import { getKnowledgeDocTypeLabel } from './knowledge-labels';
 import { useKnowledgeDetailNavigation } from './use-knowledge-detail-navigation';
 
 interface KnowledgeHeaderProps {
-    // Anonymize action — visible only to users with the `anonymize.call` privilege.
+    // Anonymize action — visible only to users with the `anonymize.call`
+    // privilege. The header itself renders both desktop button and mobile
+    // dropdown item from these primitives so the icon/loading state stay in
+    // sync between layouts.
     canAnonymize?: boolean;
     isAnonymizeDisabled?: boolean;
     isAnonymizing?: boolean;
@@ -50,22 +55,8 @@ interface KnowledgeHeaderProps {
      */
     onAnonymize?: () => void;
     onBeforeNavigateAway?: () => void;
-    onModeChange?: (mode: EditorViewMode) => void;
     saveButton?: ReactNode;
-    viewMode?: EditorViewMode;
 }
-
-const renderKnowledgeItem = (item: Knowledge, isCurrent: boolean): ReactNode => (
-    <>
-        <Badge
-            className="shrink-0 text-[10px] whitespace-nowrap"
-            variant="outline"
-        >
-            {item.docType}
-        </Badge>
-        <span className={cn('min-w-0 flex-1 truncate', isCurrent && 'font-medium')}>{item.question}</span>
-    </>
-);
 
 export function KnowledgeHeader({
     canAnonymize = false,
@@ -75,31 +66,42 @@ export function KnowledgeHeader({
     knowledge,
     onAnonymize,
     onBeforeNavigateAway,
-    onModeChange,
     saveButton,
-    viewMode = 'rich',
 }: KnowledgeHeaderProps) {
     const navigate = useNavigate();
-    const { knowledgeId } = useParams();
     const { isMobile } = useBreakpoint();
-    const { deleteKnowledge, renameKnowledge } = useKnowledges();
+    const { t } = useLocale();
+    const { deleteKnowledge, updateKnowledge } = useKnowledges();
     const [isRenaming, setIsRenaming] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-    const knowledgeNav = useKnowledgeDetailNavigation(isNew ? null : (knowledgeId ?? null));
+    const knowledgeId = knowledge?.id ?? null;
+
+    // Single controller drives both the desktop toolbar and the mobile
+    // dropdown row + sheet — no separate state mirroring required.
+    const knowledgeNav = useKnowledgeDetailNavigation(knowledgeId);
 
     // Title source-of-truth is the server-side `question`. We intentionally do
     // not read it from the form draft below — the inline rename flow in this
-    // header writes through `renameKnowledge`, which refreshes `knowledge` via
+    // header writes through `updateKnowledge`, which refreshes `knowledge` via
     // the cache, and the form picks up the new value separately.
     const knowledgeName = knowledge?.question ?? null;
-    const hasKnowledge = !!knowledge;
-    const isEntityPending = !hasKnowledge;
-    const hasAnonymizeRow = isMobile && canAnonymize;
-    const hasViewRow = !!onModeChange;
-    const hasEntityRows = !isNew;
-    const hasNavRow = isMobile && !isNew;
+    const canShowActions = !isNew && !!knowledge;
+    const renderKnowledgeItem = useCallback(
+        (item: Knowledge, isCurrent: boolean): ReactNode => (
+            <>
+                <Badge
+                    className="shrink-0 text-[10px] whitespace-nowrap"
+                    variant="outline"
+                >
+                    {getKnowledgeDocTypeLabel(t, item.docType)}
+                </Badge>
+                <span className={cn('min-w-0 flex-1 truncate', isCurrent && 'font-medium')}>{item.question}</span>
+            </>
+        ),
+        [t],
+    );
 
     const {
         handleDropdownCloseAutoFocus,
@@ -107,7 +109,7 @@ export function KnowledgeHeader({
         isEditing: isEditingTitle,
         startEdit: handleRenameStart,
         stopEdit: handleRenameCancel,
-    } = useInlineEdit({ resetKey: knowledge?.id ?? null });
+    } = useInlineEdit({ resetKey: knowledgeId });
 
     const handleRenameSave = useCallback(async () => {
         const newQuestion = editingInputRef.current?.value.trim();
@@ -125,45 +127,56 @@ export function KnowledgeHeader({
         setIsRenaming(true);
 
         try {
-            // The sibling edit form picks up the new `question` via
-            // `useForm({ values })` once the cache updates — no manual sync here.
-            await renameKnowledge(knowledge.id, newQuestion);
-            toast.success('Knowledge renamed successfully');
+            // Backend requires `content` on update (always re-embeds). We pass
+            // the server's current `content` so an inline rename never
+            // accidentally overwrites unsaved edits made in the form below.
+            // The sibling form picks up the new `question` automatically via
+            // `useForm({ values })` — no manual sync needed here.
+            await updateKnowledge(knowledge.id, {
+                content: knowledge.content,
+                question: newQuestion,
+            });
+            toast.success(t('knowledge.renamed'));
             handleRenameCancel();
         } catch {
             // Error already handled in provider with toast
         } finally {
             setIsRenaming(false);
         }
-    }, [editingInputRef, handleRenameCancel, knowledge, renameKnowledge]);
+    }, [editingInputRef, handleRenameCancel, knowledge, t, updateKnowledge]);
 
     const handleDelete = useCallback(async () => {
-        if (!knowledge) {
+        if (!knowledgeId) {
             return;
         }
 
         setIsDeleting(true);
 
         try {
-            await deleteKnowledge(knowledge.id);
+            await deleteKnowledge(knowledgeId);
             onBeforeNavigateAway?.();
-            navigate(routes.knowledges, { replace: true });
+            navigate('/knowledges', { replace: true });
         } catch {
             // Error already handled in provider with toast
         } finally {
             setIsDeleting(false);
         }
-    }, [knowledge, deleteKnowledge, navigate, onBeforeNavigateAway]);
+    }, [knowledgeId, deleteKnowledge, navigate, onBeforeNavigateAway]);
 
     return (
         <>
-            <AppHeader>
-                <AppHeaderContent>
+            <header className="bg-background sticky top-0 z-10 flex h-12 shrink-0 items-center gap-2 border-b px-4">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                    <SidebarTrigger className="-ml-1 shrink-0" />
+                    <Separator
+                        className="mr-2 h-4 shrink-0"
+                        orientation="vertical"
+                    />
                     <Breadcrumb className="min-w-0 flex-1">
                         <BreadcrumbList className="min-w-0 flex-nowrap">
                             <BreadcrumbItem className="min-w-0 gap-2">
                                 <LibraryBig className="size-4 shrink-0" />
-                                {isEditingTitle && hasKnowledge ? (
+                                {isEditingTitle && canShowActions ? (
                                     <InlineEditInput
                                         busy={isRenaming}
                                         className="w-64 max-w-full min-w-0 flex-1"
@@ -171,180 +184,152 @@ export function KnowledgeHeader({
                                         inputRef={editingInputRef}
                                         onCancel={handleRenameCancel}
                                         onSave={handleRenameSave}
-                                        placeholder="Knowledge question"
+                                        placeholder={t('knowledge.question')}
                                     />
-                                ) : hasKnowledge ? (
+                                ) : canShowActions ? (
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <BreadcrumbPage
                                                 className="max-w-64 min-w-0 cursor-text truncate select-none"
                                                 onDoubleClick={handleRenameStart}
                                             >
-                                                {knowledgeName ?? 'Knowledge'}
+                                                {knowledgeName ?? t('knowledge.entityName')}
                                             </BreadcrumbPage>
                                         </TooltipTrigger>
-                                        <TooltipContent>Double-click to rename</TooltipContent>
+                                        <TooltipContent>{t('common.doubleClickRename')}</TooltipContent>
                                     </Tooltip>
                                 ) : (
                                     <BreadcrumbPage className="min-w-0 truncate">
-                                        {isNew ? 'New knowledge' : (knowledgeName ?? 'Knowledge')}
+                                        {isNew ? t('knowledge.new') : (knowledgeName ?? t('knowledge.entityName'))}
                                     </BreadcrumbPage>
                                 )}
                             </BreadcrumbItem>
                         </BreadcrumbList>
                     </Breadcrumb>
-                </AppHeaderContent>
-                <AppHeaderActions>
-                    {!isNew && !isMobile && (
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                    {canShowActions && !isMobile && (
                         <DetailNavigationToolbar<Knowledge>
                             controller={knowledgeNav}
                             renderItem={renderKnowledgeItem}
                             sheetIcon={<LibraryBig className="size-4" />}
-                            sheetTitle="Knowledges"
+                            sheetTitle={t('knowledge.listTitle')}
                         />
                     )}
                     {canAnonymize && !isMobile && (
-                        <AppHeaderAction
+                        <HeaderButton
                             disabled={isAnonymizeDisabled}
                             icon={isAnonymizing ? <Spinner variant="circle" /> : <HatGlasses aria-hidden="true" />}
-                            label="Anonymize"
+                            label={t('knowledge.anonymize')}
                             onClick={onAnonymize}
                             type="button"
                             variant="outline"
                         />
                     )}
-                    {saveButton ?? (
-                        <AppHeaderAction
-                            disabled
-                            icon={<Save />}
-                            label={isNew ? 'Create' : 'Save'}
-                            type="button"
-                        />
-                    )}
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                aria-label="Knowledge actions"
-                                className="size-8 p-0"
-                                type="button"
-                                variant="ghost"
-                            >
-                                <Ellipsis />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                            align="end"
-                            className="min-w-24"
-                            onCloseAutoFocus={handleDropdownCloseAutoFocus}
-                        >
-                            {hasAnonymizeRow && (
-                                <DropdownMenuItem
-                                    disabled={isAnonymizeDisabled}
-                                    onClick={onAnonymize}
+                    {saveButton}
+                    {(canShowActions || (isMobile && canAnonymize)) && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    aria-label={t('knowledge.actions')}
+                                    className="size-8 p-0"
+                                    type="button"
+                                    variant="ghost"
                                 >
-                                    {isAnonymizing ? (
-                                        <>
-                                            <Spinner variant="circle" />
-                                            Anonymizing...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <HatGlasses />
-                                            Anonymize
-                                        </>
-                                    )}
-                                </DropdownMenuItem>
-                            )}
-                            {hasNavRow && (
-                                <>
-                                    {hasAnonymizeRow && <DropdownMenuSeparator />}
-                                    <DropdownMenuItem
-                                        className="cursor-default hover:bg-transparent focus:bg-transparent"
-                                        onSelect={(event) => event.preventDefault()}
-                                    >
-                                        <LibraryBig />
-                                        Knowledges
-                                        <div className="-my-1.5 -mr-2 ml-auto flex items-center">
-                                            <DetailNavigationButtons<Knowledge>
-                                                controller={knowledgeNav}
-                                                sheetTitle="Knowledges"
-                                                size="sm"
-                                            />
-                                        </div>
-                                    </DropdownMenuItem>
-                                </>
-                            )}
-                            {hasEntityRows && (
-                                <>
-                                    {(hasAnonymizeRow || hasNavRow) && <DropdownMenuSeparator />}
-                                    <DropdownMenuItem
-                                        disabled={isEntityPending}
-                                        onClick={handleRenameStart}
-                                    >
-                                        <Pencil className="size-3" />
-                                        Rename
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                </>
-                            )}
-                            {onModeChange ? (
-                                <>
-                                    {!hasEntityRows && (hasAnonymizeRow || hasNavRow) && <DropdownMenuSeparator />}
-                                    <DropdownMenuItem
-                                        className="cursor-default gap-4 hover:bg-transparent focus:bg-transparent"
-                                        onSelect={(event) => event.preventDefault()}
-                                    >
-                                        View
-                                        <EditorViewModeToggle
-                                            className="-my-1.5 -mr-2 ml-auto"
-                                            mode={viewMode}
-                                            onModeChange={onModeChange}
-                                            rawTooltip="Edit the raw markdown"
-                                        />
-                                    </DropdownMenuItem>
-                                </>
-                            ) : null}
-                            {hasEntityRows && (
-                                <>
-                                    {hasViewRow && <DropdownMenuSeparator />}
-                                    <DropdownMenuItem
-                                        disabled={isDeleting || isEntityPending}
-                                        onClick={() => setIsDeleteDialogOpen(true)}
-                                    >
-                                        {isDeleting ? (
-                                            <>
-                                                <Spinner variant="circle" />
-                                                Deleting...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Trash />
-                                                Delete
-                                            </>
-                                        )}
-                                    </DropdownMenuItem>
-                                </>
-                            )}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </AppHeaderActions>
-            </AppHeader>
-            {isMobile && !isNew && (
+                                    <Ellipsis />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                align="end"
+                                className="min-w-24"
+                                onCloseAutoFocus={handleDropdownCloseAutoFocus}
+                            >
+                                {isMobile && canAnonymize && (
+                                    <>
+                                        <DropdownMenuItem
+                                            disabled={isAnonymizeDisabled}
+                                            onClick={onAnonymize}
+                                        >
+                                            {isAnonymizing ? (
+                                                <>
+                                                    <Loader2 className="size-4 animate-spin" />
+                                                    {t('knowledge.anonymizing')}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <HatGlasses className="size-4" />
+                                                    {t('knowledge.anonymize')}
+                                                </>
+                                            )}
+                                        </DropdownMenuItem>
+                                        {canShowActions && <DropdownMenuSeparator />}
+                                    </>
+                                )}
+                                {isMobile && knowledgeNav.total > 0 && (
+                                    <>
+                                        <DropdownMenuItem
+                                            className="cursor-default hover:bg-transparent focus:bg-transparent"
+                                            onSelect={(event) => event.preventDefault()}
+                                        >
+                                            <LibraryBig className="size-4" />
+                                            {t('knowledge.listTitle')}
+                                            <div className="-my-1.5 -mr-2 ml-auto flex items-center">
+                                                <DetailNavigationButtons<Knowledge>
+                                                    controller={knowledgeNav}
+                                                    sheetTitle={t('knowledge.listTitle')}
+                                                    size="sm"
+                                                />
+                                            </div>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                    </>
+                                )}
+                                {canShowActions && (
+                                    <>
+                                        <DropdownMenuItem onClick={handleRenameStart}>
+                                            <Pencil className="size-3" />
+                                            {t('common.rename')}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                            disabled={isDeleting}
+                                            onClick={() => setIsDeleteDialogOpen(true)}
+                                        >
+                                            {isDeleting ? (
+                                                <>
+                                                    <Loader2 className="size-4 animate-spin" />
+                                                    {t('common.deleting')}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Trash className="size-4" />
+                                                    {t('common.delete')}
+                                                </>
+                                            )}
+                                        </DropdownMenuItem>
+                                    </>
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
+                </div>
+            </header>
+            {isMobile && canShowActions && (
                 <DetailNavigationSheet<Knowledge>
                     controller={knowledgeNav}
                     renderItem={renderKnowledgeItem}
                     sheetIcon={<LibraryBig className="size-4" />}
-                    sheetTitle="Knowledges"
+                    sheetTitle={t('knowledge.listTitle')}
                 />
             )}
             <ConfirmationDialog
-                cancelText="Cancel"
-                confirmText="Delete"
+                cancelText={t('common.cancel')}
+                confirmText={t('common.delete')}
                 handleConfirm={handleDelete}
                 handleOpenChange={setIsDeleteDialogOpen}
                 isOpen={isDeleteDialogOpen}
                 itemName={knowledgeName ?? undefined}
-                itemType="knowledge document"
+                itemType={t('knowledge.entityName')}
             />
         </>
     );

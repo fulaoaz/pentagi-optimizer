@@ -1,25 +1,35 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import Logo from '@/components/icons/logo';
-import { routes } from '@/lib/routes';
+import { useLocale } from '@/hooks/use-locale';
 
 function OAuthResult() {
-    const [statusMessage, setStatusMessage] = useState('Authentication in progress...');
+    const { t } = useLocale();
+    const [statusMessage, setStatusMessage] = useState(() => t('auth.oauthInProgress'));
+    const messageRef = useRef(statusMessage);
+    const prevMessageRef = useRef(statusMessage);
 
     const successDelay = 2000;
     const errorDelay = 5000;
+
+    useLayoutEffect(() => {
+        if (prevMessageRef.current !== messageRef.current) {
+            setStatusMessage(messageRef.current);
+            prevMessageRef.current = messageRef.current;
+        }
+    }, []);
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const status = params.get('status');
         const error = params.get('error');
 
-        let redirectTimer: null | ReturnType<typeof setTimeout> = null;
-        let cleanupTimer: null | ReturnType<typeof setTimeout> = null;
-        let closeTimer: null | ReturnType<typeof setTimeout> = null;
+        let redirectTimer: NodeJS.Timeout | null = null;
+        let cleanupTimer: NodeJS.Timeout | null = null;
+        let closeTimer: NodeJS.Timeout | null = null;
 
         const updateMessage = (message: string) => {
-            setStatusMessage(message);
+            messageRef.current = message;
         };
 
         const handleClose = (delay: number) => {
@@ -62,16 +72,16 @@ function OAuthResult() {
                     window.location.origin,
                 );
 
-                updateMessage('Authentication complete, closing window...');
+                updateMessage(t('auth.oauthCompleteClosing'));
                 handleClose(successDelay);
             } catch (e) {
                 console.error('Failed to send message to opener:', e);
-                updateMessage('Error communicating with parent window. Closing in a few seconds...');
+                updateMessage(t('auth.oauthCommunicationFailed'));
                 handleClose(errorDelay);
             }
         } else {
-            updateMessage('Authentication window opened directly. Redirecting to login page...');
-            handleRedirect(routes.login(), errorDelay / 2);
+            updateMessage(t('auth.oauthDirectRedirect'));
+            handleRedirect('/login', errorDelay / 2);
             handleClose(errorDelay);
         }
 
@@ -88,7 +98,7 @@ function OAuthResult() {
                 clearTimeout(closeTimer);
             }
         };
-    }, [successDelay, errorDelay]);
+    }, [successDelay, errorDelay, t]);
 
     return (
         <div className="flex h-screen w-full items-center justify-center bg-linear-to-r from-slate-800 to-slate-950">

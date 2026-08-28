@@ -1,3 +1,7 @@
+import type { Translate } from '@/lib/i18n';
+
+import { translatePromptName } from '@/lib/i18n/settings-labels';
+
 /**
  * Converts a camelCase prompt key (e.g. "agentSelector") into a display
  * label ("Agent Selector"). Shared between the prompt detail page header
@@ -8,9 +12,13 @@
  * as `/settings/prompts/99999`. Without this guard the route title would
  * render the raw id (`"99999 — PentAGI"`).
  */
-export const formatPromptId = (key: string): string => {
+export const formatPromptId = (key: string, t?: Translate): string => {
     if (!/^[a-z][a-zA-Z]*$/.test(key)) {
-        return 'Prompt';
+        return t ? t('title.prompt') : 'Prompt';
+    }
+
+    if (t) {
+        return translatePromptName(key, t);
     }
 
     return key.replaceAll(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase());

@@ -17,6 +17,7 @@ import (
 	"pentagi/pkg/providers"
 	"pentagi/pkg/server/auth"
 	"pentagi/pkg/server/logger"
+	"pentagi/pkg/server/response"
 	"pentagi/pkg/templates"
 
 	"github.com/99designs/gqlgen/graphql"
@@ -73,6 +74,7 @@ func NewGraphqlService(
 		Knowledge:       knowledgeStore,
 		Replacer:        replacer,
 	}}))
+	srv.SetErrorPresenter(localizedGraphQLErrorPresenter)
 
 	component := "pentagi-gql"
 	srv.AroundResponses(logger.WithGqlLogger(component))
@@ -99,6 +101,9 @@ func NewGraphqlService(
 	srv.AddTransport(&transport.Websocket{
 		KeepAlivePingInterval: 10 * time.Second,
 		InitFunc: func(ctx context.Context, initPayload transport.InitPayload) (context.Context, *transport.InitPayload, error) {
+			if acceptLanguage := initPayload.GetString("Accept-Language"); acceptLanguage != "" {
+				ctx = withGraphQLLanguage(ctx, acceptLanguage)
+			}
 			uid, err := graph.GetUserID(ctx)
 			if err != nil {
 				return nil, nil, fmt.Errorf("unauthorized: invalid user: %v", err)
@@ -144,10 +149,13 @@ func (s *GraphqlService) ServeGraphql(c *gin.Context) {
 	}()
 
 	ctx := savedCtx
+	acceptLanguage := c.GetHeader("Accept-Language")
+	ctx = withGraphQLLanguage(ctx, acceptLanguage)
 	ctx = graph.SetUserID(ctx, uid)
 	ctx = graph.SetUserType(ctx, tid)
 	ctx = graph.SetUserPermissions(ctx, privs)
 	c.Request = c.Request.WithContext(ctx)
+	c.Header("Content-Language", response.PreferredResponseLanguage(acceptLanguage))
 
 	s.srv.ServeHTTP(c.Writer, c.Request)
 }

@@ -1,0 +1,137 @@
+name: Build and publish zh-CN installer from main
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zh-cn-installer
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: github.repository == 'fulaoaz/pentagi'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            binary: installer
+          - goos: linux
+            goarch: arm64
+            binary: installer
+          - goos: windows
+            goarch: amd64
+            binary: installer.exe
+          - goos: darwin
+            goarch: amd64
+            binary: installer
+          - goos: darwin
+            goarch: arm64
+            binary: installer
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Generate embedded deployment files
+        working-directory: backend
+        run: go generate ./cmd/installer/files
+
+      - name: Check installer localization
+        working-directory: backend
+        run: go test ./cmd/installer/wizard/locale
+
+      - name: Build installer
+        working-directory: backend
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          revision="$(git rev-parse --short HEAD)"
+          ldflags="-s -w -X pentagi/pkg/version.PackageName=pentagi-installer-zh-cn -X pentagi/pkg/version.PackageVer=zh-CN -X pentagi/pkg/version.PackageRev=${revision}"
+          mkdir -p ../dist
+          go build -trimpath -ldflags "$ldflags" -o "../dist/${{ matrix.binary }}" ./cmd/installer
+
+      - name: Package installer
+        run: |
+          archive="pentagi-installer-zh-cn-${{ matrix.goos }}-${{ matrix.goarch }}.zip"
+          cd dist
+          zip -9 "$archive" "${{ matrix.binary }}"
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pentagi-installer-zh-cn-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/pentagi-installer-zh-cn-${{ matrix.goos }}-${{ matrix.goarch }}.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    if: github.repository == 'fulaoaz/pentagi'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Download installers
+        uses: actions/download-artifact@v5
+        with:
+          pattern: pentagi-installer-zh-cn-*
+          path: release
+          merge-multiple: true
+
+      - name: Generate checksums
+        working-directory: release
+        run: sha256sum *.zip | sort -k 2 > SHA256SUMS
+
+      - name: Update rolling release tag
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git tag --force zh-cn-installer-latest "$GITHUB_SHA"
+          git push --force origin refs/tags/zh-cn-installer-latest
+
+      - name: Publish rolling release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cat > release-notes.md <<'EOF'
+          PentAGI 简体中文交互式安装器，由双语维护主线 `main` 自动构建。
+
+          - 覆盖安装、配置、系统检查、部署、维护和密码重置界面
+          - 内嵌当前 `main` 的 Compose、`.env` 模板和示例配置
+          - 默认部署 `ghcr.io/fulaoaz/pentagi:main`（同时保留 `zh-cn` 兼容标签）
+          - 下载后请先使用 `SHA256SUMS` 校验文件完整性
+          EOF
+
+          if gh release view zh-cn-installer-latest >/dev/null 2>&1; then
+            gh release edit zh-cn-installer-latest \
+              --title "PentAGI 简体中文安装器（最新）" \
+              --notes-file release-notes.md \
+              --prerelease
+          else
+            gh release create zh-cn-installer-latest \
+              --title "PentAGI 简体中文安装器（最新）" \
+              --notes-file release-notes.md \
+              --prerelease
+          fi
+
+          gh release upload zh-cn-installer-latest release/* --clobber

@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import type { UserResourceFragmentFragment } from '@/graphql/types';
+import type { Translate } from '@/lib/i18n';
 
+import { useLocale } from '@/hooks/use-locale';
 import { api, getApiErrorMessage, unwrapApiResponse } from '@/lib/axios';
 import { validateUploadBatch } from '@/lib/upload-validation';
 
@@ -13,7 +15,6 @@ import {
     RESOURCES_API_PATH,
 } from './resources-constants';
 import { restResourceEntryToFragment, type RestResourceList } from './resources-rest';
-import { pluralizeItems } from './resources-utils';
 
 interface UploadOptions {
     /** Virtual directory path inside the user's library. Empty/undefined uploads to root. */
@@ -62,18 +63,16 @@ interface UseResourcesUploadResult {
     uploadFiles: (selectedFiles: File[], options?: UploadOptions) => Promise<null | UploadResponse>;
 }
 
-const UPLOAD_OVERWRITE_HINT = 'Resource already exists — please rename or remove the existing entry';
-
-const buildUploadSuccessMessage = (uploadedCount: number, dir?: string) => {
-    const target = dir ? `to /${dir}` : 'to your library';
+const buildUploadSuccessMessage = (uploadedCount: number, t: Translate, dir?: string) => {
+    const target = dir ? `/${dir}` : t('resources.library');
 
     if (uploadedCount === 1) {
-        return { description: `Uploaded ${target}`, title: 'File uploaded' };
+        return { description: t('resources.uploadedTo', { target }), title: t('resources.fileUploaded') };
     }
 
     return {
-        description: `${uploadedCount} files uploaded ${target}`,
-        title: `${uploadedCount} ${pluralizeItems(uploadedCount)} uploaded`,
+        description: t('resources.filesUploadedTo', { count: uploadedCount, target }),
+        title: t('resources.filesUploaded', { count: uploadedCount }),
     };
 };
 
@@ -83,6 +82,7 @@ const buildUploadSuccessMessage = (uploadedCount: number, dir?: string) => {
  * declaratively.
  */
 export function useResourcesUpload({ defaultDir, onSuccess }: UseResourcesUploadParams = {}): UseResourcesUploadResult {
+    const { t } = useLocale();
     const inputRef = useRef<HTMLInputElement | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [fileInputKey, setFileInputKey] = useState(0);
@@ -121,14 +121,23 @@ export function useResourcesUpload({ defaultDir, onSuccess }: UseResourcesUpload
                 return null;
             }
 
-            const validationError = validateUploadBatch(selectedFiles, {
-                maxFiles: MAX_UPLOAD_FILES_PER_REQUEST,
-                maxFileSizeMb: MAX_FILE_SIZE_MB,
-                maxTotalSizeMb: MAX_UPLOAD_TOTAL_SIZE_MB,
-            });
+            const validationError = validateUploadBatch(
+                selectedFiles,
+                {
+                    maxFiles: MAX_UPLOAD_FILES_PER_REQUEST,
+                    maxFileSizeMb: MAX_FILE_SIZE_MB,
+                    maxTotalSizeMb: MAX_UPLOAD_TOTAL_SIZE_MB,
+                },
+                {
+                    emptyFile: (name) => t('resources.validationEmptyFile', { name }),
+                    fileTooLarge: (name, size) => t('resources.validationFileTooLarge', { name, size }),
+                    tooManyFiles: (count) => t('resources.validationTooManyFiles', { count }),
+                    totalTooLarge: (size) => t('resources.validationTotalTooLarge', { size }),
+                },
+            );
 
             if (validationError) {
-                toast.error('Upload failed', { description: validationError });
+                toast.error(t('resources.uploadFailed'), { description: validationError });
 
                 return null;
             }
@@ -161,7 +170,7 @@ export function useResourcesUpload({ defaultDir, onSuccess }: UseResourcesUpload
                     total: raw.total ?? 0,
                 };
                 const uploadedCount = data.items.length;
-                const message = buildUploadSuccessMessage(uploadedCount, targetDir);
+                const message = buildUploadSuccessMessage(uploadedCount, t, targetDir);
 
                 toast.success(message.title, { description: message.description });
 
@@ -169,18 +178,18 @@ export function useResourcesUpload({ defaultDir, onSuccess }: UseResourcesUpload
 
                 return data;
             } catch (error) {
-                const description = getApiErrorMessage(error, 'Failed to upload files', {
-                    409: UPLOAD_OVERWRITE_HINT,
+                const description = getApiErrorMessage(error, t('resources.uploadFailed'), {
+                    409: t('resources.uploadConflict'),
                 });
 
-                toast.error('Upload failed', { description });
+                toast.error(t('resources.uploadFailed'), { description });
 
                 return null;
             } finally {
                 setIsUploading(false);
             }
         },
-        [onSuccess],
+        [onSuccess, t],
     );
 
     const handleFileSelection = useCallback(

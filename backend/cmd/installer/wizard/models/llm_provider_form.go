@@ -461,7 +461,7 @@ func (m *LLMProviderFormModel) GetCurrentConfiguration() string {
 		}
 		if config.DefaultAuth.Value == "true" {
 			sections = append(sections, fmt.Sprintf("• %s: %s",
-				locale.LLMFormFieldDefaultAuth, m.GetStyles().Success.Render("enabled")))
+				locale.LLMFormFieldDefaultAuth, m.GetStyles().Success.Render(locale.StatusEnabled)))
 		}
 		if config.BearerToken.Value != "" {
 			sections = append(sections, fmt.Sprintf("• %s: %s",

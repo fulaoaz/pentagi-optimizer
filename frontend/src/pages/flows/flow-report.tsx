@@ -1,10 +1,10 @@
-import { skipToken, useQuery } from '@apollo/client/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 
 import Logo from '@/components/icons/logo';
 import Markdown from '@/components/shared/markdown';
-import { FlowReportDocument } from '@/graphql/types';
+import { useFlowReportQuery } from '@/graphql/types';
+import { useLocale } from '@/hooks/use-locale';
 import { Log } from '@/lib/log';
 import { generateFileName, generatePDFFromMarkdown, generateReport } from '@/lib/report';
 
@@ -12,6 +12,7 @@ type PdfPhase = 'done' | 'error' | 'idle';
 type ReportState = 'content' | 'error' | 'generating' | 'loading';
 
 function FlowReport() {
+    const { t } = useLocale();
     const { flowId } = useParams<{ flowId: string }>();
     const [searchParams] = useSearchParams();
     const download = searchParams.has('download');
@@ -29,17 +30,21 @@ function FlowReport() {
         setPdfError(null);
     }
 
-    const { data, loading } = useQuery(
-        FlowReportDocument,
-        flowId ? { errorPolicy: 'all', variables: { id: flowId } } : skipToken,
-    );
+    const {
+        data,
+        error: queryError,
+        loading,
+    } = useFlowReportQuery({
+        errorPolicy: 'all',
+        skip: !flowId,
+        variables: { id: flowId! },
+    });
 
-    // Under `errorPolicy:'all'` a partial error arrives alongside a flow that loaded fine.
-    const dataReady = !loading && !!data?.flow;
+    const dataReady = !loading && !queryError && !!data?.flow;
 
     const reportContent = useMemo(
-        () => (dataReady ? generateReport(data.tasks || [], data.flow!) : ''),
-        [dataReady, data],
+        () => (dataReady ? generateReport(data.tasks || [], data.flow!, t('flow.report.noTasks')) : ''),
+        [dataReady, data, t],
     );
 
     useEffect(() => {
@@ -53,8 +58,7 @@ function FlowReport() {
 
         pdfTriggered.current = true;
 
-        // The generator appends the extension itself.
-        const fileName = generateFileName(data.flow);
+        const fileName = `${generateFileName(data.flow)}.pdf`;
 
         generatePDFFromMarkdown(reportContent, fileName)
             .then(() => {
@@ -66,19 +70,19 @@ function FlowReport() {
             })
             .catch((err) => {
                 Log.error('PDF generation failed:', err);
-                setPdfError('Failed to generate PDF');
+                setPdfError(t('flow.report.generateFailed'));
                 setPdfPhase('error');
             });
-    }, [dataReady, download, silent, reportContent, data]);
+    }, [dataReady, download, silent, reportContent, data, t]);
 
     let state: ReportState;
     let errorMessage: null | string = null;
 
     if (loading) {
         state = 'loading';
-    } else if (!data?.flow) {
+    } else if (queryError || !data?.flow) {
         state = 'error';
-        errorMessage = 'Failed to load flow data';
+        errorMessage = t('flow.report.loadFailed');
     } else if (pdfPhase === 'error') {
         state = 'error';
         errorMessage = pdfError;
@@ -95,13 +99,13 @@ function FlowReport() {
                     <Logo className="animate-logo-spin mb-8 size-16 text-white" />
                     <div className="flex flex-col gap-4 text-center">
                         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-                            {state === 'loading' ? 'Loading Report...' : 'Generating PDF...'}
+                            {state === 'loading' ? t('flow.report.loadingTitle') : t('flow.report.generatingTitle')}
                         </h1>
                         <div className="mx-auto size-8 animate-spin rounded-full border-b-2 border-blue-600" />
                         <p className="max-w-md text-gray-600 dark:text-gray-400">
                             {state === 'loading'
-                                ? 'Please wait while we prepare your penetration testing report.'
-                                : 'Creating your PDF document. This may take a few moments.'}
+                                ? t('flow.report.loadingDescription')
+                                : t('flow.report.generatingDescription')}
                         </p>
                     </div>
                 </div>
@@ -115,15 +119,17 @@ function FlowReport() {
                 <div className="flex min-h-screen flex-col items-center justify-center p-8">
                     <Logo className="mb-8 size-16" />
                     <div className="flex flex-col gap-4 text-center">
-                        <h1 className="text-2xl font-semibold text-red-600 dark:text-red-400">Error Loading Report</h1>
+                        <h1 className="text-2xl font-semibold text-red-600 dark:text-red-400">
+                            {t('flow.report.errorTitle')}
+                        </h1>
                         <p className="max-w-md text-gray-600 dark:text-gray-400">
-                            {errorMessage || 'An unexpected error occurred while loading the report.'}
+                            {errorMessage || t('flow.report.unexpectedError')}
                         </p>
                         <button
                             className="mt-4 rounded-md bg-red-600 px-4 py-2 text-white transition-colors hover:bg-red-700"
                             onClick={() => window.close()}
                         >
-                            Close
+                            {t('flow.report.close')}
                         </button>
                     </div>
                 </div>

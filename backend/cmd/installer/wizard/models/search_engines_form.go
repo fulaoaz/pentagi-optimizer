@@ -90,8 +90,8 @@ func (m *SearchEnginesFormModel) BuildForm() tea.Cmd {
 	// Perplexity Model (suggestions)
 	fields = append(fields, m.createSelectTextField(
 		"perplexity_model",
-		"Perplexity Model",
-		"Select Perplexity model",
+		locale.ToolsSearchEnginesPerplexityModel,
+		locale.ToolsSearchEnginesPerplexityModelDesc,
 		config.PerplexityModel,
 		[]string{"sonar", "sonar-pro", "sonar-reasoning", "sonar-reasoning-pro", "sonar-deep-research"},
 		false,
@@ -100,8 +100,8 @@ func (m *SearchEnginesFormModel) BuildForm() tea.Cmd {
 	// Perplexity Context Size (suggestions)
 	fields = append(fields, m.createSelectTextField(
 		"perplexity_context_size",
-		"Perplexity Context Size",
-		"Select Perplexity context size",
+		locale.ToolsSearchEnginesPerplexityContextSize,
+		locale.ToolsSearchEnginesPerplexityContextSizeDesc,
 		config.PerplexityContextSize,
 		[]string{"low", "medium", "high"},
 		false,
@@ -374,10 +374,10 @@ func (m *SearchEnginesFormModel) GetCurrentConfiguration() string {
 		duckduckgoEnabled = config.DuckDuckGoEnabled.Default
 	}
 	if duckduckgoEnabled == "true" {
-		sections = append(sections, fmt.Sprintf("• DuckDuckGo: %s",
+		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ToolsSearchEnginesDuckDuckGoName,
 			m.GetStyles().Success.Render(locale.StatusEnabled)))
 	} else {
-		sections = append(sections, fmt.Sprintf("• DuckDuckGo: %s",
+		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ToolsSearchEnginesDuckDuckGoName,
 			m.GetStyles().Warning.Render(locale.StatusDisabled)))
 	}
 
@@ -387,28 +387,28 @@ func (m *SearchEnginesFormModel) GetCurrentConfiguration() string {
 		sploitusEnabled = config.SploitusEnabled.Default
 	}
 	if sploitusEnabled == "true" {
-		sections = append(sections, fmt.Sprintf("• Sploitus: %s",
+		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ToolsSearchEnginesSploitusName,
 			m.GetStyles().Success.Render(locale.StatusEnabled)))
 	} else {
-		sections = append(sections, fmt.Sprintf("• Sploitus: %s",
+		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ToolsSearchEnginesSploitusName,
 			m.GetStyles().Warning.Render(locale.StatusDisabled)))
 	}
 
 	// Perplexity
 	if config.PerplexityAPIKey.Value != "" {
-		sections = append(sections, fmt.Sprintf("• Perplexity: %s",
+		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ToolsSearchEnginesPerplexityName,
 			m.GetStyles().Success.Render(locale.StatusConfigured)))
 	} else {
-		sections = append(sections, fmt.Sprintf("• Perplexity: %s",
+		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ToolsSearchEnginesPerplexityName,
 			m.GetStyles().Warning.Render(locale.StatusNotConfigured)))
 	}
 
 	// Tavily
 	if config.TavilyAPIKey.Value != "" {
-		sections = append(sections, fmt.Sprintf("• Tavily: %s",
+		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ToolsSearchEnginesTavilyName,
 			m.GetStyles().Success.Render(locale.StatusConfigured)))
 	} else {
-		sections = append(sections, fmt.Sprintf("• Tavily: %s",
+		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ToolsSearchEnginesTavilyName,
 			m.GetStyles().Warning.Render(locale.StatusNotConfigured)))
 	}
 
@@ -423,28 +423,28 @@ func (m *SearchEnginesFormModel) GetCurrentConfiguration() string {
 
 	// Traversaal
 	if config.TraversaalAPIKey.Value != "" {
-		sections = append(sections, fmt.Sprintf("• Traversaal: %s",
+		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ToolsSearchEnginesTraversaalName,
 			m.GetStyles().Success.Render(locale.StatusConfigured)))
 	} else {
-		sections = append(sections, fmt.Sprintf("• Traversaal: %s",
+		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ToolsSearchEnginesTraversaalName,
 			m.GetStyles().Warning.Render(locale.StatusNotConfigured)))
 	}
 
 	// Google Search
 	if config.GoogleAPIKey.Value != "" && config.GoogleCXKey.Value != "" {
-		sections = append(sections, fmt.Sprintf("• Google Search: %s",
+		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ToolsSearchEnginesGoogleName,
 			m.GetStyles().Success.Render(locale.StatusConfigured)))
 	} else {
-		sections = append(sections, fmt.Sprintf("• Google Search: %s",
+		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ToolsSearchEnginesGoogleName,
 			m.GetStyles().Warning.Render(locale.StatusNotConfigured)))
 	}
 
 	// Searxng
 	if config.SearxngURL.Value != "" {
-		sections = append(sections, fmt.Sprintf("• Searxng: %s",
+		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ToolsSearchEnginesSearxngName,
 			m.GetStyles().Success.Render(locale.StatusConfigured)))
 	} else {
-		sections = append(sections, fmt.Sprintf("• Searxng: %s",
+		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ToolsSearchEnginesSearxngName,
 			m.GetStyles().Warning.Render(locale.StatusNotConfigured)))
 	}
 

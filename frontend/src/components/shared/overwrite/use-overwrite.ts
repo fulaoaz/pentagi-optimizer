@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { useLocale } from '@/hooks/use-locale';
+
 import type { OverwriteConflict } from './overwrite-dialog';
 
 /**
@@ -25,11 +27,6 @@ export type OverwriteOutcome =
  * back to the count-based copy ("N items already exist...") in
  * `OverwriteDialog`.
  */
-const ANONYMOUS_FALLBACK_CONFLICT: OverwriteConflict = {
-    destination: '',
-    destinationName: 'an item',
-};
-
 interface UseOverwriteOptions<TPlan> {
     /**
      * Execute the REST call. Receives the plan + a boolean `force` flag.
@@ -96,6 +93,7 @@ interface UseOverwriteResult<TPlan> {
  * site without sacrificing reference stability for the returned actions.
  */
 export function useOverwrite<TPlan>(options: UseOverwriteOptions<TPlan>): UseOverwriteResult<TPlan> {
+    const { t } = useLocale();
     const [conflicts, setConflicts] = useState<OverwriteConflict[]>([]);
     const [pendingPlan, setPendingPlan] = useState<null | TPlan>(null);
 
@@ -153,13 +151,13 @@ export function useOverwrite<TPlan>(options: UseOverwriteOptions<TPlan>): UseOve
             } else if (synthesized.length > 0) {
                 final = synthesized;
             } else {
-                final = [ANONYMOUS_FALLBACK_CONFLICT];
+                final = [{ destination: '', destinationName: t('overwrite.anItem') }];
             }
 
             setConflicts(final);
             setPendingPlan(plan);
         },
-        [settle],
+        [settle, t],
     );
 
     const forceExecute = useCallback(

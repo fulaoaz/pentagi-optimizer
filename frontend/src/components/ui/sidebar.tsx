@@ -12,6 +12,7 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
+import { useLocale } from '@/hooks/use-locale';
 import { cn } from '@/lib/utils';
 
 const SIDEBAR_COOKIE_NAME = 'sidebar:state';
@@ -414,10 +415,11 @@ function SidebarProvider({
 
 function SidebarRail({ className, ...props }: React.ComponentProps<'button'>) {
     const { toggleSidebar } = useSidebar();
+    const { t } = useLocale();
 
     return (
         <button
-            aria-label="Toggle Sidebar"
+            aria-label={t('common.toggleSidebar')}
             className={cn(
                 'hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] sm:flex',
                 'in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize',
@@ -430,7 +432,7 @@ function SidebarRail({ className, ...props }: React.ComponentProps<'button'>) {
             data-sidebar="rail"
             onClick={toggleSidebar}
             tabIndex={-1}
-            title="Toggle Sidebar"
+            title={t('common.toggleSidebar')}
             {...props}
         />
     );
@@ -448,6 +450,7 @@ function SidebarSeparator({ className, ...props }: React.ComponentProps<typeof S
 
 function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<typeof Button>) {
     const { toggleSidebar } = useSidebar();
+    const { t } = useLocale();
 
     return (
         <Button
@@ -462,7 +465,7 @@ function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<t
             {...props}
         >
             <PanelLeft />
-            <span className="sr-only">Toggle Sidebar</span>
+            <span className="sr-only">{t('common.toggleSidebar')}</span>
         </Button>
     );
 }

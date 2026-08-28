@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -102,6 +103,56 @@ func TestTavilyHandle(t *testing.T) {
 		t.Errorf("result missing expected URL 'https://example.com': %q", got)
 	}
 
+}
+
+func TestTavilySearch_CustomBaseURLWithBearerAuth(t *testing.T) {
+	var receivedMethod string
+	var receivedAuthorization string
+	var receivedBody []byte
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/search" {
+			t.Errorf("request path = %q, want /search", r.URL.Path)
+		}
+		receivedMethod = r.Method
+		receivedAuthorization = r.Header.Get("Authorization")
+		var err error
+		receivedBody, err = io.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("failed to read request body: %v", err)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"answer":"custom answer","query":"custom query","response_time":0.1,"results":[]}`))
+	}))
+	defer server.Close()
+
+	tav := &tavily{cfg: &config.Config{
+		TavilyAPIKey:        testTavilyAPIKey,
+		TavilyBaseURL:       server.URL + "/",
+		TavilyUseBearerAuth: true,
+	}}
+
+	got, err := tav.search(t.Context(), "custom query", 3)
+	if err != nil {
+		t.Fatalf("search() unexpected error: %v", err)
+	}
+	if receivedMethod != http.MethodPost {
+		t.Errorf("request method = %q, want POST", receivedMethod)
+	}
+	if receivedAuthorization != "Bearer "+testTavilyAPIKey {
+		t.Errorf("Authorization = %q, want Bearer token", receivedAuthorization)
+	}
+	if strings.Contains(string(receivedBody), `"api_key"`) {
+		t.Errorf("request body must not contain api_key when bearer auth is enabled: %q", receivedBody)
+	}
+	if !strings.Contains(string(receivedBody), `"query":"custom query"`) {
+		t.Errorf("request body = %q, expected to contain query", receivedBody)
+	}
+	if !strings.Contains(got, "custom answer") {
+		t.Errorf("result missing expected text: %q", got)
+	}
 }
 
 func TestTavilyIsAvailable(t *testing.T) {

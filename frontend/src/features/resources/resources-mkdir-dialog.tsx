@@ -1,14 +1,20 @@
+import { zodResolver } from '@hookform/resolvers/zod';
 import { FolderPlus } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useForm } from 'react-hook-form';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormSubmitButton } from '@/components/ui/form-submit-button';
 import { Input } from '@/components/ui/input';
-import { useAppForm } from '@/hooks/use-app-form';
+import { useLocale } from '@/hooks/use-locale';
 
-import { resourcesMkdirFormSchema, type ResourcesMkdirFormValues, useResourcesMkdir } from './use-resources-mkdir';
+import {
+    createResourcesMkdirFormSchema,
+    type ResourcesMkdirFormValues,
+    useResourcesMkdir,
+} from './use-resources-mkdir';
 
 interface ResourcesMkdirDialogFormProps {
     defaultParentPath: string;
@@ -48,11 +54,14 @@ export function ResourcesMkdirDialog({ defaultParentPath = '', isOpen, onClose }
 }
 
 function ResourcesMkdirDialogForm({ defaultParentPath, onClose }: ResourcesMkdirDialogFormProps) {
+    const { t } = useLocale();
     const { isCreating, mkdir } = useResourcesMkdir();
+    const formSchema = useMemo(() => createResourcesMkdirFormSchema(t), [t]);
 
-    const form = useAppForm<ResourcesMkdirFormValues>({
+    const form = useForm<ResourcesMkdirFormValues>({
         defaultValues: { path: buildDefaultPath(defaultParentPath) },
-        schema: resourcesMkdirFormSchema,
+        mode: 'onChange',
+        resolver: zodResolver(formSchema),
     });
 
     useEffect(() => {
@@ -72,18 +81,14 @@ function ResourcesMkdirDialogForm({ defaultParentPath, onClose }: ResourcesMkdir
             <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                     <FolderPlus className="size-4" />
-                    Create directory
+                    {t('resources.createDirectory')}
                 </DialogTitle>
-                <DialogDescription>
-                    Create a virtual directory inside your resource library. Existing parent directories are reused
-                    automatically.
-                </DialogDescription>
+                <DialogDescription>{t('resources.createDirectoryDescription')}</DialogDescription>
             </DialogHeader>
 
             <Form {...form}>
                 <form
                     className="flex flex-col gap-4"
-                    noValidate
                     onSubmit={handleSubmit}
                 >
                     <FormField
@@ -91,19 +96,17 @@ function ResourcesMkdirDialogForm({ defaultParentPath, onClose }: ResourcesMkdir
                         name="path"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Path</FormLabel>
+                                <FormLabel>{t('resources.path')}</FormLabel>
                                 <FormControl>
                                     <Input
                                         {...field}
                                         autoComplete="off"
                                         autoFocus
                                         disabled={isCreating}
-                                        placeholder="reports/2025"
+                                        placeholder={t('resources.pathPlaceholder')}
                                     />
                                 </FormControl>
-                                <FormDescription>
-                                    Relative path. Use <code>/</code> to nest into subdirectories.
-                                </FormDescription>
+                                <FormDescription>{t('resources.pathDescription')}</FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -116,9 +119,9 @@ function ResourcesMkdirDialogForm({ defaultParentPath, onClose }: ResourcesMkdir
                             type="button"
                             variant="outline"
                         >
-                            Cancel
+                            {t('common.cancel')}
                         </Button>
-                        <FormSubmitButton icon={<FolderPlus />}>Create</FormSubmitButton>
+                        <FormSubmitButton icon={<FolderPlus />}>{t('common.create')}</FormSubmitButton>
                     </div>
                 </form>
             </Form>

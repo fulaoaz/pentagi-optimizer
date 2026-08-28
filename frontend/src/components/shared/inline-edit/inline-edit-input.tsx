@@ -1,8 +1,8 @@
-import { Check, X } from 'lucide-react';
+import { Check, Loader2, X } from 'lucide-react';
 import { type KeyboardEvent, type Ref } from 'react';
 
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
-import { Spinner } from '@/components/ui/spinner';
+import { useLocale } from '@/hooks/use-locale';
 import { cn } from '@/lib/utils';
 
 interface InlineEditInputProps {
@@ -13,10 +13,7 @@ interface InlineEditInputProps {
      * so focus must be requested explicitly.
      */
     autoFocus?: boolean;
-    /**
-     * Inert Save + Cancel while a mutation is in flight — both the buttons and
-     * the `Enter`/`Escape` shortcuts. The input itself stays editable.
-     */
+    /** Disable input + Save button while a mutation is in flight. */
     busy?: boolean;
     /** Optional className passed through to the outer `<InputGroup>`. */
     className?: string;
@@ -68,11 +65,9 @@ export function InlineEditInput({
     onSave,
     placeholder,
 }: InlineEditInputProps) {
-    const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-        if (busy) {
-            return;
-        }
+    const { t } = useLocale();
 
+    const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
         if (event.key === 'Enter') {
             event.preventDefault();
             onSave();
@@ -102,14 +97,14 @@ export function InlineEditInput({
                 className="gap-0 pr-2"
             >
                 <InputGroupButton
-                    aria-label="Save"
+                    aria-label={t('common.save')}
                     disabled={busy}
                     onClick={onSave}
                 >
-                    {busy ? <Spinner variant="circle" /> : <Check />}
+                    {busy ? <Loader2 className="animate-spin" /> : <Check />}
                 </InputGroupButton>
                 <InputGroupButton
-                    aria-label="Cancel"
+                    aria-label={t('common.cancel')}
                     disabled={busy}
                     onClick={onCancel}
                 >

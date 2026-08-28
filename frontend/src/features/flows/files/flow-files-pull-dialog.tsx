@@ -2,6 +2,7 @@ import { ArrowDownToLine, ArrowUp, FolderOpen, RefreshCw, TriangleAlert } from '
 import { useCallback, useMemo, useState } from 'react';
 
 import {
+    buildFileManagerLabels,
     dedupeOverlappingPaths,
     FileManager,
     type FileManagerBulkAction,
@@ -30,10 +31,10 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useLocale } from '@/hooks/use-locale';
 
 import { findPullConflicts } from './flow-files-conflicts';
 import { CONTAINER_DEFAULT_PATH, CONTAINER_PATH_PREFIX } from './flow-files-constants';
-import { pluralizeItems } from './flow-files-utils';
 import { useFlowContainerFiles } from './use-flow-container-files';
 import { useFlowFilesPull } from './use-flow-files-pull';
 
@@ -125,9 +126,11 @@ export function FlowFilesPullDialog({ cachedFiles, flowId, isOpen, onClose, onSu
  * owns the listing browser UI and the per-action plan derivation.
  */
 function FlowFilesPullDialogForm({ cachedFiles, flowId, onClose, onSuccess }: FlowFilesPullDialogFormProps) {
+    const { locale, t } = useLocale();
     const [currentPath, setCurrentPath] = useState<string>(CONTAINER_DEFAULT_PATH);
     const [pathInputValue, setPathInputValue] = useState<string>(CONTAINER_DEFAULT_PATH);
     const [selectedPaths, setSelectedPaths] = useState<ReadonlySet<string>>(() => new Set<string>());
+    const fileManagerLabels = useMemo(() => buildFileManagerLabels(locale, t), [locale, t]);
 
     // Stable single-element array so the listing hook's effect doesn't re-fire
     // on every parent re-render.
@@ -307,19 +310,27 @@ function FlowFilesPullDialogForm({ cachedFiles, flowId, onClose, onSuccess }: Fl
 
     const primaryLabel = useMemo(() => {
         if (selectedPaths.size === 0) {
-            return `Pull ${currentPath}`;
+            return t('flow.files.pullCurrentPath', { path: currentPath });
         }
 
-        return `Pull ${selectedPaths.size} ${pluralizeItems(selectedPaths.size)}`;
-    }, [currentPath, selectedPaths.size]);
+        const count = t(selectedPaths.size === 1 ? 'fileManager.itemCountOne' : 'fileManager.itemCountMany', {
+            count: selectedPaths.size,
+        });
+
+        return t('flow.files.pullSelected', { count });
+    }, [currentPath, selectedPaths.size, t]);
 
     const overwriteLabel = useMemo(() => {
         if (selectedPaths.size === 0) {
-            return 'Pull with overwrite';
+            return t('flow.files.pullOverwrite');
         }
 
-        return `Pull ${selectedPaths.size} with overwrite`;
-    }, [selectedPaths.size]);
+        const count = t(selectedPaths.size === 1 ? 'fileManager.itemCountOne' : 'fileManager.itemCountMany', {
+            count: selectedPaths.size,
+        });
+
+        return t('flow.files.pullOverwriteCount', { count });
+    }, [selectedPaths.size, t]);
 
     // The FileManager doesn't ship a "selection only" mode — passing an empty
     // bulk-actions array is the cheapest way to surface the checkboxes.
@@ -331,7 +342,7 @@ function FlowFilesPullDialogForm({ cachedFiles, flowId, onClose, onSuccess }: Fl
                 <EmptyMedia variant="icon">
                     <FolderOpen />
                 </EmptyMedia>
-                <EmptyTitle>Failed to list container</EmptyTitle>
+                <EmptyTitle>{t('flow.files.containerListFailed')}</EmptyTitle>
                 <EmptyDescription>{listingError.message}</EmptyDescription>
             </EmptyHeader>
         </Empty>
@@ -365,10 +376,8 @@ function FlowFilesPullDialogForm({ cachedFiles, flowId, onClose, onSuccess }: Fl
                 <EmptyMedia variant="icon">
                     <FolderOpen />
                 </EmptyMedia>
-                <EmptyTitle>Directory is empty</EmptyTitle>
-                <EmptyDescription>
-                    Nothing to pull from <code>{currentPath}</code>.
-                </EmptyDescription>
+                <EmptyTitle>{t('flow.files.directoryEmpty')}</EmptyTitle>
+                <EmptyDescription>{t('flow.files.nothingToPull', { path: currentPath })}</EmptyDescription>
             </EmptyHeader>
         </Empty>
     );
@@ -379,18 +388,15 @@ function FlowFilesPullDialogForm({ cachedFiles, flowId, onClose, onSuccess }: Fl
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <ArrowDownToLine className="size-4" />
-                        Pull from container
+                        {t('flow.files.pullFromContainer')}
                     </DialogTitle>
-                    <DialogDescription>
-                        Browse the running container and select files or directories to sync into the local cache under{' '}
-                        <code>container/</code>. Click the arrow on a folder row or double-click the row to drill in.
-                    </DialogDescription>
+                    <DialogDescription>{t('flow.files.pullDescription', { path: 'container/' })}</DialogDescription>
                 </DialogHeader>
 
                 <div className="flex flex-col gap-3">
                     <div className="flex items-end gap-2">
                         <div className="flex-1">
-                            <Label className="mb-1.5 block text-sm font-normal">Container path</Label>
+                            <Label className="mb-1.5 block text-sm font-normal">{t('flow.files.containerPath')}</Label>
                             <Autocomplete
                                 onCommit={navigateTo}
                                 onValueChange={setPathInputValue}
@@ -402,7 +408,7 @@ function FlowFilesPullDialogForm({ cachedFiles, flowId, onClose, onSuccess }: Fl
                                     placeholder="/work"
                                 />
                                 <AutocompleteContent>
-                                    <AutocompleteEmpty>No matching paths</AutocompleteEmpty>
+                                    <AutocompleteEmpty>{t('flow.files.noMatchingPaths')}</AutocompleteEmpty>
                                     <AutocompleteGroup>
                                         {pathSuggestions.map((suggestion) => (
                                             <AutocompleteItem
@@ -432,7 +438,7 @@ function FlowFilesPullDialogForm({ cachedFiles, flowId, onClose, onSuccess }: Fl
                                     </Button>
                                 </span>
                             </TooltipTrigger>
-                            <TooltipContent>Parent directory</TooltipContent>
+                            <TooltipContent>{t('flow.files.parentDirectory')}</TooltipContent>
                         </Tooltip>
 
                         <Tooltip>
@@ -450,7 +456,7 @@ function FlowFilesPullDialogForm({ cachedFiles, flowId, onClose, onSuccess }: Fl
                                     </Button>
                                 </span>
                             </TooltipTrigger>
-                            <TooltipContent>Refresh listing</TooltipContent>
+                            <TooltipContent>{t('flow.files.refreshListing')}</TooltipContent>
                         </Tooltip>
                     </div>
 
@@ -490,6 +496,7 @@ function FlowFilesPullDialogForm({ cachedFiles, flowId, onClose, onSuccess }: Fl
                         enableSelection
                         files={flatFiles}
                         isLoading={isListingLoading && flatFiles.length === 0}
+                        labels={fileManagerLabels}
                         onOpenDirectory={handleOpenDirectory}
                         onSelectionChange={setSelectedPaths}
                     />
@@ -502,7 +509,7 @@ function FlowFilesPullDialogForm({ cachedFiles, flowId, onClose, onSuccess }: Fl
                         type="button"
                         variant="outline"
                     >
-                        Cancel
+                        {t('common.cancel')}
                     </Button>
                     <OverwriteButtons
                         isDisabled={isPullDisabled}

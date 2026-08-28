@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import type { OverwriteOutcome } from '@/components/shared/overwrite';
 
 import { resourceIdsToWire } from '@/features/resources/resources-rest';
+import { useLocale } from '@/hooks/use-locale';
 import { api, getApiErrorMessage, getApiErrorStatusCode } from '@/lib/axios';
 
 import type { FlowFilesResponse } from './flow-files-utils';
@@ -36,6 +37,7 @@ export function useFlowFilesAttachResources({
     flowId,
     onSuccess,
 }: UseFlowFilesAttachResourcesParams): UseFlowFilesAttachResourcesResult {
+    const { t } = useLocale();
     const [isAttaching, setIsAttaching] = useState(false);
 
     const attach = useCallback(
@@ -51,9 +53,9 @@ export function useFlowFilesAttachResources({
             } catch (error) {
                 // Non-numeric IDs indicate an upstream cache contract bug, not a user
                 // mistake. Surface a developer-friendly toast and bail out loudly.
-                const description = error instanceof Error ? error.message : 'Invalid resource IDs.';
+                const description = error instanceof Error ? error.message : t('flow.files.invalidResourceIds');
 
-                toast.error('Attach failed', { description });
+                toast.error(t('flow.files.attachFailed'), { description });
 
                 return { kind: 'error' };
             }
@@ -70,8 +72,15 @@ export function useFlowFilesAttachResources({
                     { timeout: 0 },
                 );
 
-                toast.success('Resources attached', {
-                    description: `Copied ${numericIds.length} ${numericIds.length === 1 ? 'item' : 'items'} to ${RESOURCES_TARGET_DIRECTORY}`,
+                const count = t(numericIds.length === 1 ? 'fileManager.itemCountOne' : 'fileManager.itemCountMany', {
+                    count: numericIds.length,
+                });
+
+                toast.success(t('flow.files.attached'), {
+                    description: t('flow.files.attachedDescription', {
+                        count,
+                        path: RESOURCES_TARGET_DIRECTORY,
+                    }),
                 });
                 onSuccess?.();
 
@@ -81,16 +90,16 @@ export function useFlowFilesAttachResources({
                     return { kind: 'conflict' };
                 }
 
-                const description = getApiErrorMessage(error, 'Failed to attach resources');
+                const description = getApiErrorMessage(error, t('flow.files.attachFailed'));
 
-                toast.error('Attach failed', { description });
+                toast.error(t('flow.files.attachFailed'), { description });
 
                 return { kind: 'error' };
             } finally {
                 setIsAttaching(false);
             }
         },
-        [flowId, onSuccess],
+        [flowId, onSuccess, t],
     );
 
     return {

@@ -11,6 +11,7 @@ import {
     FlowTemplateUpdatedDocument,
     UpdateFlowTemplateDocument,
 } from '@/graphql/types';
+import { useLocale } from '@/hooks/use-locale';
 import { Log } from '@/lib/log';
 import { useUser } from '@/providers/user-provider';
 
@@ -42,6 +43,7 @@ const TemplatesContext = createContext<TemplatesContextValue | undefined>(undefi
 
 export function TemplatesProvider({ children }: TemplatesProviderProps) {
     const { authInfo, isAuthenticated } = useUser();
+    const { t } = useLocale();
 
     const shouldFetchTemplates = Boolean(authInfo && authInfo.type !== 'guest' && isAuthenticated());
 
@@ -100,15 +102,15 @@ export function TemplatesProvider({ children }: TemplatesProviderProps) {
                     },
                 });
             } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'Failed to create template';
-                toast.error('Failed to create template', {
+                const errorMessage = error instanceof Error ? error.message : t('templates.createFailed');
+                toast.error(t('templates.createFailed'), {
                     description: errorMessage,
                 });
                 Log.error('Error creating template:', error);
                 throw error;
             }
         },
-        [createTemplateMutation],
+        [createTemplateMutation, t],
     );
 
     const updateTemplate = useCallback(
@@ -124,15 +126,15 @@ export function TemplatesProvider({ children }: TemplatesProviderProps) {
                     },
                 });
             } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'Failed to update template';
-                toast.error('Failed to update template', {
+                const errorMessage = error instanceof Error ? error.message : t('templates.updateFailed');
+                toast.error(t('templates.updateFailed'), {
                     description: errorMessage,
                 });
                 Log.error('Error updating template:', error);
                 throw error;
             }
         },
-        [updateTemplateMutation],
+        [t, updateTemplateMutation],
     );
 
     const deleteTemplate = useCallback(
@@ -144,15 +146,15 @@ export function TemplatesProvider({ children }: TemplatesProviderProps) {
                     },
                 });
             } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'Failed to delete template';
-                toast.error('Failed to delete template', {
+                const errorMessage = error instanceof Error ? error.message : t('templates.deleteFailed');
+                toast.error(t('templates.deleteFailed'), {
                     description: errorMessage,
                 });
                 Log.error('Error deleting template:', error);
                 throw error;
             }
         },
-        [deleteTemplateMutation],
+        [deleteTemplateMutation, t],
     );
 
     const value = useMemo(

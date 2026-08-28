@@ -13,7 +13,9 @@ import {
     isToday,
     isValid,
 } from 'date-fns';
-import { enUS } from 'date-fns/locale';
+import { enUS, zhCN } from 'date-fns/locale';
+
+import type { Locale } from '@/lib/i18n';
 
 import type {
     FileManagerInternalNode,
@@ -43,7 +45,7 @@ export const formatFileSize = (size?: number): string => {
     return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[unitIndex]}`;
 };
 
-export const formatModifiedRelative = (modifiedAt?: Date | string): string => {
+export const formatModifiedRelative = (modifiedAt?: Date | string, locale: Locale = 'en'): string => {
     if (!modifiedAt) {
         return '';
     }
@@ -64,30 +66,30 @@ export const formatModifiedRelative = (modifiedAt?: Date | string): string => {
     const years = differenceInYears(now, date);
 
     if (seconds < 60 || !minutes) {
-        return 'just now';
+        return locale === 'zh-CN' ? '刚刚' : 'just now';
     }
 
     if (minutes < 60 || !hours) {
-        return `${minutes}m ago`;
+        return locale === 'zh-CN' ? `${minutes} 分钟前` : `${minutes}m ago`;
     }
 
     if (hours < 24 || !days) {
-        return `${hours}h ago`;
+        return locale === 'zh-CN' ? `${hours} 小时前` : `${hours}h ago`;
     }
 
     if (days < 7 || !weeks) {
-        return `${days}d ago`;
+        return locale === 'zh-CN' ? `${days} 天前` : `${days}d ago`;
     }
 
     if (weeks < 4 || !months) {
-        return `${weeks}w ago`;
+        return locale === 'zh-CN' ? `${weeks} 周前` : `${weeks}w ago`;
     }
 
     if (months < 12 || !years) {
-        return `${months}mo ago`;
+        return locale === 'zh-CN' ? `${months} 个月前` : `${months}mo ago`;
     }
 
-    return `${years}y ago`;
+    return locale === 'zh-CN' ? `${years} 年前` : `${years}y ago`;
 };
 
 /**
@@ -100,11 +102,10 @@ export const formatModifiedRelative = (modifiedAt?: Date | string): string => {
  *   - same calendar year  → `d MMM, HH:mm` (e.g. `15 Apr, 14:32`)
  *   - any other year      → `d MMM yyyy, HH:mm` (e.g. `15 Apr 2024, 14:32`)
  *
- * Locale is forced to `en-US` so day/month tokens stay stable regardless of
- * the user's browser locale (matches the rest of the FileManager UI strings,
- * which are English-only by default).
+ * The optional locale selects English or Simplified Chinese date tokens; the
+ * English default preserves the original output for callers that do not opt in.
  */
-export const formatModifiedAbsolute = (modifiedAt?: Date | string): string => {
+export const formatModifiedAbsolute = (modifiedAt?: Date | string, locale: Locale = 'en'): string => {
     if (!modifiedAt) {
         return '';
     }
@@ -120,10 +121,14 @@ export const formatModifiedAbsolute = (modifiedAt?: Date | string): string => {
     }
 
     if (isThisYear(date)) {
-        return format(date, 'd MMM, HH:mm', { locale: enUS });
+        return format(date, locale === 'zh-CN' ? 'M月d日 HH:mm' : 'd MMM, HH:mm', {
+            locale: locale === 'zh-CN' ? zhCN : enUS,
+        });
     }
 
-    return format(date, 'd MMM yyyy, HH:mm', { locale: enUS });
+    return format(date, locale === 'zh-CN' ? 'yyyy年M月d日 HH:mm' : 'd MMM yyyy, HH:mm', {
+        locale: locale === 'zh-CN' ? zhCN : enUS,
+    });
 };
 
 /** Strip trailing slashes from a `pathPrefix`. Empty / `'/'` collapse to `''`. */

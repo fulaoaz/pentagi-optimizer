@@ -1,0 +1,220 @@
+name: Sync upstream into localized main
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+    inputs:
+      upstream_branch:
+        description: "要同步的上游分支"
+        required: true
+        default: main
+        type: string
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: upstream-sync
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    if: github.repository == 'fulaoaz/pentagi'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout localized main
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 23
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+          cache: true
+          cache-dependency-path: backend/go.sum
+
+      - name: Merge upstream main for review
+        id: merge
+        env:
+          UPSTREAM_BRANCH: ${{ inputs.upstream_branch || 'main' }}
+        run: |
+          set -o pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git remote add upstream https://github.com/vxcontrol/pentagi.git
+          git fetch upstream "$UPSTREAM_BRANCH" --prune
+
+          if git merge-base --is-ancestor "upstream/$UPSTREAM_BRANCH" HEAD; then
+            echo "result=none" >> "$GITHUB_OUTPUT"
+            echo "updates=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          set +e
+          git merge --no-ff --no-commit "upstream/$UPSTREAM_BRANCH"
+          merge_status=$?
+          set -e
+          if [ "$merge_status" -ne 0 ]; then
+            git diff --name-only --diff-filter=U | sort > "$RUNNER_TEMP/upstream-conflicts.txt"
+            git merge --abort || true
+            echo "result=conflict" >> "$GITHUB_OUTPUT"
+            echo "updates=false" >> "$GITHUB_OUTPUT"
+            echo "upstream_sha=$(git rev-parse "upstream/$UPSTREAM_BRANCH")" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "result=updated" >> "$GITHUB_OUTPUT"
+          echo "updates=true" >> "$GITHUB_OUTPUT"
+
+      - name: Record upstream conflict
+        if: steps.merge.outputs.result == 'conflict'
+        run: |
+          CONFLICT_FILE="$RUNNER_TEMP/upstream-conflicts.txt"
+          UPSTREAM_BRANCH="${{ inputs.upstream_branch || 'main' }}"
+          UPSTREAM_SHA="${{ steps.merge.outputs.upstream_sha }}"
+          {
+            printf '上游分支：`vxcontrol/pentagi:%s`\n' "$UPSTREAM_BRANCH"
+            printf '上游提交：`%s`\n' "$UPSTREAM_SHA"
+            echo ""
+            echo "本次合并涉及冲突的文件："
+            sed 's/^/- \`/; s/$/\`/' "$CONFLICT_FILE"
+            echo ""
+            printf '工作流已自动中止合并，没有修改 `main` 分支。请在本地完成汉化复核后重新推送。\n'
+          } > "$RUNNER_TEMP/upstream-conflict-summary.md"
+          cat "$RUNNER_TEMP/upstream-conflict-summary.md" >> "$GITHUB_STEP_SUMMARY"
+          echo "同步冲突已记录到本次 Actions 运行摘要和 artifact；本次运行不创建同步 PR。"
+
+      - name: Upload upstream conflict details
+        if: steps.merge.outputs.result == 'conflict'
+        uses: actions/upload-artifact@v4
+        with:
+          name: upstream-conflicts-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/upstream-conflicts.txt
+            ${{ runner.temp }}/upstream-conflict-summary.md
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Restore conflict notification marker
+        id: conflict_marker
+        if: steps.merge.outputs.result == 'conflict'
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/upstream-conflict-notified
+          key: upstream-conflict-notified-${{ steps.merge.outputs.upstream_sha }}
+          lookup-only: true
+
+      - name: Save conflict notification marker
+        if: steps.merge.outputs.result == 'conflict' && steps.conflict_marker.outputs.cache-hit != 'true'
+        env:
+          UPSTREAM_SHA: ${{ steps.merge.outputs.upstream_sha }}
+        run: |
+          marker_dir="$RUNNER_TEMP/upstream-conflict-notified"
+          mkdir -p "$marker_dir"
+          printf '%s\n' "$UPSTREAM_SHA" > "$marker_dir/upstream-sha.txt"
+
+      - name: Persist conflict notification marker
+        if: steps.merge.outputs.result == 'conflict' && steps.conflict_marker.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/upstream-conflict-notified
+          key: upstream-conflict-notified-${{ steps.merge.outputs.upstream_sha }}
+
+      - name: Fail and notify on upstream conflict
+        if: steps.merge.outputs.result == 'conflict' && steps.conflict_marker.outputs.cache-hit != 'true'
+        env:
+          UPSTREAM_BRANCH: ${{ inputs.upstream_branch || 'main' }}
+          UPSTREAM_SHA: ${{ steps.merge.outputs.upstream_sha }}
+        run: |
+          conflict_count="$(wc -l < "$RUNNER_TEMP/upstream-conflicts.txt")"
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          {
+            echo ""
+            echo "## 邮件通知"
+            echo ""
+            echo "本次同步因上游合并冲突而失败，GitHub Actions 会按账号通知设置发送工作流失败邮件。"
+            echo ""
+            printf '%s\n' "- 上游：\`vxcontrol/pentagi:${UPSTREAM_BRANCH}@${UPSTREAM_SHA}\`"
+            echo "- 冲突文件：${conflict_count} 个"
+            printf '%s\n' '- 处理：合并已中止，`main` 分支未被半成品覆盖'
+            echo "- 详情：${run_url}（运行摘要和 artifact）"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::error title=上游汉化同步冲突::vxcontrol/pentagi:${UPSTREAM_BRANCH}@${UPSTREAM_SHA} 有 ${conflict_count} 个冲突文件；合并已中止，详情见运行摘要和 artifact。"
+          exit 1
+
+      - name: Finish duplicate conflict check
+        if: steps.merge.outputs.result == 'conflict' && steps.conflict_marker.outputs.cache-hit == 'true'
+        run: |
+          echo "同一上游提交的冲突已通知；本次检查正常结束，避免重复发送邮件。"
+
+      - name: Install frontend dependencies
+        if: steps.merge.outputs.result == 'updated'
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Run frontend localization gates
+        if: steps.merge.outputs.result == 'updated'
+        working-directory: frontend
+        run: |
+          pnpm run i18n:check
+          pnpm exec vitest run src/pages/settings/provider-test-labels.test.ts
+          pnpm run prettier
+
+      - name: Run backend localization and regression gates
+        if: steps.merge.outputs.result == 'updated'
+        working-directory: backend
+        env:
+          GOSUMDB: "sum.golang.org"
+        run: |
+          go test ./cmd/installer/wizard/locale
+          go test ./pkg/server/response
+          go test ./pkg/server/services -run '^TestLocalizedGraphQLErrorPresenter$'
+          go test ./pkg/config ./pkg/tools ./pkg/providers/embeddings
+
+      - name: Check merged diff
+        if: steps.merge.outputs.result == 'updated'
+        run: |
+          git diff --check
+
+      - name: Create or update synchronization PR
+        if: steps.merge.outputs.result == 'updated'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          base: main
+          branch: sync/upstream-main
+          delete-branch: true
+          commit-message: |
+            chore(upstream): merge upstream main
+
+            Constraint: Preserve English baseline and Simplified Chinese locale while importing upstream changes
+            Confidence: high
+            Scope-risk: broad
+          title: "chore(upstream): sync latest upstream main"
+          body: |
+            自动合并 `vxcontrol/pentagi:main` 的最新改动。
+
+            本工作流已在合并前运行：
+
+            - 前端英文基线与提供商测试标签门禁
+            - 前端 Prettier 格式检查
+            - 安装器、REST/GraphQL 错误响应本地化测试
+            - 配置、搜索工具、嵌入模型回归测试
+            - `git diff --check`
+
+            如果门禁发现新增英文，请先区分技术标识和用户文案，再补充中文词典并合并此 PR。

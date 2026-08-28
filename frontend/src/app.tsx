@@ -25,6 +25,7 @@ import { routes } from '@/lib/routes';
 import { FavoritesProvider } from '@/providers/favorites-provider';
 import { FlowProvider } from '@/providers/flow-provider';
 import { KnowledgesProvider } from '@/providers/knowledges-provider';
+import { LocaleProvider } from '@/providers/locale-provider';
 import { ProvidersProvider } from '@/providers/providers-provider';
 import { ResourcesProvider } from '@/providers/resources-provider';
 import { SidebarFlowsProvider } from '@/providers/sidebar-flows-provider';
@@ -276,10 +277,12 @@ const router = createBrowserRouter(
 function App() {
     return (
         <ApolloProvider client={client}>
-            <ThemeProvider>
-                <Toaster />
-                <RouterProvider router={router} />
-            </ThemeProvider>
+            <LocaleProvider>
+                <ThemeProvider>
+                    <Toaster />
+                    <RouterProvider router={router} />
+                </ThemeProvider>
+            </LocaleProvider>
         </ApolloProvider>
     );
 }

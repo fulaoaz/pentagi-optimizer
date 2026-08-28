@@ -11,6 +11,7 @@ import { Form, FormControl, FormField } from '@/components/ui/form';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
 import { StatusType } from '@/graphql/types';
 import { useAutoScroll } from '@/hooks/use-auto-scroll';
+import { useLocale } from '@/hooks/use-locale';
 import { cn } from '@/lib/utils';
 import { useFlow } from '@/providers/flow-provider';
 
@@ -33,6 +34,7 @@ const searchFormSchema = z.object({
 });
 
 function FlowAutomationMessages({ className }: FlowAutomationMessagesProps) {
+    const { t } = useLocale();
     const { flowData, flowId, flowStatus, stopAutomation, submitAutomationMessage } = useFlow();
 
     const logs = useMemo(() => flowData?.messageLogs ?? [], [flowData?.messageLogs]);
@@ -130,32 +132,32 @@ function FlowAutomationMessages({ className }: FlowAutomationMessagesProps) {
 
     const placeholder = useMemo(() => {
         if (!flowId) {
-            return 'Select a flow...';
+            return t('flow.messages.selectFlow');
         }
 
         switch (flowStatus) {
             case StatusType.Created: {
-                return 'The flow is starting...';
+                return t('flow.messages.automationStarting');
             }
 
             case StatusType.Failed:
             case StatusType.Finished: {
-                return 'This flow has ended. Create a new one to continue.';
+                return t('flow.messages.automationEnded');
             }
 
             case StatusType.Running: {
-                return 'PentAGI is working... Click Stop to interrupt';
+                return t('flow.messages.pentagiWorking');
             }
 
             case StatusType.Waiting: {
-                return 'Provide additional context or instructions...';
+                return t('flow.messages.addContext');
             }
 
             default: {
-                return 'Type your message...';
+                return t('flow.messages.typeMessage');
             }
         }
-    }, [flowId, flowStatus]);
+    }, [flowId, flowStatus, t]);
 
     const handleSubmitMessage = async (values: FlowFormValues) => {
         setIsSubmitting(true);
@@ -210,7 +212,7 @@ function FlowAutomationMessages({ className }: FlowAutomationMessagesProps) {
                                         <InputGroupInput
                                             {...field}
                                             autoComplete="off"
-                                            placeholder="Search messages..."
+                                            placeholder={t('flow.messages.searchMessages')}
                                             type="text"
                                         />
                                         {field.value && (
@@ -286,8 +288,8 @@ function FlowAutomationMessages({ className }: FlowAutomationMessagesProps) {
                         <EmptyMedia variant="icon">
                             <ListFilter />
                         </EmptyMedia>
-                        <EmptyTitle>No messages found</EmptyTitle>
-                        <EmptyDescription>Try adjusting your search or filter parameters</EmptyDescription>
+                        <EmptyTitle>{t('flow.messages.noMessagesFound')}</EmptyTitle>
+                        <EmptyDescription>{t('flow.messages.adjustFilters')}</EmptyDescription>
                     </EmptyHeader>
                     <EmptyContent>
                         <Button
@@ -295,7 +297,7 @@ function FlowAutomationMessages({ className }: FlowAutomationMessagesProps) {
                             variant="outline"
                         >
                             <X />
-                            Reset filters
+                            {t('flow.messages.resetFilters')}
                         </Button>
                     </EmptyContent>
                 </Empty>
@@ -305,11 +307,8 @@ function FlowAutomationMessages({ className }: FlowAutomationMessagesProps) {
                         <EmptyMedia variant="icon">
                             <Inbox />
                         </EmptyMedia>
-                        <EmptyTitle>No active tasks</EmptyTitle>
-                        <EmptyDescription>
-                            Starting a new task may take some time as the PentAGI agent downloads the required Docker
-                            image
-                        </EmptyDescription>
+                        <EmptyTitle>{t('flow.messages.noActiveTasks')}</EmptyTitle>
+                        <EmptyDescription>{t('flow.messages.startTaskDescription')}</EmptyDescription>
                     </EmptyHeader>
                 </Empty>
             )}

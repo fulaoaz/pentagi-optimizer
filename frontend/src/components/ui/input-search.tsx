@@ -6,6 +6,7 @@ import { useDebouncedCallback } from 'use-debounce';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
 import { Kbd, KbdGroup } from '@/components/ui/kbd';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useLocale } from '@/hooks/use-locale';
 import { cn } from '@/lib/utils';
 import { isMac } from '@/lib/utils/platform';
 
@@ -33,14 +34,17 @@ interface InputSearchProps {
  * through `handleClear`. A second `Escape` on an empty field collapses + blurs.
  */
 export function InputSearch({
-    ariaLabel = 'Search',
+    ariaLabel: ariaLabelProp,
     className,
     hotkey = 'f',
     maxWidth = 140,
     onSearchChange,
-    placeholder = 'Search...',
+    placeholder: placeholderProp,
     searchQuery,
 }: InputSearchProps) {
+    const { t } = useLocale();
+    const ariaLabel = ariaLabelProp ?? t('common.search');
+    const placeholder = placeholderProp ?? t('common.searchPlaceholder');
     const [isExpanded, setIsExpanded] = useState(() => searchQuery.trim().length > 0);
     const inputRef = useRef<HTMLInputElement>(null);
     const [localValue, setLocalValue] = useState(searchQuery);
@@ -247,7 +251,7 @@ export function InputSearch({
             {isExpanded && localValue ? (
                 <InputGroupAddon align="inline-end">
                     <InputGroupButton
-                        aria-label={`Clear ${ariaLabel.toLowerCase()}`}
+                        aria-label={t('common.clearNamed', { label: ariaLabel.toLocaleLowerCase() })}
                         onClick={handleClear}
                         type="button"
                     >

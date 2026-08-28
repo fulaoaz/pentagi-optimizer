@@ -379,10 +379,10 @@ func (m *ServerSettingsFormModel) GetCurrentConfiguration() string {
 	}
 
 	if externalSSLInsecure := cfg.ExternalSSLInsecure.Value; externalSSLInsecure == "true" {
-		externalSSLInsecure = m.GetStyles().Warning.Render("Enabled (⚠ Insecure)")
+		externalSSLInsecure = m.GetStyles().Warning.Render(locale.StatusEnabledInsecure)
 		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ServerSettingsExternalSSLInsecureHint, externalSSLInsecure))
 	} else if externalSSLInsecure := cfg.ExternalSSLInsecure.Default; externalSSLInsecure == "false" || externalSSLInsecure == "" {
-		externalSSLInsecure = m.GetStyles().Muted.Render("Disabled")
+		externalSSLInsecure = m.GetStyles().Muted.Render(locale.StatusDisabled)
 		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ServerSettingsExternalSSLInsecureHint, externalSSLInsecure))
 	}
 

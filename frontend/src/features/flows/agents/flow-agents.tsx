@@ -10,6 +10,7 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { Form, FormControl, FormField } from '@/components/ui/form';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
 import { useAutoScroll } from '@/hooks/use-auto-scroll';
+import { useLocale } from '@/hooks/use-locale';
 import { useFlow } from '@/providers/flow-provider';
 
 import FlowTasksDropdown from '../flow-tasks-dropdown';
@@ -26,6 +27,7 @@ const searchFormSchema = z.object({
 });
 
 function FlowAgents() {
+    const { t } = useLocale();
     const { flowData, flowId } = useFlow();
 
     const logs = useMemo(() => flowData?.agentLogs ?? [], [flowData?.agentLogs]);
@@ -151,7 +153,7 @@ function FlowAgents() {
                                         <InputGroupInput
                                             {...field}
                                             autoComplete="off"
-                                            placeholder="Search agent logs..."
+                                            placeholder={t('flow.logs.agentSearch')}
                                             type="text"
                                         />
                                         {field.value && (
@@ -227,8 +229,8 @@ function FlowAgents() {
                         <EmptyMedia variant="icon">
                             <ListFilter />
                         </EmptyMedia>
-                        <EmptyTitle>No agent logs found</EmptyTitle>
-                        <EmptyDescription>Try adjusting your search or filter parameters</EmptyDescription>
+                        <EmptyTitle>{t('flow.logs.agentNoMatches')}</EmptyTitle>
+                        <EmptyDescription>{t('flow.messages.adjustFilters')}</EmptyDescription>
                     </EmptyHeader>
                     <EmptyContent>
                         <Button
@@ -236,7 +238,7 @@ function FlowAgents() {
                             variant="outline"
                         >
                             <X />
-                            Reset filters
+                            {t('flow.messages.resetFilters')}
                         </Button>
                     </EmptyContent>
                 </Empty>
@@ -246,8 +248,8 @@ function FlowAgents() {
                         <EmptyMedia variant="icon">
                             <Bot />
                         </EmptyMedia>
-                        <EmptyTitle>No agent logs available</EmptyTitle>
-                        <EmptyDescription>Agent logs will appear here when agents are working</EmptyDescription>
+                        <EmptyTitle>{t('flow.logs.agentEmptyTitle')}</EmptyTitle>
+                        <EmptyDescription>{t('flow.logs.agentEmptyDescription')}</EmptyDescription>
                     </EmptyHeader>
                 </Empty>
             )}

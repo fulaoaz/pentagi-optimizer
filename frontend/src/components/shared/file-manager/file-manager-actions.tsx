@@ -11,7 +11,7 @@ import type { FileManagerAction, FileManagerBulkAction, FileNode } from './file-
  */
 export const downloadAction = (
     getDownloadHref: (file: FileNode) => string,
-    options: { directoryArchiveExtension?: string } = {},
+    options: { directoryArchiveExtension?: string; label?: string } = {},
 ): FileManagerAction => {
     const archiveExtension = options.directoryArchiveExtension ?? 'zip';
 
@@ -21,16 +21,20 @@ export const downloadAction = (
         getHrefDownloadAttr: (file) => (file.isDir ? `${file.name}.${archiveExtension}` : file.name),
         icon: Download,
         id: '__builtin_download',
-        label: 'Download',
+        label: options.label ?? 'Download',
         onSelect: () => {},
     };
 };
 
-export const copyPathAction = (onCopyPath: (file: FileNode) => void): FileManagerAction => ({
+/** Built-in copy-path action. */
+export const copyPathAction = (
+    onCopyPath: (file: FileNode) => void,
+    options: { label?: string } = {},
+): FileManagerAction => ({
     appliesToDirs: true,
     icon: ClipboardCopy,
     id: '__builtin_copy_path',
-    label: 'Copy path',
+    label: options.label ?? 'Copy path',
     onSelect: onCopyPath,
 });
 
@@ -38,15 +42,25 @@ export const copyPathAction = (onCopyPath: (file: FileNode) => void): FileManage
  * Built-in delete action. Always rendered with a leading separator and destructive variant.
  * Caller is responsible for showing a confirmation dialog inside `onSelect`.
  */
-export const deleteAction = (onDelete: (file: FileNode) => void): FileManagerAction => ({
+export const deleteAction = (
+    onDelete: (file: FileNode) => void,
+    options: { label?: string } = {},
+): FileManagerAction => ({
     appliesToDirs: true,
     icon: Trash2,
     id: '__builtin_delete',
-    label: 'Delete',
+    label: options.label ?? 'Delete',
     onSelect: onDelete,
     separatorBefore: true,
-    variant: 'destructive',
 });
+
+// ── Bulk-action helpers ─────────────────────────────────────────────────────
+//
+// Each helper produces a `FileManagerBulkAction` with sensible defaults; the
+// caller passes any callback / config it needs and lets the bar handle the
+// rendering, confirmation and dedup. Mirrors the row-action helpers above so
+// consumers compose `bulkActions={[bulkXAction(...), bulkYAction(...)]}` the
+// same way they compose `actions={[xAction(...), yAction(...)]}`.
 
 interface BulkDeleteOptions {
     /** Confirm-dialog body formatter. Default: "This will delete N items. This action cannot be undone." */
@@ -194,6 +208,10 @@ export const bulkDownloadAction = (
 
         const href = getDownloadHref(files);
 
+        // Trigger the download via a transient anchor so the browser respects
+        // the `download` attribute and the backend's `Content-Disposition`.
+        // `window.open` would do, but it can be blocked as a popup and doesn't
+        // honour the filename hint the same way.
         const anchor = document.createElement('a');
 
         anchor.href = href;

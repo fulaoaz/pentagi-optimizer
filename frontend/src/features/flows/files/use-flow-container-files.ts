@@ -3,10 +3,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FileNode } from '@/components/shared/file-manager';
 
 import { buildPathsQuery } from '@/features/resources/resources-utils';
+import { useLocale } from '@/hooks/use-locale';
 import { api, getApiErrorMessage, unwrapApiResponse } from '@/lib/axios';
 
 import { FLOW_FILES_CONTAINER_API_PATH } from './flow-files-constants';
-import { type ContainerFileFailure, type ContainerFilesResponse, containerFileToFileNode } from './flow-files-utils';
+import { type ContainerFilesResponse, containerFileToFileNode } from './flow-files-utils';
 
 interface UseFlowContainerFilesParams {
     flowId: null | string;
@@ -21,13 +22,6 @@ interface UseFlowContainerFilesParams {
 
 interface UseFlowContainerFilesResult {
     error: Error | null;
-    /**
-     * Entries the backend could not stat (dangling symlink, a file removed
-     * mid-listing, a transient /proc pid). The listing still succeeds with the
-     * readable entries in `files`; these are surfaced so the UI can warn that
-     * the directory is shown partially.
-     */
-    failures: ContainerFileFailure[];
     files: FileNode[];
     isLoading: boolean;
     /**
@@ -36,8 +30,6 @@ interface UseFlowContainerFilesResult {
      * the dialog.
      */
     refetch: () => Promise<void>;
-    /** True when the directory had more entries than the cap and only the first page was returned. */
-    truncated: boolean;
 }
 
 /**
@@ -54,9 +46,8 @@ interface UseFlowContainerFilesResult {
  * is issued, `files` stays an empty array, `isLoading` stays `false`.
  */
 export function useFlowContainerFiles({ flowId, paths }: UseFlowContainerFilesParams): UseFlowContainerFilesResult {
+    const { t } = useLocale();
     const [files, setFiles] = useState<FileNode[]>([]);
-    const [failures, setFailures] = useState<ContainerFileFailure[]>([]);
-    const [truncated, setTruncated] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
 
@@ -72,18 +63,10 @@ export function useFlowContainerFiles({ flowId, paths }: UseFlowContainerFilesPa
     // when the user drills in / out faster than the server can respond).
     const currentTokenRef = useRef(0);
 
-    // The path key of the last fetch. A fetch clears the visible listing only when
-    // the path actually changes, so an in-place refetch (Refresh / post-Pull) keeps
-    // the current rows under the loading guard instead of flashing a skeleton.
-    const lastPathsKeyRef = useRef<null | string>(null);
-
     const fetchListing = useCallback(async () => {
         if (!flowId || paths.length === 0) {
             currentTokenRef.current += 1;
-            lastPathsKeyRef.current = null;
             setFiles([]);
-            setFailures([]);
-            setTruncated(false);
             setIsLoading(false);
             setError(null);
 
@@ -94,17 +77,6 @@ export function useFlowContainerFiles({ flowId, paths }: UseFlowContainerFilesPa
 
         setIsLoading(true);
         setError(null);
-
-        // Only reset the listing when navigating to a different path, so a pending
-        // navigation never shows the old listing under the new breadcrumb — a
-        // same-path refetch keeps the current rows visible.
-        if (pathsKey !== lastPathsKeyRef.current) {
-            setFiles([]);
-            setFailures([]);
-            setTruncated(false);
-        }
-
-        lastPathsKeyRef.current = pathsKey;
 
         try {
             const url = `${FLOW_FILES_CONTAINER_API_PATH(flowId)}?${buildPathsQuery(paths)}`;
@@ -119,23 +91,19 @@ export function useFlowContainerFiles({ flowId, paths }: UseFlowContainerFilesPa
             }
 
             setFiles(data.files.map(containerFileToFileNode));
-            setFailures(data.failures ?? []);
-            setTruncated(data.truncated ?? false);
         } catch (caught) {
             if (token !== currentTokenRef.current) {
                 return;
             }
 
-            setError(new Error(getApiErrorMessage(caught, 'Failed to load container files')));
+            setError(new Error(getApiErrorMessage(caught, t('flow.files.loadContainerFailed'))));
             setFiles([]);
-            setFailures([]);
-            setTruncated(false);
         } finally {
             if (token === currentTokenRef.current) {
                 setIsLoading(false);
             }
         }
-    }, [flowId, paths, pathsKey]);
+    }, [flowId, paths, t]);
 
     useEffect(() => {
         // fetchListing is an async callback that handles its own loading state via setState
@@ -150,10 +118,8 @@ export function useFlowContainerFiles({ flowId, paths }: UseFlowContainerFilesPa
 
     return {
         error,
-        failures,
         files,
         isLoading,
         refetch: fetchListing,
-        truncated,
     };
 }

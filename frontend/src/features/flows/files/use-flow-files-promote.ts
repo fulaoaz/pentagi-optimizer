@@ -4,22 +4,28 @@ import { z } from 'zod';
 
 import type { OverwriteOutcome } from '@/components/shared/overwrite';
 import type { RestResourceList } from '@/features/resources/resources-rest';
+import type { Translate } from '@/lib/i18n';
 
-import { pluralizeItems } from '@/features/resources/resources-utils';
+import { useLocale } from '@/hooks/use-locale';
 import { api, getApiErrorMessage, getApiErrorStatusCode } from '@/lib/axios';
 
 import { FLOW_FILES_PROMOTE_API_PATH } from './flow-files-constants';
 
-export const flowFilesPromoteFormSchema = z.object({
-    destination: z
-        .string()
-        .trim()
-        .min(1, { message: 'Destination cannot be empty' })
-        .refine((value) => !value.startsWith('/'), { message: 'Destination must be a relative path' })
-        .refine((value) => !value.split('/').includes('..'), { message: 'Destination must not contain ".."' }),
-});
+export const buildFlowFilesPromoteFormSchema = (t: Translate, allowLibraryRoot = false) =>
+    z.object({
+        destination: z
+            .string()
+            .trim()
+            .refine((value) => allowLibraryRoot || value.length > 0, {
+                message: t('flow.files.destinationCannotBeEmpty'),
+            })
+            .refine((value) => !value.startsWith('/'), { message: t('flow.files.destinationRelative') })
+            .refine((value) => !value.split('/').includes('..'), {
+                message: t('flow.files.destinationNoParentSegment'),
+            }),
+    });
 
-export type FlowFilesPromoteFormValues = z.infer<typeof flowFilesPromoteFormSchema>;
+export type FlowFilesPromoteFormValues = z.infer<ReturnType<typeof buildFlowFilesPromoteFormSchema>>;
 
 interface PromoteRequestBody {
     destination: string;
@@ -53,6 +59,7 @@ interface UseFlowFilesPromoteResult {
  * with toast notifications and a loading flag.
  */
 export function useFlowFilesPromote({ flowId }: UseFlowFilesPromoteParams): UseFlowFilesPromoteResult {
+    const { t } = useLocale();
     const [isPromoting, setIsPromoting] = useState(false);
 
     const promote = useCallback(
@@ -74,12 +81,22 @@ export function useFlowFilesPromote({ flowId }: UseFlowFilesPromoteParams): UseF
                     { timeout: 0 },
                 );
 
-                const description =
-                    sources.length === 1
-                        ? `Stored at ${destination.trim()} in your resource library`
-                        : `Stored ${sources.length} ${pluralizeItems(sources.length)} under ${destination.trim()} in your resource library`;
+                const count = t('fileManager.itemCountMany', { count: sources.length });
+                const normalizedDestination = destination.trim();
+                let description: string;
 
-                toast.success('Saved to resources', { description });
+                if (sources.length === 1) {
+                    description = t('flow.files.savedResourceDescription', { destination: normalizedDestination });
+                } else if (normalizedDestination) {
+                    description = t('flow.files.savedResourcesDescription', {
+                        count,
+                        destination: normalizedDestination,
+                    });
+                } else {
+                    description = t('flow.files.savedResourcesRootDescription', { count });
+                }
+
+                toast.success(t('flow.files.savedToResources'), { description });
 
                 return { kind: 'ok' };
             } catch (error) {
@@ -87,16 +104,16 @@ export function useFlowFilesPromote({ flowId }: UseFlowFilesPromoteParams): UseF
                     return { kind: 'conflict' };
                 }
 
-                const description = getApiErrorMessage(error, 'Failed to save resource');
+                const description = getApiErrorMessage(error, t('flow.files.saveAsResourceFailed'));
 
-                toast.error('Save as resource failed', { description });
+                toast.error(t('flow.files.saveAsResourceFailed'), { description });
 
                 return { kind: 'error' };
             } finally {
                 setIsPromoting(false);
             }
         },
-        [flowId],
+        [flowId, t],
     );
 
     return {

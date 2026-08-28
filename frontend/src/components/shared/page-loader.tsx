@@ -1,7 +1,11 @@
+import { useLocale } from '@/hooks/use-locale';
+
 function PageLoader() {
+    const { t } = useLocale();
+
     return (
         <div className="grid h-screen w-full place-items-center">
-            <p>Loading...</p>
+            <p>{t('common.loading')}</p>
         </div>
     );
 }

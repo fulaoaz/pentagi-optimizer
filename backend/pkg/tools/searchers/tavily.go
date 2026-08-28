@@ -23,7 +23,7 @@ const tavilyURL = "https://api.tavily.com/search"
 const maxRawContentLength = 8192
 
 type tavilyRequest struct {
-	ApiKey            string   `json:"api_key"`
+	ApiKey            string   `json:"api_key,omitempty"`
 	Query             string   `json:"query"`
 	Topic             string   `json:"topic"`
 	SearchDepth       string   `json:"search_depth,omitempty"`
@@ -108,7 +108,6 @@ func (t *tavily) search(ctx context.Context, query string, maxResults int) (stri
 
 	reqPayload := tavilyRequest{
 		Query:             query,
-		ApiKey:            t.apiKey(),
 		Topic:             "general",
 		SearchDepth:       "advanced",
 		IncludeImages:     false,
@@ -116,18 +115,24 @@ func (t *tavily) search(ctx context.Context, query string, maxResults int) (stri
 		IncludeRawContent: true,
 		MaxResults:        maxResults,
 	}
+	if !t.useBearerAuth() {
+		reqPayload.ApiKey = t.apiKey()
+	}
 	reqBody, err := json.Marshal(reqPayload)
 	if err != nil {
 		return "", Fatal(fmt.Errorf("failed to marshal request body: %v", err))
 	}
 
-	req, err := http.NewRequest(http.MethodPost, tavilyURL, bytes.NewBuffer(reqBody))
+	req, err := http.NewRequest(http.MethodPost, t.searchURL(), bytes.NewBuffer(reqBody))
 	if err != nil {
 		return "", Fatal(fmt.Errorf("failed to build request: %v", err))
 	}
 
 	req = req.WithContext(ctx)
 	req.Header.Set("Content-Type", "application/json")
+	if t.useBearerAuth() {
+		req.Header.Set("Authorization", "Bearer "+t.apiKey())
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -136,6 +141,22 @@ func (t *tavily) search(ctx context.Context, query string, maxResults int) (stri
 	defer resp.Body.Close()
 
 	return t.parseHTTPResponse(ctx, resp)
+}
+
+func (t *tavily) searchURL() string {
+	if t.cfg == nil || strings.TrimSpace(t.cfg.TavilyBaseURL) == "" {
+		return tavilyURL
+	}
+
+	baseURL := strings.TrimRight(strings.TrimSpace(t.cfg.TavilyBaseURL), "/")
+	if strings.HasSuffix(baseURL, "/search") {
+		return baseURL
+	}
+	return baseURL + "/search"
+}
+
+func (t *tavily) useBearerAuth() bool {
+	return t.cfg != nil && t.cfg.TavilyUseBearerAuth
 }
 
 func (t *tavily) parseHTTPResponse(ctx context.Context, resp *http.Response) (string, error) {

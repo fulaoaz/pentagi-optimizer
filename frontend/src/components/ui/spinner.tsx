@@ -1,5 +1,6 @@
 import { LoaderCircleIcon, LoaderIcon, LoaderPinwheelIcon, type LucideProps } from 'lucide-react';
 
+import { useLocale } from '@/hooks/use-locale';
 import { cn } from '@/lib/utils';
 
 export type SpinnerProps = LucideProps & {
@@ -30,6 +31,8 @@ export function Spinner({ variant = 'circle', ...props }: SpinnerProps) {
 }
 
 function Bars({ size = 24, ...props }: SpinnerVariantProps) {
+    const { t } = useLocale();
+
     return (
         <svg
             height={size}
@@ -38,7 +41,7 @@ function Bars({ size = 24, ...props }: SpinnerVariantProps) {
             xmlns="http://www.w3.org/2000/svg"
             {...props}
         >
-            <title>Loading...</title>
+            <title>{t('common.loading')}</title>
             <style>{`
       .spinner-bar {
         animation: spinner-bars-animation .8s linear infinite;
@@ -131,6 +134,8 @@ function Default({ className, ...props }: SpinnerVariantProps) {
 }
 
 function Ellipsis({ size = 24, ...props }: SpinnerVariantProps) {
+    const { t } = useLocale();
+
     return (
         <svg
             height={size}
@@ -139,7 +144,7 @@ function Ellipsis({ size = 24, ...props }: SpinnerVariantProps) {
             xmlns="http://www.w3.org/2000/svg"
             {...props}
         >
-            <title>Loading...</title>
+            <title>{t('common.loading')}</title>
             <circle
                 cx="4"
                 cy="12"
@@ -192,6 +197,8 @@ function Ellipsis({ size = 24, ...props }: SpinnerVariantProps) {
 }
 
 function Infinite({ size = 24, ...props }: SpinnerVariantProps) {
+    const { t } = useLocale();
+
     return (
         <svg
             height={size}
@@ -201,7 +208,7 @@ function Infinite({ size = 24, ...props }: SpinnerVariantProps) {
             xmlns="http://www.w3.org/2000/svg"
             {...props}
         >
-            <title>Loading...</title>
+            <title>{t('common.loading')}</title>
             <path
                 d="M24.3 30C11.4 30 5 43.3 5 50s6.4 20 19.3 20c19.3 0 32.1-40 51.4-40 C88.6 30 95 43.3 95 50s-6.4 20-19.3 20C56.4 70 43.6 30 24.3 30z"
                 fill="none"
@@ -236,6 +243,8 @@ function Pinwheel({ className, ...props }: SpinnerVariantProps) {
 }
 
 function Ring({ size = 24, ...props }: SpinnerVariantProps) {
+    const { t } = useLocale();
+
     return (
         <svg
             height={size}
@@ -245,7 +254,7 @@ function Ring({ size = 24, ...props }: SpinnerVariantProps) {
             xmlns="http://www.w3.org/2000/svg"
             {...props}
         >
-            <title>Loading...</title>
+            <title>{t('common.loading')}</title>
             <g
                 fill="none"
                 fillRule="evenodd"

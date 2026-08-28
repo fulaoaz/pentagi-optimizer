@@ -37,19 +37,11 @@ func (h *HttpError) Error() string {
 }
 
 func Error(c *gin.Context, err *HttpError, original error) {
-	ErrorWithLevel(c, err, original, logrus.ErrorLevel)
-}
-
-// ErrorWithLevel behaves exactly like Error but logs the "api error" entry at
-// the given level instead of always at Error. Use this for routes where a
-// non-2xx response is routine/expected (e.g. an unauthenticated request
-// hitting a protected endpoint) and logging it as an application error would
-// just add noise without indicating an actual problem.
-func ErrorWithLevel(c *gin.Context, err *HttpError, original error, level logrus.Level) {
+	message, responseLanguage := localizedErrorMessage(c.GetHeader("Accept-Language"), err)
 	body := gin.H{
 		"status": "error",
 		"code":   err.Code(),
-		"msg":    err.Msg(),
+		"msg":    message,
 	}
 
 	if version.IsDevelopMode() && original != nil {
@@ -60,8 +52,9 @@ func ErrorWithLevel(c *gin.Context, err *HttpError, original error, level logrus
 		"code":    err.HttpCode(),
 		"message": err.Msg(),
 	}
-	logger.FromContext(c).WithFields(fields).WithError(original).Log(level, "api error")
+	logger.FromContext(c).WithFields(fields).WithError(original).Error("api error")
 
+	c.Header("Content-Language", responseLanguage)
 	c.AbortWithStatusJSON(err.HttpCode(), body)
 }
 

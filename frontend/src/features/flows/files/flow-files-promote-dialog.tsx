@@ -1,5 +1,7 @@
+import { zodResolver } from '@hookform/resolvers/zod';
 import { BookmarkPlus } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
+import { useForm } from 'react-hook-form';
 
 import type { FileNode } from '@/components/shared/file-manager';
 import type { OverwriteConflict } from '@/components/shared/overwrite';
@@ -9,12 +11,12 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { useAppForm } from '@/hooks/use-app-form';
+import { useLocale } from '@/hooks/use-locale';
 import { useResources } from '@/providers/resources-provider';
 
 import { stripFlowRootPrefix } from './flow-files-utils';
 import {
-    flowFilesPromoteFormSchema,
+    buildFlowFilesPromoteFormSchema,
     type FlowFilesPromoteFormValues,
     useFlowFilesPromote,
 } from './use-flow-files-promote';
@@ -134,9 +136,11 @@ export function FlowFilesPromoteDialog({ files, flowId, onClose }: FlowFilesProm
 }
 
 function FlowFilesPromoteDialogForm({ files, flowId, onClose }: FlowFilesPromoteDialogFormProps) {
+    const { t } = useLocale();
     const { isPromoting, promote } = useFlowFilesPromote({ flowId });
     const { resources } = useResources();
     const isMulti = files.length > 1;
+    const formSchema = useMemo(() => buildFlowFilesPromoteFormSchema(t, isMulti), [isMulti, t]);
 
     const defaultDestination = useMemo(() => {
         if (isMulti) {
@@ -146,9 +150,10 @@ function FlowFilesPromoteDialogForm({ files, flowId, onClose }: FlowFilesPromote
         return buildSingleDefaultDestination(files[0]);
     }, [files, isMulti]);
 
-    const form = useAppForm<FlowFilesPromoteFormValues>({
+    const form = useForm<FlowFilesPromoteFormValues>({
         defaultValues: { destination: defaultDestination },
-        schema: flowFilesPromoteFormSchema,
+        mode: 'onChange',
+        resolver: zodResolver(formSchema),
     });
 
     useEffect(() => {
@@ -164,6 +169,8 @@ function FlowFilesPromoteDialogForm({ files, flowId, onClose }: FlowFilesPromote
      */
     const overwriteAction = useOverwrite<PromotePlan>({
         execute: (plan, force) => promote(plan.sources, plan.destination, force),
+        // Local preflight against the resource library snapshot — flags the
+        // exact destinations already taken so the dialog can name them.
         findConflicts: (plan) => plan.targets.filter((t) => resourcePaths.has(t.destination)),
         onSuccess: onClose,
         // Race-fallback: backend doesn't return per-path conflict descriptors
@@ -179,11 +186,13 @@ function FlowFilesPromoteDialogForm({ files, flowId, onClose }: FlowFilesPromote
         await overwriteAction.forceExecute(buildPromotePlan(files, values));
     });
 
-    // Convention: stay enabled until the first submit, then reflect validity (so an invalid submit surfaces
-    // errors instead of a silently-dead button). Mirrors FormSubmitButton's requireValid gate.
-    const isSubmitDisabled = form.formState.isSubmitted && !form.formState.isValid;
-    const titleText = isMulti ? `Save ${files.length} items as resources` : 'Save as resource';
-    const overwriteCtaLabel = isMulti ? `Save ${files.length} with overwrite` : 'Save with overwrite';
+    const isSubmitDisabled = !form.formState.isValid;
+    const titleText = isMulti
+        ? t('flow.files.promoteManyTitle', { count: files.length })
+        : t('flow.files.promoteTitle');
+    const overwriteCtaLabel = isMulti
+        ? t('flow.files.promoteOverwriteMany', { count: files.length })
+        : t('flow.files.promoteOverwrite');
 
     return (
         <>
@@ -194,24 +203,15 @@ function FlowFilesPromoteDialogForm({ files, flowId, onClose }: FlowFilesPromote
                         {titleText}
                     </DialogTitle>
                     <DialogDescription>
-                        {isMulti ? (
-                            <>
-                                Promote every selected entry from this flow into your global resource library so you can
-                                reuse them in other flows.
-                            </>
-                        ) : (
-                            <>
-                                Promote <code>{files[0].path}</code> from this flow into your global resource library so
-                                you can reuse it in other flows.
-                            </>
-                        )}
+                        {isMulti
+                            ? t('flow.files.promoteManyDescription')
+                            : t('flow.files.promoteDescription', { path: files[0].path })}
                     </DialogDescription>
                 </DialogHeader>
 
                 <Form {...form}>
                     <form
                         className="flex flex-col gap-4"
-                        noValidate
                         onSubmit={handleSave}
                     >
                         <FormField
@@ -219,7 +219,11 @@ function FlowFilesPromoteDialogForm({ files, flowId, onClose }: FlowFilesPromote
                             name="destination"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>{isMulti ? 'Destination directory' : 'Destination path'}</FormLabel>
+                                    <FormLabel>
+                                        {isMulti
+                                            ? t('flow.files.destinationDirectory')
+                                            : t('flow.files.destinationPath')}
+                                    </FormLabel>
                                     <FormControl>
                                         <Input
                                             {...field}
@@ -227,24 +231,14 @@ function FlowFilesPromoteDialogForm({ files, flowId, onClose }: FlowFilesPromote
                                             autoFocus
                                             disabled={isPromoting}
                                             placeholder={
-                                                isMulti
-                                                    ? 'Leave empty to save into the library root'
-                                                    : 'results/scan.txt'
+                                                isMulti ? t('flow.files.saveIntoLibraryRoot') : 'results/scan.txt'
                                             }
                                         />
                                     </FormControl>
                                     <FormDescription>
-                                        {isMulti ? (
-                                            <>
-                                                Relative directory inside your resource library. Leave empty for the
-                                                root. Each item keeps its current filename.
-                                            </>
-                                        ) : (
-                                            <>
-                                                Relative path inside your resource library. Use <code>/</code> to nest
-                                                into subdirectories.
-                                            </>
-                                        )}
+                                        {isMulti
+                                            ? t('flow.files.promoteManyDestinationDescription')
+                                            : t('flow.files.promoteSingleDestinationDescription')}
                                     </FormDescription>
                                     <FormMessage />
                                 </FormItem>
@@ -258,7 +252,7 @@ function FlowFilesPromoteDialogForm({ files, flowId, onClose }: FlowFilesPromote
                                 type="button"
                                 variant="outline"
                             >
-                                Cancel
+                                {t('common.cancel')}
                             </Button>
                             <OverwriteButtons
                                 isDisabled={isSubmitDisabled}
@@ -268,7 +262,7 @@ function FlowFilesPromoteDialogForm({ files, flowId, onClose }: FlowFilesPromote
                                 }}
                                 overwriteLabel={overwriteCtaLabel}
                                 primaryIcon={BookmarkPlus}
-                                primaryLabel="Save"
+                                primaryLabel={t('common.save')}
                                 primaryType="submit"
                             />
                         </div>
