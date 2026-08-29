@@ -869,7 +869,7 @@ function DataTable<TData, TValue = unknown>({
                         value={pageSizeValue}
                     >
                         <SelectTrigger
-                            aria-label="Rows per page"
+                            aria-label={t('dataTable.rowsPerPage')}
                             className="h-7 w-16 text-xs"
                         >
                             <SelectValue />
@@ -1002,6 +1002,7 @@ function DataTableColumnHeader<TData, TValue = unknown>({ column, title }: DataT
  * was the entire class of races the previous design carried.
  */
 function DataTableFilter({ onQueryChange, placeholder, query }: DataTableFilterProps) {
+    const { t } = useLocale();
     const [localValue, setLocalValue] = useState(query);
     const lastEmittedReference = useRef(query);
     // Generated per-instance so pages with multiple DataTables (e.g.
@@ -1067,7 +1068,7 @@ function DataTableFilter({ onQueryChange, placeholder, query }: DataTableFilterP
             {localValue ? (
                 <InputGroupAddon align="inline-end">
                     <InputGroupButton
-                        aria-label="Clear search"
+                        aria-label={t('common.clearSearch')}
                         onClick={handleClear}
                         type="button"
                     >

@@ -1,3 +1,4 @@
+import { useMutation, useQuery, useSubscription } from '@apollo/client/react';
 import type { ColumnDef } from '@tanstack/react-table';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -46,13 +47,13 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { StatusCard } from '@/components/ui/status-card';
 import {
     TokenStatus as TokenStatusEnum,
-    useApiTokenCreatedSubscription,
-    useApiTokenDeletedSubscription,
-    useApiTokensQuery,
-    useApiTokenUpdatedSubscription,
-    useCreateApiTokenMutation,
-    useDeleteApiTokenMutation,
-    useUpdateApiTokenMutation,
+    ApiTokenCreatedDocument,
+    ApiTokenDeletedDocument,
+    ApiTokensDocument,
+    ApiTokenUpdatedDocument,
+    CreateApiTokenDocument,
+    DeleteApiTokenDocument,
+    UpdateApiTokenDocument,
 } from '@/graphql/types';
 import { useLocale } from '@/hooks/use-locale';
 import { useTableState } from '@/hooks/use-table-state';
@@ -62,7 +63,7 @@ import { baseUrl } from '@/models/api';
 
 type APIToken = ApiTokenFragmentFragment;
 
-const buildTokenNameSchema = (t: Translate) => z.string().trim().max(255, t('settings.apiTokens.nameMax')).default('');
+export const buildTokenNameSchema = (t: Translate) => z.string().trim().max(100, t('settings.apiTokens.nameMax')).default('');
 
 const buildCreateTokenFormSchema = (t: Translate) =>
     z.object({
@@ -282,10 +283,10 @@ function EditRowActions({
 
 function SettingsAPITokens() {
     const { locale, t } = useLocale();
-    const { data, error, loading: isLoading } = useApiTokensQuery();
-    const [createAPIToken, { error: createError, loading: isCreateLoading }] = useCreateApiTokenMutation();
-    const [updateAPIToken, { error: updateError, loading: isUpdateLoading }] = useUpdateApiTokenMutation();
-    const [deleteAPIToken, { error: deleteError, loading: isDeleteLoading }] = useDeleteApiTokenMutation();
+    const { data, error, loading: isLoading } = useQuery(ApiTokensDocument);
+    const [createAPIToken, { error: createError, loading: isCreateLoading }] = useMutation(CreateApiTokenDocument);
+    const [updateAPIToken, { error: updateError, loading: isUpdateLoading }] = useMutation(UpdateApiTokenDocument);
+    const [deleteAPIToken, { error: deleteError, loading: isDeleteLoading }] = useMutation(DeleteApiTokenDocument);
 
     const [editingTokenId, setEditingTokenId] = useState<null | string>(null);
     const [creatingToken, setCreatingToken] = useState(false);
@@ -319,19 +320,19 @@ function SettingsAPITokens() {
 
     const { filter, pageIndex: currentPage, setFilter, setPage: handlePageChange } = useTableState();
 
-    useApiTokenCreatedSubscription({
+    useSubscription(ApiTokenCreatedDocument, {
         onData: ({ client }) => {
             client.refetchQueries({ include: ['apiTokens'] });
         },
     });
 
-    useApiTokenUpdatedSubscription({
+    useSubscription(ApiTokenUpdatedDocument, {
         onData: ({ client }) => {
             client.refetchQueries({ include: ['apiTokens'] });
         },
     });
 
-    useApiTokenDeletedSubscription({
+    useSubscription(ApiTokenDeletedDocument, {
         onData: ({ client }) => {
             client.refetchQueries({ include: ['apiTokens'] });
         },

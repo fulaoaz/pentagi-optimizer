@@ -3,10 +3,10 @@ import type { ComponentType } from 'react';
 import type { Translate } from '@/lib/i18n';
 
 import {
-    useFlowQuery,
-    useFlowTemplateQuery,
-    useKnowledgeDocumentQuery,
-    useSettingsProvidersQuery,
+    FlowDocument,
+    FlowTemplateDocument,
+    KnowledgeDocumentDocument,
+    SettingsProvidersDocument,
 } from '@/graphql/types';
 
 import { apolloTitle } from './apollo-title';
@@ -47,7 +47,7 @@ export const routeTitles = {
                 data?.flow?.title && flowId
                     ? t('title.flowNumbered', { id: flowId, title: data.flow.title })
                     : t('title.flow'),
-            useQuery: useFlowQuery,
+            document: FlowDocument,
             variables: ({ flowId }) => (flowId ? { id: flowId } : null),
         }),
     },
@@ -59,7 +59,7 @@ export const routeTitles = {
                 knowledgeId === 'new'
                     ? t('title.newKnowledge')
                     : data?.knowledgeDocument?.question || t('title.knowledge'),
-            useQuery: useKnowledgeDocumentQuery,
+            document: KnowledgeDocumentDocument,
             variables: ({ knowledgeId }) => (!knowledgeId || knowledgeId === 'new' ? null : { id: knowledgeId }),
         }),
     },
@@ -86,7 +86,7 @@ export const routeTitles = {
 
                 return provider?.name || t('title.provider');
             },
-            useQuery: useSettingsProvidersQuery,
+            document: SettingsProvidersDocument,
             variables: ({ providerId }) => (providerId === 'new' ? null : {}),
         }),
     },
@@ -99,7 +99,7 @@ export const routeTitles = {
         title: apolloTitle({
             select: (data, { templateId }, t) =>
                 templateId === 'new' ? t('title.newTemplate') : data?.flowTemplate?.title || t('title.template'),
-            useQuery: useFlowTemplateQuery,
+            document: FlowTemplateDocument,
             variables: ({ templateId }) => (!templateId || templateId === 'new' ? null : { templateId }),
         }),
     },

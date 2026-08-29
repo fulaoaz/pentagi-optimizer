@@ -1,4 +1,4 @@
-import { useApolloClient } from '@apollo/client/react';
+import { useApolloClient, useQuery } from '@apollo/client/react';
 import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -7,7 +7,7 @@ import type { UserResourceFragmentFragment } from '@/graphql/types';
 import { RESOURCES_API_PATH } from '@/features/resources/resources-constants';
 import { restResourceEntryToFragment, type RestResourceList } from '@/features/resources/resources-rest';
 import { useResourcesRealtime } from '@/features/resources/use-resources-realtime';
-import { ResourcesDocument, useResourcesQuery } from '@/graphql/types';
+import { ResourcesDocument } from '@/graphql/types';
 import { useLocale } from '@/hooks/use-locale';
 import { api, getApiErrorMessage, unwrapApiResponse } from '@/lib/axios';
 import { useUser } from '@/providers/user-provider';
@@ -43,7 +43,7 @@ const RESOURCES_ERROR_TOAST_ID = 'resources-error';
  *
  * NOTE: the equivalent GraphQL `resources(recursive: true)` query now works
  * correctly for the root path. Switching this provider to a plain
- * `useResourcesQuery({ variables: { recursive: true } })` is a viable follow-up
+ * `useQuery(ResourcesDocument, { variables: { recursive: true } })` is a viable follow-up
  * once we no longer need the snake_case → camelCase conversion that REST
  * requires (see `restResourceEntryToFragment`).
  */
@@ -120,7 +120,7 @@ export function ResourcesProvider({ children }: ResourcesProviderProps) {
         };
     }, [apolloClient, refreshTick, shouldFetchResources, t]);
 
-    const { data, error: graphqlError } = useResourcesQuery({
+    const { data, error: graphqlError } = useQuery(ResourcesDocument, {
         fetchPolicy: 'cache-only',
         skip: !shouldFetchResources,
         variables: { recursive: true },

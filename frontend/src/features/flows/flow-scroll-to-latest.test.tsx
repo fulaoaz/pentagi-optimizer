@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { LocaleProvider } from '@/providers/locale-provider';
 import { StatusType } from '@/graphql/types';
 
 const flowState = vi.hoisted(() => ({ current: {} as Record<string, unknown> }));
@@ -57,22 +58,22 @@ const assistantFlowState = {
 const renderWithFlow = (state: Record<string, unknown>, ui: React.ReactElement) => {
     flowState.current = { flowId: '42', ...state };
 
-    return render(<TooltipProvider>{ui}</TooltipProvider>);
+    return render(<LocaleProvider><TooltipProvider>{ui}</TooltipProvider></LocaleProvider>);
 };
 
 describe('scroll-to-latest buttons carry an accessible name', () => {
     it.each([
-        ['Scroll to latest agent log', { flowData: { agentLogs: [item] } }, <FlowAgents key="agents" />],
-        ['Scroll to latest tool log', { flowData: { searchLogs: [item] } }, <FlowTools key="tools" />],
+        ['滚动到最新智能体日志', { flowData: { agentLogs: [item] } }, <FlowAgents key="agents" />],
+        ['滚动到最新工具日志', { flowData: { searchLogs: [item] } }, <FlowTools key="tools" />],
         [
-            'Scroll to latest vector store log',
+            '滚动到最新向量库日志',
             { flowData: { vectorStoreLogs: [item] } },
             <FlowVectorStores key="vector-stores" />,
         ],
-        ['Scroll to latest task', { flowData: { tasks: [item] } }, <FlowTasks key="tasks" />],
-        ['Scroll to latest screenshot', { flowData: { screenshots: [item] } }, <FlowScreenshots key="screenshots" />],
+        ['滚动到最新任务', { flowData: { tasks: [item] } }, <FlowTasks key="tasks" />],
+        ['滚动到最新截图', { flowData: { screenshots: [item] } }, <FlowScreenshots key="screenshots" />],
         [
-            'Scroll to latest message',
+            '滚动到最新消息',
             {
                 flowData: { messageLogs: [item] },
                 flowStatus: StatusType.Running,
@@ -81,7 +82,7 @@ describe('scroll-to-latest buttons carry an accessible name', () => {
             },
             <FlowAutomationMessages key="automation" />,
         ],
-        ['Scroll to latest message', assistantFlowState, <FlowAssistantMessages key="assistant" />],
+        ['滚动到最新消息', assistantFlowState, <FlowAssistantMessages key="assistant" />],
     ])('names the %s button', (name, state, ui) => {
         renderWithFlow(state, ui);
 
@@ -94,8 +95,8 @@ describe('assistant list', () => {
         const user = userEvent.setup({ delay: null });
         renderWithFlow(assistantFlowState, <FlowAssistantMessages />);
 
-        await user.click(screen.getByRole('button', { name: 'Select assistant' }));
+        await user.click(screen.getByRole('button', { name: '选择助手' }));
 
-        expect(await screen.findByRole('button', { name: 'Delete Recon assistant' })).toBeInTheDocument();
+        expect(await screen.findByRole('button', { name: '删除Recon assistant' })).toBeInTheDocument();
     });
 });

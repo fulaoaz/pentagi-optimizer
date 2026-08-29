@@ -1,3 +1,4 @@
+import { useMutation, useQuery } from '@apollo/client/react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
     AlertCircle,
@@ -13,10 +14,13 @@ import {
     Trash2,
     XCircle,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useController, useForm, useFormState, useWatch } from 'react-hook-form';
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type FieldErrors, useController, useForm, useFormState, useWatch } from 'react-hook-form';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { z } from 'zod';
+
+import { routes } from '@/lib/routes';
 
 import type {
     AgentConfigInput,
@@ -35,18 +39,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormSubmitButton } from '@/components/ui/form-submit-button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { StatusCard } from '@/components/ui/status-card';
 import {
     AgentConfigType,
     ReasoningEffort,
-    useCreateProviderMutation,
-    useDeleteProviderMutation,
-    useSettingsProvidersQuery,
-    useTestAgentMutation,
-    useTestProviderMutation,
-    useUpdateProviderMutation,
+    CreateProviderDocument,
+    DeleteProviderDocument,
+    SettingsProvidersDocument,
+    TestAgentDocument,
+    TestProviderDocument,
+    UpdateProviderDocument,
 } from '@/graphql/types';
 import { useLocale } from '@/hooks/use-locale';
 import { translateAgentName, translateProviderFieldPath } from '@/lib/i18n/settings-labels';
@@ -305,6 +310,31 @@ function FormInputStringItem({ control, description, disabled, label, name, plac
     );
 }
 
+function FormTextareaItem({ control, description, disabled, label, name, placeholder }: FormInputStringItemProps) {
+    const { field, fieldState } = useController({
+        control,
+        defaultValue: undefined,
+        disabled,
+        name,
+    });
+
+    return (
+        <FormItem>
+            <FormLabel>{label}</FormLabel>
+            <FormControl>
+                <Textarea
+                    {...field}
+                    className="font-mono text-xs"
+                    placeholder={placeholder}
+                    value={field.value ?? ''}
+                />
+            </FormControl>
+            {description && <FormDescription>{description}</FormDescription>}
+            {fieldState.error && <FormMessage>{fieldState.error.message}</FormMessage>}
+        </FormItem>
+    );
+}
+
 function FormModelComboboxItem({
     allowCustom = true,
     contentClass,
@@ -479,6 +509,25 @@ function FormModelComboboxItem({
 const buildAgentConfigSchema = (t: Translate) =>
     z
         .object({
+            extraBody: z
+                .string()
+                .optional()
+                .refine(
+                    (value) => {
+                        if (!value?.trim()) {
+                            return true;
+                        }
+
+                        try {
+                            const parsed: unknown = JSON.parse(value);
+
+                            return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed);
+                        } catch {
+                            return false;
+                        }
+                    },
+                    { message: t('settings.provider.extraBodyInvalid') },
+                ),
             frequencyPenalty: z.preprocess(
                 (value) => (value === '' || value === undefined ? null : value),
                 z.number().nullable().optional(),
@@ -602,6 +651,7 @@ const transformFormToGraphQL = (
         .filter(([key, data]) => key !== '__typename' && data?.model)
         .reduce((configs, [key, data]) => {
             const config: AgentConfigInput = {
+                extraBody: data?.extraBody?.trim() ? (JSON.parse(data.extraBody) as Record<string, unknown>) : null,
                 frequencyPenalty: data?.frequencyPenalty ?? null,
                 maxLength: data?.maxLength ?? null,
                 maxTokens: data?.maxTokens ?? null,
@@ -656,7 +706,13 @@ const normalizeGraphQLData = (obj: unknown): unknown => {
         return Object.fromEntries(
             Object.entries(obj)
                 .filter(([key]) => key !== '__typename')
-                .map(([key, value]) => [key, normalizeGraphQLData(value)]),
+                .map(([key, value]) => {
+                    if (key === 'extraBody') {
+                        return [key, value && typeof value === 'object' ? JSON.stringify(value, null, 4) : ''];
+                    }
+
+                    return [key, normalizeGraphQLData(value)];
+                }),
         );
     }
 
@@ -871,12 +927,12 @@ function SettingsProvider() {
     const { providerId } = useParams<{ providerId: string }>();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
-    const { data, error, loading } = useSettingsProvidersQuery();
-    const [createProvider, { error: createError, loading: isCreateLoading }] = useCreateProviderMutation();
-    const [updateProvider, { error: updateError, loading: isUpdateLoading }] = useUpdateProviderMutation();
-    const [deleteProvider, { error: deleteError, loading: isDeleteLoading }] = useDeleteProviderMutation();
-    const [testProvider, { error: testError, loading: isTestLoading }] = useTestProviderMutation();
-    const [testAgent, { error: agentTestError, loading: isAgentTestLoading }] = useTestAgentMutation();
+    const { data, error, loading } = useQuery(SettingsProvidersDocument);
+    const [createProvider, { error: createError, loading: isCreateLoading }] = useMutation(CreateProviderDocument);
+    const [updateProvider, { error: updateError, loading: isUpdateLoading }] = useMutation(UpdateProviderDocument);
+    const [deleteProvider, { error: deleteError, loading: isDeleteLoading }] = useMutation(DeleteProviderDocument);
+    const [testProvider, { error: testError, loading: isTestLoading }] = useMutation(TestProviderDocument);
+    const [testAgent, { error: agentTestError, loading: isAgentTestLoading }] = useMutation(TestAgentDocument);
     const [currentAgentKey, setCurrentAgentKey] = useState<null | string>(null);
     const [submitError, setSubmitError] = useState<null | string>(null);
     const [isTestDialogOpen, setIsTestDialogOpen] = useState(false);
@@ -897,12 +953,19 @@ function SettingsProvider() {
             name: undefined,
             type: undefined,
         },
+        resetOptions: { keepDirtyValues: true },
         resolver: zodResolver(formSchema),
     });
 
-    const { control, formState, handleSubmit: handleFormSubmit, reset, setValue, trigger, watch } = form;
+    const { control, formState, getFieldState, handleSubmit: handleFormSubmit, reset, setValue, trigger, watch } = form;
 
     const { isDirty } = useFormState({ control });
+
+    useEffect(() => {
+        if (submitError) {
+            toast.error(submitError);
+        }
+    }, [submitError]);
 
     // Push a synthetic history entry while the form is dirty so a browser-back can be intercepted
     // by popstate below — react-router's blocker doesn't cover the native back gesture.
@@ -997,8 +1060,21 @@ function SettingsProvider() {
             .sort((a, b) => a.name.localeCompare(b.name));
     }, [data, selectedType]);
 
+    const seededTypeRef = useRef<null | string>(null);
+
     useEffect(() => {
         if (!isNew || !selectedType || !data?.settingsProviders?.default || availableModels.length === 0) {
+            return;
+        }
+
+        // setValue is outside the form's keepDirtyValues, so a background refetch re-runs this effect
+        // with a fresh `data` identity and overwrites agent edits the user has not saved. Re-seed only
+        // when the type actually changed — that is the case where the previous type's agents are wrong.
+        const isSameType = seededTypeRef.current === selectedType;
+
+        seededTypeRef.current = selectedType;
+
+        if (isSameType && getFieldState('agents').isDirty) {
             return;
         }
 
@@ -1070,11 +1146,30 @@ function SettingsProvider() {
             const queryType = formQueryParams.type ?? undefined;
             const queryId = formQueryParams.id;
 
+            // A hand-typed ?type= URL bypasses the create menu's enabled-only filter; an
+            // unknown or disabled type would otherwise create a dead provider or dump a raw
+            // zod error on submit. Bounce it to the list. (Clone-by-id is gated separately below.)
+            if (!queryId && queryType && !providers.enabled[queryType as keyof typeof providers.enabled]) {
+                toast.error(t('settings.provider.typeUnavailable', { type: queryType }));
+                navigate(routes.settings.providers, { replace: true });
+
+                return;
+            }
+
             if (queryId && data?.settingsProviders?.userDefined) {
                 const sourceProvider = data.settingsProviders.userDefined.find((p: Provider) => p.id == queryId);
 
                 if (sourceProvider) {
                     const { agents, name, type: sourceType } = sourceProvider;
+
+                    // Cloning a provider whose type is now disabled would only make
+                    // another dead one — gate it the same as the ?type= path.
+                    if (sourceType && !providers.enabled[sourceType as keyof typeof providers.enabled]) {
+                        toast.error(t('settings.provider.typeUnavailable', { type: sourceType }));
+                        navigate(routes.settings.providers, { replace: true });
+
+                        return;
+                    }
 
                     reset({
                         agents: agents ? (normalizeGraphQLData(agents) as FormAgents) : {},
@@ -1111,7 +1206,7 @@ function SettingsProvider() {
         const provider = providers.userDefined?.find((provider: Provider) => provider.id == providerId);
 
         if (!provider) {
-            navigate('/settings/providers');
+            navigate(routes.settings.providers);
 
             return;
         }
@@ -1150,11 +1245,23 @@ function SettingsProvider() {
                 });
             }
 
-            navigate('/settings/providers');
+            navigate(routes.settings.providers);
         } catch (error) {
             console.error('Submit error:', error);
             setSubmitError(error instanceof Error ? error.message : t('settings.provider.saveError'));
         }
+    };
+
+    const handleInvalidSubmit = (errors: FieldErrors<FormData>) => {
+        setSubmitError(
+            `${t('settings.provider.formValidationErrors')}\n\n${formatValidationErrors(errors as Record<string, unknown>, t)}`,
+        );
+    };
+
+    const handleFormEvent = async (event: FormEvent<HTMLFormElement>) => {
+        setSubmitError(null);
+
+        await handleFormSubmit(handleSubmit, handleInvalidSubmit)(event);
     };
 
     const handleDelete = () => {
@@ -1178,7 +1285,7 @@ function SettingsProvider() {
                 variables: { providerId },
             });
 
-            navigate('/settings/providers');
+            navigate(routes.settings.providers);
         } catch (error) {
             console.error('Delete error:', error);
             setSubmitError(error instanceof Error ? error.message : t('settings.provider.deleteError'));
@@ -1260,7 +1367,7 @@ function SettingsProvider() {
             return;
         }
 
-        navigate('/settings/providers');
+        navigate(routes.settings.providers);
     };
 
     const handleConfirmLeave = () => {
@@ -1273,7 +1380,7 @@ function SettingsProvider() {
             return;
         }
 
-        navigate('/settings/providers');
+        navigate(routes.settings.providers);
     };
 
     const handleLeaveDialogOpenChange = (open: boolean) => {
@@ -1284,7 +1391,7 @@ function SettingsProvider() {
         setIsLeaveDialogOpen(open);
     };
 
-    if (loading) {
+    if (loading && !data) {
         return (
             <StatusCard
                 description={t('settings.provider.loadingDescription')}
@@ -1294,7 +1401,7 @@ function SettingsProvider() {
         );
     }
 
-    if (error) {
+    if (error && !data) {
         return (
             <Alert variant="destructive">
                 <AlertCircle className="size-4" />
@@ -1328,7 +1435,7 @@ function SettingsProvider() {
                     <form
                         className="flex flex-col gap-6"
                         id="provider-form"
-                        onSubmit={handleFormSubmit(handleSubmit)}
+                        onSubmit={handleFormEvent}
                     >
                         {/* Error Alert */}
                         {mutationError && (
@@ -1558,6 +1665,23 @@ function SettingsProvider() {
                                                 />
                                             </div>
 
+                                            {/* Extra Body field */}
+                                            <div className="col-span-full p-px">
+                                                <div className="mt-6 flex flex-col gap-4">
+                                                    <h4 className="text-sm font-medium">
+                                                        {t('settings.provider.extraBodyTitle')}
+                                                    </h4>
+                                                    <FormTextareaItem
+                                                        control={control}
+                                                        description={t('settings.provider.extraBodyDescription')}
+                                                        disabled={isLoading}
+                                                        label={t('settings.provider.extraBodyLabel')}
+                                                        name={`agents.${agentKey}.extraBody`}
+                                                        placeholder={t('settings.provider.extraBodyPlaceholder')}
+                                                    />
+                                                </div>
+                                            </div>
+
                                             {/* Reasoning Configuration */}
                                             <div className="col-span-full p-px">
                                                 <div className="mt-6 flex flex-col gap-4">
@@ -1744,8 +1868,8 @@ function SettingsProvider() {
                         {isLoading
                             ? t('common.saving')
                             : isNew
-                              ? t('settings.createProvider')
-                              : t('settings.updateProvider')}
+                              ? t('settings.provider.createButton')
+                              : t('settings.provider.saveButton')}
                     </FormSubmitButton>
                 </div>
             </div>

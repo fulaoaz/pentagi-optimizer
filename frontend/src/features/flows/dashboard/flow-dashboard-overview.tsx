@@ -1,3 +1,4 @@
+import { useQuery } from '@apollo/client/react';
 import { Activity, CircleDollarSign, Cpu, GitFork, Loader2 } from 'lucide-react';
 import { useMemo } from 'react';
 
@@ -10,12 +11,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import FlowAgentIcon from '@/features/flows/agents/flow-agent-icon';
 import {
     AgentType,
-    useFlowStatsByFlowQuery,
-    useToolcallsStatsByFlowQuery,
-    useToolcallsStatsByFunctionForFlowQuery,
-    useUsageStatsByAgentTypeForFlowQuery,
-    useUsageStatsByFlowQuery,
-    useUsageStatsByModelAgentsForFlowQuery,
+    FlowStatsByFlowDocument,
+    ToolcallsStatsByFlowDocument,
+    ToolcallsStatsByFunctionForFlowDocument,
+    UsageStatsByAgentTypeForFlowDocument,
+    UsageStatsByFlowDocument,
+    UsageStatsByModelAgentsForFlowDocument,
 } from '@/graphql/types';
 import { useLocale } from '@/hooks/use-locale';
 import { translateAgentName } from '@/lib/i18n/settings-labels';
@@ -23,25 +24,25 @@ import { formatCost, formatDuration, formatNumber, formatTokenCount } from '@/li
 
 export function FlowDashboardOverview({ flowId }: { flowId: string }) {
     const { locale, t } = useLocale();
-    const { data: usageData, loading: usageLoading } = useUsageStatsByFlowQuery({
+    const { data: usageData, loading: usageLoading } = useQuery(UsageStatsByFlowDocument, {
         variables: { flowId },
     });
-    const { data: usageByAgentData, loading: usageByAgentLoading } = useUsageStatsByAgentTypeForFlowQuery({
+    const { data: usageByAgentData, loading: usageByAgentLoading } = useQuery(UsageStatsByAgentTypeForFlowDocument, {
         variables: { flowId },
     });
-    const { data: usageByModelAgentsData, loading: usageByModelAgentsLoading } = useUsageStatsByModelAgentsForFlowQuery(
+    const { data: usageByModelAgentsData, loading: usageByModelAgentsLoading } = useQuery(UsageStatsByModelAgentsForFlowDocument, 
         {
             variables: { flowId },
         },
     );
-    const { data: toolcallsData, loading: toolcallsLoading } = useToolcallsStatsByFlowQuery({
+    const { data: toolcallsData, loading: toolcallsLoading } = useQuery(ToolcallsStatsByFlowDocument, {
         variables: { flowId },
     });
     const { data: toolcallsByFunctionData, loading: toolcallsByFunctionLoading } =
-        useToolcallsStatsByFunctionForFlowQuery({
+        useQuery(ToolcallsStatsByFunctionForFlowDocument, {
             variables: { flowId },
         });
-    const { data: flowStatsData, loading: flowStatsLoading } = useFlowStatsByFlowQuery({
+    const { data: flowStatsData, loading: flowStatsLoading } = useQuery(FlowStatsByFlowDocument, {
         variables: { flowId },
     });
 

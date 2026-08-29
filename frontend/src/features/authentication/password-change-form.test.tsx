@@ -13,6 +13,7 @@ vi.mock('@/lib/axios', async (importOriginal) => {
 
 vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
+import { LocaleProvider } from '@/providers/locale-provider';
 import { PasswordChangeForm } from './password-change-form';
 
 const apiError = (code: string, msg: string) => ({ response: { data: { code, msg, status: 'error' } } });
@@ -24,12 +25,12 @@ beforeEach(() => {
 describe('PasswordChangeForm', () => {
     it('toggles password visibility via the InputPassword control', async () => {
         const user = userEvent.setup();
-        render(<PasswordChangeForm />);
+        render(<LocaleProvider><PasswordChangeForm /></LocaleProvider>);
 
-        const current = screen.getByPlaceholderText('Enter your current password') as HTMLInputElement;
+        const current = screen.getByPlaceholderText('请输入当前密码') as HTMLInputElement;
         expect(current.type).toBe('password');
 
-        const [showButton] = screen.getAllByRole('button', { name: 'Show password' });
+        const [showButton] = screen.getAllByRole('button', { name: '显示密码' });
 
         if (!showButton) {
             throw new Error('expected a Show password toggle');
@@ -43,12 +44,12 @@ describe('PasswordChangeForm', () => {
     it('submits the snake_case payload — proves RHF ref/onChange survive the InputPassword hop', async () => {
         const user = userEvent.setup();
         const onSuccess = vi.fn();
-        render(<PasswordChangeForm onSuccess={onSuccess} />);
+        render(<LocaleProvider><PasswordChangeForm onSuccess={onSuccess} /></LocaleProvider>);
 
-        await user.type(screen.getByPlaceholderText('Enter your current password'), 'Oldpass0!');
-        await user.type(screen.getByPlaceholderText('Enter your new password'), 'Abcdef1!gh');
-        await user.type(screen.getByPlaceholderText('Confirm your new password'), 'Abcdef1!gh');
-        await user.click(screen.getByRole('button', { name: 'Update Password' }));
+        await user.type(screen.getByPlaceholderText('请输入当前密码'), 'Oldpass0!');
+        await user.type(screen.getByPlaceholderText('请输入新密码'), 'Abcdef1!gh');
+        await user.type(screen.getByPlaceholderText('请再次输入新密码'), 'Abcdef1!gh');
+        await user.click(screen.getByRole('button', { name: '修改密码' }));
 
         await waitFor(() => expect(onSuccess).toHaveBeenCalledOnce());
         expect(put).toHaveBeenCalledWith('/user/password', {
@@ -58,21 +59,22 @@ describe('PasswordChangeForm', () => {
         });
     });
 
-    it('renders Skip only with onSkip, and puts submit before skip in the vertical layout', () => {
-        const { rerender } = render(<PasswordChangeForm />);
-        expect(screen.queryByRole('button', { name: 'Skip for now' })).not.toBeInTheDocument();
+    it('renders Skip only when onSkip and showSkip are set, and keeps the submit button last', () => {
+        const { rerender } = render(<LocaleProvider><PasswordChangeForm /></LocaleProvider>);
+        expect(screen.queryByRole('button', { name: '暂时跳过' })).not.toBeInTheDocument();
 
         rerender(
-            <PasswordChangeForm
-                buttonSize="default"
-                layout="vertical"
-                onSkip={vi.fn()}
-            />,
+            <LocaleProvider>
+                <PasswordChangeForm
+                    onSkip={vi.fn()}
+                    showSkip
+                />
+            </LocaleProvider>,
         );
 
-        const submit = screen.getByRole('button', { name: 'Update Password' });
-        const skip = screen.getByRole('button', { name: 'Skip for now' });
-        expect(submit.compareDocumentPosition(skip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        const skip = screen.getByRole('button', { name: '暂时跳过' });
+        const submit = screen.getByRole('button', { name: '修改密码' });
+        expect(skip.compareDocumentPosition(submit) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
 
     it('maps a backend error code to friendly copy instead of the raw msg', async () => {
@@ -80,14 +82,14 @@ describe('PasswordChangeForm', () => {
         put.mockRejectedValueOnce(
             apiError('Users.ChangePasswordCurrentUser.InvalidCurrentPassword', 'invalid current password'),
         );
-        render(<PasswordChangeForm />);
+        render(<LocaleProvider><PasswordChangeForm /></LocaleProvider>);
 
-        await user.type(screen.getByPlaceholderText('Enter your current password'), 'Oldpass0!');
-        await user.type(screen.getByPlaceholderText('Enter your new password'), 'Abcdef1!gh');
-        await user.type(screen.getByPlaceholderText('Confirm your new password'), 'Abcdef1!gh');
-        await user.click(screen.getByRole('button', { name: 'Update Password' }));
+        await user.type(screen.getByPlaceholderText('请输入当前密码'), 'Oldpass0!');
+        await user.type(screen.getByPlaceholderText('请输入新密码'), 'Abcdef1!gh');
+        await user.type(screen.getByPlaceholderText('请再次输入新密码'), 'Abcdef1!gh');
+        await user.click(screen.getByRole('button', { name: '修改密码' }));
 
-        expect(await screen.findByText('Current password is incorrect')).toBeInTheDocument();
+        expect(await screen.findByText('当前密码不正确')).toBeInTheDocument();
         expect(screen.queryByText('invalid current password')).not.toBeInTheDocument();
     });
 });

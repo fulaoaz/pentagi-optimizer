@@ -101,7 +101,7 @@ function FlowScreenshots() {
                                         {field.value && (
                                             <InputGroupAddon align="inline-end">
                                                 <InputGroupButton
-                                                    aria-label="Clear screenshot search"
+                                                    aria-label={t('flow.screenshots.clearSearch')}
                                                     onClick={() => {
                                                         form.reset({ search: '' });
                                                         setDebouncedSearchValue('');
@@ -138,7 +138,7 @@ function FlowScreenshots() {
 
                     {!isScrolledToBottom && (
                         <Button
-                            aria-label="Scroll to latest screenshot"
+                            aria-label={t('flow.screenshots.scrollToLatest')}
                             className="absolute right-4 bottom-4 z-10 shadow-md hover:shadow-lg"
                             onClick={() => scrollToEnd()}
                             size="icon-sm"

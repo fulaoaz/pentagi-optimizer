@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import * as z from 'zod';
 
@@ -8,19 +9,22 @@ import { FormSubmitButton } from '@/components/ui/form-submit-button';
 import { Input } from '@/components/ui/input';
 import { InputPassword } from '@/components/ui/input-password';
 import { useAppForm } from '@/hooks/use-app-form';
+import { useLocale } from '@/hooks/use-locale';
+import type { Translate } from '@/lib/i18n';
 import { api, resolveApiErrorMessage } from '@/lib/axios';
 import { useUser } from '@/providers/user-provider';
 
-const emailChangeSchema = z.object({
-    currentPassword: z.string().min(1, { message: 'Current password is required' }),
-    newEmail: z
-        .string()
-        .trim()
-        .toLowerCase()
-        .min(1, { message: 'Email is required' })
-        .email({ message: 'Invalid email address' })
-        .max(50, { message: 'Email must not exceed 50 characters' }),
-});
+const buildEmailChangeSchema = (t: Translate) =>
+    z.object({
+        currentPassword: z.string().min(1, { message: t('auth.currentPasswordRequired') }),
+        newEmail: z
+            .string()
+            .trim()
+            .toLowerCase()
+            .min(1, { message: t('auth.emailRequired') })
+            .email({ message: t('auth.invalidEmail') })
+            .max(50, { message: t('auth.emailMaxLength') }),
+    });
 
 const ERROR_BY_CODE: Record<string, string> = {
     'Users.ChangeEmailCurrentUser.EmailAlreadyExists': 'Email address is already in use',
@@ -34,11 +38,13 @@ interface EmailChangeFormProps {
     onSuccess?: () => void;
 }
 
-type EmailChangeFormValues = z.infer<typeof emailChangeSchema>;
+type EmailChangeFormValues = z.infer<ReturnType<typeof buildEmailChangeSchema>>;
 
 export function EmailChangeForm({ onCancel, onSuccess }: EmailChangeFormProps) {
+    const { t } = useLocale();
     const [error, setError] = useState<null | string>(null);
     const { patchUser, refreshAuthInfo } = useUser();
+    const emailChangeSchema = useMemo(() => buildEmailChangeSchema(t), [t]);
 
     const form = useAppForm<EmailChangeFormValues>({
         defaultValues: {
@@ -58,7 +64,7 @@ export function EmailChangeForm({ onCancel, onSuccess }: EmailChangeFormProps) {
             });
 
             form.reset();
-            toast.success('Email successfully updated');
+            toast.success(t('auth.emailUpdated'));
 
             patchUser({ mail: values.newEmail });
             await refreshAuthInfo();
@@ -83,11 +89,11 @@ export function EmailChangeForm({ onCancel, onSuccess }: EmailChangeFormProps) {
                     name="currentPassword"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Current Password</FormLabel>
+                            <FormLabel>{t('auth.currentPassword')}</FormLabel>
                             <FormControl>
                                 <InputPassword
                                     {...field}
-                                    placeholder="Enter your current password"
+                                    placeholder={t('auth.enterCurrentPassword')}
                                 />
                             </FormControl>
                             <FormMessage />
@@ -100,11 +106,11 @@ export function EmailChangeForm({ onCancel, onSuccess }: EmailChangeFormProps) {
                     name="newEmail"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>New Email</FormLabel>
+                            <FormLabel>{t('auth.newEmail')}</FormLabel>
                             <FormControl>
                                 <Input
                                     {...field}
-                                    placeholder="Enter your new email address"
+                                    placeholder={t('auth.enterNewEmail')}
                                     type="email"
                                 />
                             </FormControl>
@@ -123,11 +129,11 @@ export function EmailChangeForm({ onCancel, onSuccess }: EmailChangeFormProps) {
                             type="button"
                             variant="outline"
                         >
-                            Cancel
+                            {t('common.cancel')}
                         </Button>
                     )}
                     <FormSubmitButton size="sm">
-                        <span>Update Email</span>
+                        <span>{t('auth.updateEmail')}</span>
                     </FormSubmitButton>
                 </div>
             </form>

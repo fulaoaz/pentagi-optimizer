@@ -18,6 +18,7 @@ vi.mock('@/features/resources/use-resources-upload', () => ({
     useResourcesUpload: () => ({ fileInputKey: 'k', fileInputProps: {}, openFilePicker: vi.fn() }),
 }));
 
+import { LocaleProvider } from '@/providers/locale-provider';
 import { SidebarProvider } from '@/components/ui/sidebar';
 
 import { MainSidebar } from './main-sidebar';
@@ -30,8 +31,9 @@ function FromProbe() {
 
 function renderSidebar() {
     return render(
-        <MemoryRouter initialEntries={['/dashboard']}>
-            <SidebarProvider>
+        <LocaleProvider>
+            <MemoryRouter initialEntries={['/dashboard']}>
+                <SidebarProvider>
                 <MainSidebar />
             </SidebarProvider>
             <Routes>
@@ -48,7 +50,8 @@ function renderSidebar() {
                     path="/settings/account"
                 />
             </Routes>
-        </MemoryRouter>,
+            </MemoryRouter>
+        </LocaleProvider>,
     );
 }
 
@@ -57,7 +60,7 @@ describe('MainSidebar settings entry points', () => {
         const user = userEvent.setup();
         renderSidebar();
 
-        await user.click(screen.getByRole('link', { name: 'Settings' }));
+        await user.click(screen.getByRole('link', { name: '设置' }));
 
         expect(screen.getByTestId('from')).toHaveTextContent('/dashboard');
     });
@@ -67,7 +70,7 @@ describe('MainSidebar settings entry points', () => {
         renderSidebar();
 
         await user.click(screen.getByRole('button', { name: /Test User/ }));
-        await user.click(screen.getByRole('menuitem', { name: 'Profile' }));
+        await user.click(screen.getByRole('menuitem', { name: '个人资料' }));
 
         expect(screen.getByTestId('from')).toHaveTextContent('/dashboard');
     });

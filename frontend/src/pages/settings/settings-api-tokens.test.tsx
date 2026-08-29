@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { tokenNameSchema } from './settings-api-tokens';
+import { dictionaries, fallbackLocale, translate } from '@/lib/i18n';
+
+import { buildTokenNameSchema } from './settings-api-tokens';
+
+const t = (key: string, values?: Record<string, number | string>) =>
+    translate(dictionaries.en, dictionaries[fallbackLocale], key, values);
+
+const tokenNameSchema = buildTokenNameSchema(t);
 
 describe('tokenNameSchema', () => {
     it('accepts a name at the 100-character boundary', () => {

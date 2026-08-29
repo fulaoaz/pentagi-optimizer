@@ -257,7 +257,7 @@ function FlowFiles() {
                                             {field.value && (
                                                 <InputGroupAddon align="inline-end">
                                                     <InputGroupButton
-                                                        aria-label="Clear file search"
+                                                        aria-label={t('flow.files.clearSearch')}
                                                         onClick={search.resetSearch}
                                                         type="button"
                                                     >
@@ -275,7 +275,7 @@ function FlowFiles() {
                             <TooltipTrigger asChild>
                                 <span>
                                     <Button
-                                        aria-label="Upload files"
+                                        aria-label={t('flow.files.uploadFiles')}
                                         disabled={upload.isUploading || isLoading}
                                         onClick={upload.openFilePicker}
                                         size="icon-sm"
@@ -296,7 +296,7 @@ function FlowFiles() {
                             <TooltipTrigger asChild>
                                 <span>
                                     <Button
-                                        aria-label="Attach resources"
+                                        aria-label={t('flow.files.attachResources')}
                                         disabled={isAttachResourcesDisabled}
                                         onClick={handleOpenAttachResourcesDialog}
                                         size="icon-sm"
@@ -317,7 +317,7 @@ function FlowFiles() {
                             <TooltipTrigger asChild>
                                 <span>
                                     <Button
-                                        aria-label="Pull from container"
+                                        aria-label={t('flow.files.pullFromContainer')}
                                         disabled={isPullDisabled}
                                         onClick={handleOpenPullDialog}
                                         size="icon-sm"

@@ -2,6 +2,7 @@ import type { Editor } from '@tiptap/react';
 import type { LucideIcon } from 'lucide-react';
 
 import { Check, ChevronDown, List, ListOrdered, ListTodo } from 'lucide-react';
+import { useMemo } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -11,6 +12,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useLocale } from '@/hooks/use-locale';
 import { cn } from '@/lib/utils';
 
 import { returnFocusToEditor } from './markdown-editor-focus';
@@ -19,14 +21,14 @@ export type ListType = 'bullet' | 'ordered' | 'task';
 
 interface ListOption {
     icon: LucideIcon;
-    label: string;
+    labelKey: string;
     value: ListType;
 }
 
 const OPTIONS: ListOption[] = [
-    { icon: List, label: 'Bullet list', value: 'bullet' },
-    { icon: ListOrdered, label: 'Ordered list', value: 'ordered' },
-    { icon: ListTodo, label: 'Task list', value: 'task' },
+    { icon: List, labelKey: 'markdownEditor.bulletList', value: 'bullet' },
+    { icon: ListOrdered, labelKey: 'markdownEditor.orderedList', value: 'ordered' },
+    { icon: ListTodo, labelKey: 'markdownEditor.taskList', value: 'task' },
 ];
 
 interface ListMenuProps {
@@ -37,7 +39,9 @@ interface ListMenuProps {
 }
 
 export function ListMenu({ activeType, disabled, editor, isInTableCell }: ListMenuProps) {
-    const active = OPTIONS.find((option) => option.value === activeType);
+    const { t } = useLocale();
+    const options = useMemo(() => OPTIONS.map((option) => ({ ...option, label: t(option.labelKey) })), [t]);
+    const active = options.find((option) => option.value === activeType);
     // The bullet-list icon doubles as the resting affordance, so the active background — not the glyph — is what
     // distinguishes "in a bullet list" from "no list".
     const TriggerIcon = active?.icon ?? List;
@@ -48,7 +52,7 @@ export function ListMenu({ activeType, disabled, editor, isInTableCell }: ListMe
                 <TooltipTrigger asChild>
                     <DropdownMenuTrigger asChild>
                         <Button
-                            aria-label={`List: ${active?.label ?? 'None'}`}
+                            aria-label={t('markdownEditor.listLabel', { label: active?.label ?? t('markdownEditor.none') })}
                             className={cn('gap-0.5 px-1.5', active && 'bg-accent text-accent-foreground')}
                             data-toolbar-item=""
                             disabled={disabled}
@@ -61,7 +65,7 @@ export function ListMenu({ activeType, disabled, editor, isInTableCell }: ListMe
                         </Button>
                     </DropdownMenuTrigger>
                 </TooltipTrigger>
-                <TooltipContent>Lists</TooltipContent>
+                <TooltipContent>{t('markdownEditor.listMenu')}</TooltipContent>
             </Tooltip>
             <DropdownMenuContent
                 align="start"
@@ -87,6 +91,8 @@ function ListMenuItems({
     editor: Editor;
     isInTableCell: boolean;
 }) {
+    const { t } = useLocale();
+
     const applyOption = (value: ListType) => {
         const chain = editor.chain().focus();
 
@@ -108,7 +114,7 @@ function ListMenuItems({
             role="menuitemradio"
         >
             <option.icon className="text-muted-foreground size-4 shrink-0" />
-            <span>{option.label}</span>
+            <span>{t(option.labelKey)}</span>
             {activeType === option.value ? <Check className="ml-auto size-4 shrink-0" /> : null}
         </DropdownMenuItem>
     ));

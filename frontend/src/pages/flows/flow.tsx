@@ -1,3 +1,4 @@
+import { useMutation } from '@apollo/client/react';
 import type { ReactNode } from 'react';
 
 import {
@@ -46,7 +47,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import FlowCentralTabs from '@/features/flows/flow-central-tabs';
 import FlowTabs from '@/features/flows/flow-tabs';
 import { useFlowDetailNavigation } from '@/features/flows/use-flow-detail-navigation';
-import { ResultType, StatusType, useRenameFlowMutation } from '@/graphql/types';
+import { ResultType, StatusType, RenameFlowDocument } from '@/graphql/types';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { useFlowTabDetection } from '@/hooks/use-flow-tab-detection';
 import { useLocale } from '@/hooks/use-locale';
@@ -113,7 +114,7 @@ function Flow() {
     const [isFinishing, setIsFinishing] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-    const [renameFlowMutation, { loading: isRenameLoading }] = useRenameFlowMutation();
+    const [renameFlowMutation, { loading: isRenameLoading }] = useMutation(RenameFlowDocument);
 
     useEffect(() => {
         if (flowError || (!isFlowLoading && !flowData?.flow)) {

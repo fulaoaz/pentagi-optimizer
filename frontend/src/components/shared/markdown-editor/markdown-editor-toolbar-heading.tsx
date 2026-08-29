@@ -2,6 +2,7 @@ import type { Editor } from '@tiptap/react';
 import type { LucideIcon } from 'lucide-react';
 
 import { Check, ChevronDown, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, Type } from 'lucide-react';
+import { useMemo } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -11,6 +12,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useLocale } from '@/hooks/use-locale';
 import { cn } from '@/lib/utils';
 
 import { returnFocusToEditor } from './markdown-editor-focus';
@@ -23,18 +25,18 @@ interface HeadingOption {
     // taller (16u) than the Heading glyphs (12u), so at the same 16px box it reads bigger — scale it down to match
     // without shrinking the box (which would misalign labels). The trigger shows one icon alone, so it stays full size.
     iconClassName?: string;
-    label: string;
+    labelKey: string;
     value: 'paragraph' | HeadingLevel;
 }
 
 const OPTIONS: HeadingOption[] = [
-    { icon: Heading1, label: 'Heading 1', value: 1 },
-    { icon: Heading2, label: 'Heading 2', value: 2 },
-    { icon: Heading3, label: 'Heading 3', value: 3 },
-    { icon: Heading4, label: 'Heading 4', value: 4 },
-    { icon: Heading5, label: 'Heading 5', value: 5 },
-    { icon: Heading6, label: 'Heading 6', value: 6 },
-    { icon: Type, iconClassName: 'scale-[0.75]', label: 'Text', value: 'paragraph' },
+    { icon: Heading1, labelKey: 'markdownEditor.heading1', value: 1 },
+    { icon: Heading2, labelKey: 'markdownEditor.heading2', value: 2 },
+    { icon: Heading3, labelKey: 'markdownEditor.heading3', value: 3 },
+    { icon: Heading4, labelKey: 'markdownEditor.heading4', value: 4 },
+    { icon: Heading5, labelKey: 'markdownEditor.heading5', value: 5 },
+    { icon: Heading6, labelKey: 'markdownEditor.heading6', value: 6 },
+    { icon: Type, iconClassName: 'scale-[0.75]', labelKey: 'markdownEditor.paragraph', value: 'paragraph' },
 ];
 
 interface HeadingMenuProps {
@@ -49,7 +51,9 @@ const isSelectedIn = (activeLevel: 0 | HeadingLevel, value: HeadingOption['value
     value === 'paragraph' ? activeLevel === 0 : value === activeLevel;
 
 export function HeadingMenu({ activeLevel, disabled, editor, isInTableCell }: HeadingMenuProps) {
-    const active = OPTIONS.find((option) => isSelectedIn(activeLevel, option.value)) ?? OPTIONS[0];
+    const { t } = useLocale();
+    const options = useMemo(() => OPTIONS.map((option) => ({ ...option, label: t(option.labelKey) })), [t]);
+    const active = options.find((option) => isSelectedIn(activeLevel, option.value)) ?? options[0];
     const ActiveIcon = active?.icon ?? Type;
 
     return (
@@ -58,7 +62,7 @@ export function HeadingMenu({ activeLevel, disabled, editor, isInTableCell }: He
                 <TooltipTrigger asChild>
                     <DropdownMenuTrigger asChild>
                         <Button
-                            aria-label={`Text style: ${active?.label ?? 'Text'}`}
+                            aria-label={t('markdownEditor.textStyle', { label: active?.label ?? t('markdownEditor.paragraph') })}
                             className="gap-0.5 px-1.5"
                             data-toolbar-item=""
                             disabled={disabled}
@@ -71,7 +75,7 @@ export function HeadingMenu({ activeLevel, disabled, editor, isInTableCell }: He
                         </Button>
                     </DropdownMenuTrigger>
                 </TooltipTrigger>
-                <TooltipContent>Text style</TooltipContent>
+                <TooltipContent>{t('markdownEditor.textStyleLabel')}</TooltipContent>
             </Tooltip>
             <DropdownMenuContent
                 align="start"
@@ -97,6 +101,8 @@ function HeadingMenuItems({
     editor: Editor;
     isInTableCell: boolean;
 }) {
+    const { t } = useLocale();
+
     const applyOption = (value: HeadingOption['value']) => {
         if (value === 'paragraph') {
             editor.chain().focus().setParagraph().run();
@@ -116,7 +122,7 @@ function HeadingMenuItems({
             role="menuitemradio"
         >
             <option.icon className={cn('text-muted-foreground size-4 shrink-0', option.iconClassName)} />
-            <span>{option.label}</span>
+            <span>{t(option.labelKey)}</span>
             {isSelectedIn(activeLevel, option.value) ? <Check className="ml-auto size-4 shrink-0" /> : null}
         </DropdownMenuItem>
     ));

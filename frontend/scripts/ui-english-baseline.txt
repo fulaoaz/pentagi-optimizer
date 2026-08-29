@@ -11,12 +11,13 @@ src/components/icons/deepseek.tsx	jsx-text	DeepSeek
 src/components/icons/gemini.tsx	jsx-text	Gemini
 src/components/icons/glm.tsx	jsx-text	GLM
 src/components/icons/kimi.tsx	jsx-text	MoonshotAI
+src/components/icons/minimax.tsx	jsx-text	MiniMax
 src/components/icons/ollama.tsx	jsx-text	Ollama
 src/components/icons/open-ai.tsx	jsx-text	OpenAI
 src/components/icons/qwen.tsx	jsx-text	Qwen
-src/components/layouts/main-sidebar.tsx	jsx-expression	local
-src/components/layouts/main-sidebar.tsx	jsx-expression	oauth
-src/components/layouts/main-sidebar.tsx	jsx-text	PentAGI
+src/components/layouts/main/main-sidebar.tsx	jsx-expression	local
+src/components/layouts/main/main-sidebar.tsx	jsx-expression	oauth
+src/components/layouts/main/main-sidebar.tsx	jsx-text	PentAGI
 src/components/shared/file-manager/file-manager-actions.tsx	property:label	Copy path
 src/components/shared/file-manager/file-manager-actions.tsx	property:label	Copy paths
 src/components/shared/file-manager/file-manager-actions.tsx	property:label	Copy to…
@@ -31,6 +32,8 @@ src/components/shared/file-manager/file-manager-bulk-actions-bar.tsx	variable:mo
 src/components/shared/file-manager/file-manager.tsx	attribute:aria-label	Collapse all
 src/components/shared/file-manager/file-manager.tsx	attribute:aria-label	Expand all
 src/components/shared/file-manager/file-manager.tsx	attribute:aria-label	Select all
+src/components/shared/markdown-editor/markdown-editor-image-edit-form.tsx	attribute:placeholder	https://example.com/image.png
+src/components/shared/markdown-editor/markdown-editor-link-edit-form.tsx	attribute:placeholder	https://example.com
 src/components/ui/spinner.tsx	jsx-expression	.spinner-bar { animation: spinner-bars-animation .8s linear infinite; animation-delay: -.8s; } .spinner-bars-2 { animation-delay: -.65s; } .spinner-bars-3 { animation-delay: -0.5s; } @keyframes spinner-bars-animation { 0% { y: 1px; height: 22px; } 93.75% { y: 5px; height: 14px; opacity: 0.2; } }
 src/features/authentication/login-form.tsx	jsx-text	PentAGI
 src/features/flows/files/flow-files-promote-dialog.tsx	attribute:placeholder	results/scan.txt
@@ -46,6 +49,7 @@ src/lib/i18n/locales/zh-CN.ts	dictionary-value	ID
 src/lib/i18n/locales/zh-CN.ts	dictionary-value	OAuth
 src/lib/i18n/locales/zh-CN.ts	dictionary-value	Top K
 src/lib/i18n/locales/zh-CN.ts	dictionary-value	Top P
+src/lib/i18n/locales/zh-CN.ts	dictionary-value	{ "chat_template_kwargs": { "enable_thinking": false } }
 src/lib/i18n/locales/zh-CN.ts	dictionary-value	{title}（ID：{id}）
 src/pages/settings/settings-api-tokens.tsx	jsx-text	GraphQL Playground
 src/pages/settings/settings-api-tokens.tsx	jsx-text	Swagger UI

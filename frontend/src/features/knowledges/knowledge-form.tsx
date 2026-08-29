@@ -1,3 +1,4 @@
+import { useMutation } from '@apollo/client/react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Save } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -17,7 +18,7 @@ import { HeaderButton } from '@/components/shared/header-button';
 import { UnsavedChangesDialog, useUnsavedChangesGuard } from '@/components/shared/unsaved-changes';
 import { Form } from '@/components/ui/form';
 import { Spinner } from '@/components/ui/spinner';
-import { KnowledgeAnswerType, KnowledgeDocType, KnowledgeGuideType, useAnonymizeTextMutation } from '@/graphql/types';
+import { KnowledgeAnswerType, KnowledgeDocType, KnowledgeGuideType, AnonymizeTextDocument } from '@/graphql/types';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { useLocale } from '@/hooks/use-locale';
 import { Log } from '@/lib/log';
@@ -65,7 +66,7 @@ export const createKnowledgeFormSchema = (t: Translate) =>
                         max: KNOWLEDGE_LIMITS.content,
                     }),
                 }),
-            description: optionalTrimmed(KNOWLEDGE_LIMITS.description, t('knowledge.descriptionOptional'), t),
+            description: optionalTrimmed(KNOWLEDGE_LIMITS.description, t('knowledge.description'), t),
             docType: z.nativeEnum(KnowledgeDocType),
             guideType: z.nativeEnum(KnowledgeGuideType).optional(),
             question: z
@@ -203,7 +204,7 @@ export function KnowledgeForm({ initialValues, isNew, knowledge, onSubmit }: Kno
     const { t } = useLocale();
     const [isSaving, setIsSaving] = useState(false);
     const [isAnonymizing, setIsAnonymizing] = useState(false);
-    const [anonymizeMutation] = useAnonymizeTextMutation();
+    const [anonymizeMutation] = useMutation(AnonymizeTextDocument);
     const { authInfo } = useUser();
     const canAnonymize = authInfo?.privileges?.includes('anonymize.call') ?? false;
     const formSchema = useMemo(() => createKnowledgeFormSchema(t), [t]);
@@ -236,7 +237,7 @@ export function KnowledgeForm({ initialValues, isNew, knowledge, onSubmit }: Kno
     const { isDirty, isValid } = formState;
 
     const performSave = useCallback(
-        async (values: FormValues): Promise<boolean> => {
+        async (values: FormValues): Promise<SubmitResult | null> => {
             try {
                 // Snapshot dirty flags from the latest formState. We read it
                 // here (instead of capturing into deps) so partial-update
@@ -254,21 +255,16 @@ export function KnowledgeForm({ initialValues, isNew, knowledge, onSubmit }: Kno
                 // Reset BEFORE navigate so `isDirty` is false by the time the
                 // blocker re-evaluates. We also `skipNextBlock` defensively
                 // because reset's state propagation is async.
-                reset(resetValues, { keepDefaultValues: false });
+                reset(resetValues, { keepDefaultValues: false, keepDirtyValues: false });
 
-                if (result.redirectTo) {
-                    skipNextBlockRef.current();
-                    navigate(result.redirectTo);
-                }
-
-                return true;
+                return result;
             } catch (error) {
                 Log.error('Failed to save knowledge document', error);
 
-                return false;
+                return null;
             }
         },
-        [form, navigate, onSubmit, reset],
+        [form, onSubmit, reset],
     );
 
     // The ref below breaks an otherwise circular hook dependency:
@@ -293,12 +289,17 @@ export function KnowledgeForm({ initialValues, isNew, knowledge, onSubmit }: Kno
             setIsSaving(true);
 
             try {
-                await performSave(values);
+                const result = await performSave(values);
+
+                if (result?.redirectTo) {
+                    skipNextBlockRef.current();
+                    navigate(result.redirectTo);
+                }
             } finally {
                 setIsSaving(false);
             }
         },
-        [isSaving, performSave],
+        [isSaving, navigate, performSave],
     );
 
     const onSaveFromDialog = useCallback(async (): Promise<boolean> => {
@@ -319,7 +320,9 @@ export function KnowledgeForm({ initialValues, isNew, knowledge, onSubmit }: Kno
         setIsSaving(true);
 
         try {
-            return await performSave(parsed.data);
+            const result = await performSave(parsed.data);
+
+            return result !== null;
         } finally {
             setIsSaving(false);
         }

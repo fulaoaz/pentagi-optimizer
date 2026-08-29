@@ -1,3 +1,4 @@
+import { useQuery } from '@apollo/client/react';
 import type { ReactNode } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -50,7 +51,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { zhCNPresetTemplates } from '@/features/templates/preset-templates.zh-CN';
 import { useTemplateDetailNavigation } from '@/features/templates/use-template-detail-navigation';
-import { useFlowTemplateQuery } from '@/graphql/types';
+import { FlowTemplateDocument } from '@/graphql/types';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { useLocale } from '@/hooks/use-locale';
 import { cn } from '@/lib/utils';
@@ -282,7 +283,7 @@ function Template() {
         stopEdit: handleTemplateRenameCancel,
     } = useInlineEdit({ resetKey: templateId });
 
-    const { data: templateData, loading: isLoadingTemplate } = useFlowTemplateQuery({
+    const { data: templateData, loading: isLoadingTemplate } = useQuery(FlowTemplateDocument, {
         skip: isNew || !templateId,
         variables: templateId && !isNew ? { templateId } : undefined,
     });

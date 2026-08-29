@@ -117,7 +117,7 @@ function FlowTasks() {
                                         {field.value && (
                                             <InputGroupAddon align="inline-end">
                                                 <InputGroupButton
-                                                    aria-label="Clear task search"
+                                                    aria-label={t('flow.tasks.clearSearch')}
                                                     onClick={() => {
                                                         form.reset({ search: '' });
                                                         setDebouncedSearchValue('');
@@ -155,7 +155,7 @@ function FlowTasks() {
 
                     {!isScrolledToBottom && (
                         <Button
-                            aria-label="Scroll to latest task"
+                            aria-label={t('flow.tasks.scrollToLatest')}
                             className="absolute right-4 bottom-4 z-10 shadow-md hover:shadow-lg"
                             onClick={() => scrollToEnd()}
                             size="icon-sm"

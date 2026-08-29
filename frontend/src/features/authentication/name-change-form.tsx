@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import * as z from 'zod';
 
@@ -7,16 +8,19 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { FormSubmitButton } from '@/components/ui/form-submit-button';
 import { Input } from '@/components/ui/input';
 import { useAppForm } from '@/hooks/use-app-form';
+import { useLocale } from '@/hooks/use-locale';
+import type { Translate } from '@/lib/i18n';
 import { api, resolveApiErrorMessage } from '@/lib/axios';
 import { useUser } from '@/providers/user-provider';
 
-const nameChangeSchema = z.object({
-    name: z
-        .string()
-        .trim()
-        .min(1, { message: 'Name is required' })
-        .max(70, { message: 'Name must not exceed 70 characters' }),
-});
+const buildNameChangeSchema = (t: Translate) =>
+    z.object({
+        name: z
+            .string()
+            .trim()
+            .min(1, { message: t('auth.nameRequired') })
+            .max(70, { message: t('auth.nameMaxLength') }),
+    });
 
 const ERROR_BY_CODE: Record<string, string> = {
     'Users.ChangeNameCurrentUser.InvalidName': 'New name does not meet requirements',
@@ -28,11 +32,13 @@ interface NameChangeFormProps {
     onSuccess?: () => void;
 }
 
-type NameChangeFormValues = z.infer<typeof nameChangeSchema>;
+type NameChangeFormValues = z.infer<ReturnType<typeof buildNameChangeSchema>>;
 
 export function NameChangeForm({ onCancel, onSuccess }: NameChangeFormProps) {
+    const { t } = useLocale();
     const [error, setError] = useState<null | string>(null);
     const { authInfo, patchUser, refreshAuthInfo } = useUser();
+    const nameChangeSchema = useMemo(() => buildNameChangeSchema(t), [t]);
 
     const form = useAppForm<NameChangeFormValues>({
         defaultValues: {
@@ -47,7 +53,7 @@ export function NameChangeForm({ onCancel, onSuccess }: NameChangeFormProps) {
         try {
             await api.put('/user/name', { name: values.name });
 
-            toast.success('Name successfully updated');
+            toast.success(t('auth.nameUpdated'));
 
             patchUser({ name: values.name });
             await refreshAuthInfo();
@@ -70,11 +76,11 @@ export function NameChangeForm({ onCancel, onSuccess }: NameChangeFormProps) {
                     name="name"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Display name</FormLabel>
+                            <FormLabel>{t('auth.displayName')}</FormLabel>
                             <FormControl>
                                 <Input
                                     {...field}
-                                    placeholder="Enter your display name"
+                                    placeholder={t('auth.enterDisplayName')}
                                 />
                             </FormControl>
                             <FormMessage />
@@ -92,11 +98,11 @@ export function NameChangeForm({ onCancel, onSuccess }: NameChangeFormProps) {
                             type="button"
                             variant="outline"
                         >
-                            Cancel
+                            {t('common.cancel')}
                         </Button>
                     )}
                     <FormSubmitButton size="sm">
-                        <span>Update Name</span>
+                        <span>{t('auth.updateName')}</span>
                     </FormSubmitButton>
                 </div>
             </form>

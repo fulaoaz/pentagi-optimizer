@@ -3,10 +3,16 @@ import { describe, expect, it } from 'vitest';
 import type { KnowledgeDocumentFragmentFragment } from '@/graphql/types';
 
 import { KnowledgeAnswerType, KnowledgeDocType, KnowledgeGuideType } from '@/graphql/types';
+import { dictionaries, fallbackLocale, translate } from '@/lib/i18n';
 
 import type { DirtyFlags, FormValues } from './knowledge-form';
 
-import { documentToFormValues, formSchema, formValuesToCreateInput, formValuesToUpdateInput } from './knowledge-form';
+import {
+    createKnowledgeFormSchema,
+    documentToFormValues,
+    formValuesToCreateInput,
+    formValuesToUpdateInput,
+} from './knowledge-form';
 
 const baseValues: FormValues = {
     answerType: KnowledgeAnswerType.Other,
@@ -125,6 +131,11 @@ describe('documentToFormValues', () => {
         expect(values.guideType).toBe(KnowledgeGuideType.Install);
     });
 });
+
+const t = (key: string, values?: Record<string, number | string>) =>
+    translate(dictionaries.en, dictionaries[fallbackLocale], key, values);
+
+const formSchema = createKnowledgeFormSchema(t);
 
 describe('formSchema', () => {
     const valid: FormValues = {

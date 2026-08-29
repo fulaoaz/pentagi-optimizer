@@ -1,6 +1,7 @@
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { useLocale } from '@/hooks/use-locale';
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 
 interface ErrorStateProps {
@@ -10,6 +11,8 @@ interface ErrorStateProps {
 }
 
 export function ErrorState({ message, onRetry, title }: ErrorStateProps) {
+    const { t } = useLocale();
+
     return (
         <Empty role="alert">
             <EmptyHeader>
@@ -26,7 +29,7 @@ export function ErrorState({ message, onRetry, title }: ErrorStateProps) {
                         variant="secondary"
                     >
                         <RefreshCw />
-                        Try again
+                        {t('common.tryAgain')}
                     </Button>
                 </EmptyContent>
             ) : null}

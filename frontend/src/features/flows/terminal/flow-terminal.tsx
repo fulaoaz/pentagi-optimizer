@@ -194,7 +194,7 @@ function FlowTerminal() {
                                             )}
                                             {field.value && (
                                                 <InputGroupButton
-                                                    aria-label="Clear terminal search"
+                                                    aria-label={t('flow.terminal.clearSearch')}
                                                     onClick={handleClearSearch}
                                                     size="icon-xs"
                                                     title={t('flow.logs.terminalClearSearch')}

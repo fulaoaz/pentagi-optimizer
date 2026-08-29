@@ -352,10 +352,10 @@ function FlowFilesPullDialogForm({ cachedFiles, flowId, onClose, onSuccess }: Fl
                 <EmptyMedia variant="icon">
                     <TriangleAlert />
                 </EmptyMedia>
-                <EmptyTitle>Nothing readable here</EmptyTitle>
+                <EmptyTitle>{t('flow.files.nothingReadableTitle')}</EmptyTitle>
                 <EmptyDescription>
-                    None of the {listingFailures.length} {listingFailures.length === 1 ? 'entry' : 'entries'} in{' '}
-                    <code>{currentPath}</code> could be read.
+                    {t('flow.files.noneOfThe')} {listingFailures.length} {listingFailures.length === 1 ? t('flow.files.entry') : t('flow.files.entries')} {t('flow.files.in')}{' '}
+                    <code>{currentPath}</code> {t('flow.files.couldBeRead')}
                 </EmptyDescription>
             </EmptyHeader>
             <ul className="text-muted-foreground max-w-full space-y-1 px-4 text-left text-xs">
@@ -367,7 +367,7 @@ function FlowFilesPullDialogForm({ cachedFiles, flowId, onClose, onSuccess }: Fl
                         <span className="text-foreground font-medium">{failure.name}</span> — {failure.message}
                     </li>
                 ))}
-                {listingFailures.length > 5 && <li>…and {listingFailures.length - 5} more</li>}
+                {listingFailures.length > 5 && <li>{t('flow.files.andMore', { count: listingFailures.length - 5 })}</li>}
             </ul>
         </Empty>
     ) : (
@@ -427,7 +427,7 @@ function FlowFilesPullDialogForm({ cachedFiles, flowId, onClose, onSuccess }: Fl
                             <TooltipTrigger asChild>
                                 <span>
                                     <Button
-                                        aria-label="Parent directory"
+                                        aria-label={t('flow.files.parentDirectory')}
                                         disabled={isUpDisabled}
                                         onClick={handleNavigateUp}
                                         size="icon-sm"
@@ -445,7 +445,7 @@ function FlowFilesPullDialogForm({ cachedFiles, flowId, onClose, onSuccess }: Fl
                             <TooltipTrigger asChild>
                                 <span>
                                     <Button
-                                        aria-label="Refresh listing"
+                                        aria-label={t('flow.files.refreshListing')}
                                         disabled={isListingLoading || isPulling}
                                         onClick={handleRefresh}
                                         size="icon-sm"
@@ -464,16 +464,16 @@ function FlowFilesPullDialogForm({ cachedFiles, flowId, onClose, onSuccess }: Fl
                         <Alert>
                             <TriangleAlert />
                             <AlertTitle>
-                                {listingFailures.length} {listingFailures.length === 1 ? 'entry' : 'entries'} could not
-                                be read
+                                {listingFailures.length} {listingFailures.length === 1 ? t('flow.files.entry') : t('flow.files.entries')}{' '}
+                                {t('flow.files.couldNotBeRead')}
                             </AlertTitle>
                             <AlertDescription>
-                                The readable entries are shown below. Skipped:{' '}
+                                {t('flow.files.readableShownSkipped')}{' '}
                                 {listingFailures
                                     .slice(0, 5)
                                     .map((failure) => failure.name)
                                     .join(', ')}
-                                {listingFailures.length > 5 ? `, and ${listingFailures.length - 5} more` : ''}.
+                                {listingFailures.length > 5 ? t('flow.files.andMoreTrailing', { count: listingFailures.length - 5 }) : ''}.
                             </AlertDescription>
                         </Alert>
                     )}
@@ -481,10 +481,10 @@ function FlowFilesPullDialogForm({ cachedFiles, flowId, onClose, onSuccess }: Fl
                     {isListingTruncated && (
                         <Alert>
                             <TriangleAlert />
-                            <AlertTitle>Directory truncated</AlertTitle>
+                            <AlertTitle>{t('flow.files.directoryTruncated')}</AlertTitle>
                             <AlertDescription>
-                                This directory has too many entries to list in full; only the first {files.length} are
-                                shown. Open a subfolder to see the rest.
+                                {t('flow.files.directoryTruncatedDescription', { count: files.length })}
+
                             </AlertDescription>
                         </Alert>
                     )}

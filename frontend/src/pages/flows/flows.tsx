@@ -1,3 +1,4 @@
+import { useMutation } from '@apollo/client/react';
 import type { ColumnDef } from '@tanstack/react-table';
 
 import { enUS, zhCN } from 'date-fns/locale';
@@ -29,7 +30,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { StatusCard } from '@/components/ui/status-card';
 import { Toggle } from '@/components/ui/toggle';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { ResultType, StatusType, type TerminalFragmentFragment, useRenameFlowMutation } from '@/graphql/types';
+import { ResultType, StatusType, type TerminalFragmentFragment, RenameFlowDocument } from '@/graphql/types';
 import { useLocale } from '@/hooks/use-locale';
 import { useTableState } from '@/hooks/use-table-state';
 import { mergeHrefWithSearchParams } from '@/lib/url-params';
@@ -68,7 +69,7 @@ function Flows() {
     const [deletingFlowIds, setDeletingFlowIds] = useState<Set<string>>(new Set());
     const [editingFlowId, setEditingFlowId] = useState<null | string>(null);
     const editingInputRef = useRef<HTMLInputElement>(null);
-    const [renameFlowMutation, { loading: isRenameLoading }] = useRenameFlowMutation();
+    const [renameFlowMutation, { loading: isRenameLoading }] = useMutation(RenameFlowDocument);
 
     const { filter, pageIndex: currentPage, setFilter, setPage: handlePageChange } = useTableState();
 

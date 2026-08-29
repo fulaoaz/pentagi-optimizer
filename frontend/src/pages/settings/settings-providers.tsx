@@ -1,3 +1,4 @@
+import { useMutation, useQuery } from '@apollo/client/react';
 import type { ColumnDef, Row } from '@tanstack/react-table';
 
 import { enUS, zhCN } from 'date-fns/locale';
@@ -31,7 +32,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { StatusCard } from '@/components/ui/status-card';
-import { ProviderType, useDeleteProviderMutation, useSettingsProvidersQuery } from '@/graphql/types';
+import { ProviderType, DeleteProviderDocument, SettingsProvidersDocument } from '@/graphql/types';
 import { useLocale } from '@/hooks/use-locale';
 import { useTableState } from '@/hooks/use-table-state';
 import { translateAgentName, translateProviderFieldName } from '@/lib/i18n/settings-labels';
@@ -66,8 +67,8 @@ const providerTypes = [
 
 function SettingsProviders() {
     const { locale, t } = useLocale();
-    const { data, error, loading: isLoading } = useSettingsProvidersQuery();
-    const [deleteProvider, { error: deleteError, loading: isDeleteLoading }] = useDeleteProviderMutation();
+    const { data, error, loading: isLoading } = useQuery(SettingsProvidersDocument);
+    const [deleteProvider, { error: deleteError, loading: isDeleteLoading }] = useMutation(DeleteProviderDocument);
     const [deleteErrorMessage, setDeleteErrorMessage] = useState<null | string>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [deletingProvider, setDeletingProvider] = useState<null | Provider>(null);
@@ -388,7 +389,7 @@ function SettingsProviders() {
         [deletingProvider, handleProviderClone, handleProviderDeleteDialogOpen, handleProviderEdit, isDeleteLoading, t],
     );
 
-    if (isLoading) {
+    if (isLoading && !data) {
         return (
             <div className="flex flex-col gap-4">
                 <SettingsProvidersHeader />
@@ -401,7 +402,7 @@ function SettingsProviders() {
         );
     }
 
-    if (error) {
+    if (error && !data) {
         return (
             <div className="flex flex-col gap-4">
                 <SettingsProvidersHeader />
@@ -482,6 +483,10 @@ function SettingsProviders() {
 function SettingsProvidersHeader() {
     const navigate = useNavigate();
     const { t } = useLocale();
+    const { data } = useQuery(SettingsProvidersDocument);
+
+    const enabled = data?.settingsProviders?.enabled;
+    const availableTypes = providerTypes.filter(({ type }) => enabled?.[type as keyof typeof enabled]);
 
     const handleProviderCreate = (providerType: string) => {
         navigate(`/settings/providers/new?type=${providerType}`);
@@ -516,20 +521,24 @@ function SettingsProvidersHeader() {
                         width: 'var(--radix-dropdown-menu-trigger-width)',
                     }}
                 >
-                    {providerTypes.map(({ label, type }) => {
-                        const Icon = providerIcons[type];
-                        const displayLabel = type === ProviderType.Custom ? t('settings.providers.custom') : label;
+                    {availableTypes.length === 0 ? (
+                        <DropdownMenuItem disabled>{t('settings.providers.noAvailableTypes')}</DropdownMenuItem>
+                    ) : (
+                        availableTypes.map(({ label, type }) => {
+                            const Icon = providerIcons[type];
+                            const displayLabel = type === ProviderType.Custom ? t('settings.providers.custom') : label;
 
-                        return (
-                            <DropdownMenuItem
-                                key={type}
-                                onClick={() => handleProviderCreate(type)}
-                            >
-                                {Icon && <Icon className="size-4" />}
-                                {displayLabel}
-                            </DropdownMenuItem>
-                        );
-                    })}
+                            return (
+                                <DropdownMenuItem
+                                    key={type}
+                                    onClick={() => handleProviderCreate(type)}
+                                >
+                                    {Icon && <Icon className="size-4" />}
+                                    {displayLabel}
+                                </DropdownMenuItem>
+                            );
+                        })
+                    )}
                 </DropdownMenuContent>
             </DropdownMenu>
         </div>

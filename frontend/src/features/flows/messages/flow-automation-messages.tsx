@@ -218,7 +218,7 @@ function FlowAutomationMessages({ className }: FlowAutomationMessagesProps) {
                                         {field.value && (
                                             <InputGroupAddon align="inline-end">
                                                 <InputGroupButton
-                                                    aria-label="Clear message search"
+                                                    aria-label={t('flow.messages.clearSearch')}
                                                     onClick={() => {
                                                         form.reset({ search: '' });
                                                         setDebouncedSearchValue('');
@@ -268,7 +268,7 @@ function FlowAutomationMessages({ className }: FlowAutomationMessagesProps) {
 
                     {!isScrolledToBottom && (
                         <Button
-                            aria-label="Scroll to latest message"
+                            aria-label={t('flow.messages.scrollToLatest')}
                             className="absolute right-4 bottom-4 z-10 shadow-md hover:shadow-lg"
                             onClick={() => scrollToEnd()}
                             size="icon-sm"

@@ -45,8 +45,14 @@
         "@radix-ui/react-tooltip": "^1.2.8",
         "@react-pdf/renderer": "^4.5.1",
         "@tanstack/react-table": "^8.21.3",
+    "@tanstack/react-virtual": "^3.14.3",
         "@tiptap/core": "^3.23.4",
+        "@tiptap/extension-code-block-lowlight": "3.27.1",
+        "@tiptap/extension-image": "3.27.1",
+        "@tiptap/extension-list": "3.27.1",
+        "@tiptap/extension-table": "3.27.1",
         "@tiptap/extensions": "^3.23.4",
+        "@tiptap/markdown": "3.27.1",
         "@tiptap/pm": "^3.23.4",
         "@tiptap/react": "^3.23.4",
         "@tiptap/starter-kit": "^3.23.4",
@@ -97,6 +103,8 @@
         "zod": "^4.4.3"
     },
     "devDependencies": {
+        "@playwright/test": "1.61.1",
+        "@types/ws": "^8.18.1",
         "@commitlint/cli": "^21.0.1",
         "@commitlint/config-conventional": "^21.0.1",
         "@eslint/eslintrc": "^3.3.5",
@@ -139,6 +147,7 @@
         "vite": "^8.0.13",
         "vite-plugin-html": "^3.2.2",
         "vite-tsconfig-paths": "^6.1.1",
+        "ws": "^8.21.1",
         "vitest": "^4.1.6"
     },
     "packageManager": "pnpm@10.32.1",

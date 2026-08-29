@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useRouteError } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
+import { useLocale } from '@/hooks/use-locale';
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { isChunkLoadError, isDomDesyncError, reloadOnce } from '@/lib/chunk-reload';
 
@@ -14,6 +15,7 @@ import { isChunkLoadError, isDomDesyncError, reloadOnce } from '@/lib/chunk-relo
  * desync from browser auto-translation) — both shown as a recoverable card.
  */
 function RouteErrorBoundary() {
+    const { t } = useLocale();
     const error = useRouteError();
     const isChunk = isChunkLoadError(error);
     const isDesync = isDomDesyncError(error);
@@ -34,13 +36,13 @@ function RouteErrorBoundary() {
                     <EmptyMedia variant="icon">
                         <TriangleAlert />
                     </EmptyMedia>
-                    <EmptyTitle>Something went wrong</EmptyTitle>
+                    <EmptyTitle>{t('common.somethingWentWrong')}</EmptyTitle>
                     <EmptyDescription>
                         {isChunk
-                            ? 'A new version was likely just deployed. Reloading will load the latest one.'
+                            ? t('common.chunkReloadMessage')
                             : isDesync
-                              ? 'The page hit a display glitch. Reloading usually clears it.'
-                              : 'The page ran into an unexpected error. Reloading usually clears it.'}
+                              ? t('common.displayGlitchMessage')
+                              : t('common.unexpectedErrorMessage')}
                     </EmptyDescription>
                 </EmptyHeader>
                 <EmptyContent>
@@ -48,7 +50,7 @@ function RouteErrorBoundary() {
                         onClick={() => window.location.reload()}
                         variant="secondary"
                     >
-                        Reload
+                        {t('common.reload')}
                     </Button>
                 </EmptyContent>
             </Empty>

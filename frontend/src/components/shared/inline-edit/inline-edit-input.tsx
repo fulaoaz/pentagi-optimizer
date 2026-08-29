@@ -68,6 +68,11 @@ export function InlineEditInput({
     const { t } = useLocale();
 
     const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+        // Buttons are disabled while busy; the keyboard path must not bypass that gate.
+        if (busy) {
+            return;
+        }
+
         if (event.key === 'Enter') {
             event.preventDefault();
             onSave();

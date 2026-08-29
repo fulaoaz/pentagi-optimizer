@@ -74,6 +74,7 @@ function Sidebar({
     variant?: 'floating' | 'inset' | 'sidebar';
 }) {
     const { isMobile, openMobile, setOpenMobile, state } = useSidebar();
+    const { t } = useLocale();
 
     if (collapsible === 'none') {
         return (
@@ -110,8 +111,8 @@ function Sidebar({
                         } as React.CSSProperties
                     }
                 >
-                    <SheetTitle className="sr-only">Sidebar</SheetTitle>
-                    <SheetDescription className="sr-only">Displays the mobile sidebar.</SheetDescription>
+                    <SheetTitle className="sr-only">{t('common.sidebar')}</SheetTitle>
+                    <SheetDescription className="sr-only">{t('common.sidebarMobileDescription')}</SheetDescription>
                     <div className="flex h-full w-full flex-col">{children}</div>
                 </SheetContent>
             </Sheet>

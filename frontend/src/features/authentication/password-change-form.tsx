@@ -108,9 +108,7 @@ export function PasswordChangeForm({
 
             let errorMessage = t('auth.changePasswordFailed');
 
-            if (responseData?.msg) {
-                errorMessage = responseData.msg;
-            } else if (responseData?.code) {
+            if (responseData?.code) {
                 switch (responseData.code) {
                     case 'AuthRequired':
                         errorMessage = t('auth.authenticationRequired');
@@ -130,6 +128,8 @@ export function PasswordChangeForm({
                     default:
                         errorMessage = responseData.msg || error.message || t('auth.changePasswordFailed');
                 }
+            } else if (responseData?.msg) {
+                errorMessage = responseData.msg;
             } else if (error.message) {
                 errorMessage = error.message;
             }

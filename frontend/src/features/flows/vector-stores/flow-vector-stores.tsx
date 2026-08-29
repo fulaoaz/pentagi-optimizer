@@ -161,7 +161,7 @@ function FlowVectorStores() {
                                         {field.value && (
                                             <InputGroupAddon align="inline-end">
                                                 <InputGroupButton
-                                                    aria-label="Clear vector store search"
+                                                    aria-label={t('flow.vectorStores.clearSearch')}
                                                     onClick={() => {
                                                         form.reset({ search: '' });
                                                         setDebouncedSearchValue('');
@@ -210,7 +210,7 @@ function FlowVectorStores() {
 
                     {!isScrolledToBottom && (
                         <Button
-                            aria-label="Scroll to latest vector store log"
+                            aria-label={t('flow.vectorStores.scrollToLatest')}
                             className="absolute right-4 bottom-4 z-10 shadow-md hover:shadow-lg"
                             onClick={() => scrollToEnd()}
                             size="icon-sm"

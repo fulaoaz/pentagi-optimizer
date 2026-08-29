@@ -164,7 +164,7 @@ function AssistantsDropdown({
 
                 {!isDisabled && (
                     <Button
-                        aria-label={`Delete ${assistant.title}`}
+                        aria-label={t('flow.messages.deleteAssistant', { name: assistant.title })}
                         className="text-muted-foreground hover:text-destructive absolute top-1/2 right-0.5 shrink-0 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100"
                         onClick={(event) => {
                             event.stopPropagation();
@@ -188,7 +188,7 @@ function AssistantsDropdown({
             >
                 <PopoverTrigger asChild>
                     <Button
-                        aria-label="Select assistant"
+                        aria-label={t('flow.messages.selectAssistant')}
                         className="px-2"
                         disabled={isAssistantCreating}
                         variant="outline"
@@ -546,7 +546,7 @@ function FlowAssistantMessages({ className }: FlowAssistantMessagesProps) {
                                             {field.value && (
                                                 <InputGroupAddon align="inline-end">
                                                     <InputGroupButton
-                                                        aria-label="Clear message search"
+                                                        aria-label={t('flow.messages.clearSearch')}
                                                         disabled={isAssistantCreating}
                                                         onClick={() => {
                                                             form.reset({ search: '' });
@@ -597,7 +597,7 @@ function FlowAssistantMessages({ className }: FlowAssistantMessagesProps) {
 
                         {!isScrolledToBottom && (
                             <Button
-                                aria-label="Scroll to latest message"
+                                aria-label={t('flow.messages.scrollToLatest')}
                                 className="absolute right-4 bottom-4 z-10 shadow-md hover:shadow-lg"
                                 onClick={() => scrollToEnd()}
                                 size="icon-sm"

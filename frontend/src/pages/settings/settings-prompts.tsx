@@ -1,3 +1,4 @@
+import { useMutation, useQuery } from '@apollo/client/react';
 import type { ColumnDef, Row } from '@tanstack/react-table';
 
 import {
@@ -34,7 +35,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { StatusCard } from '@/components/ui/status-card';
-import { useDeletePromptMutation, useSettingsPromptsQuery } from '@/graphql/types';
+import { DeletePromptDocument, SettingsPromptsDocument } from '@/graphql/types';
 import { useLocale } from '@/hooks/use-locale';
 import { usePageStorageKeys } from '@/hooks/use-page-storage-keys';
 import { translatePromptName } from '@/lib/i18n/settings-labels';
@@ -62,8 +63,8 @@ type ToolPromptTableData = {
 
 function SettingsPrompts() {
     const { t } = useLocale();
-    const { data, error, loading: isLoading } = useSettingsPromptsQuery();
-    const [deletePrompt, { loading: isDeleteLoading }] = useDeletePromptMutation();
+    const { data, error, loading: isLoading } = useQuery(SettingsPromptsDocument);
+    const [deletePrompt, { loading: isDeleteLoading }] = useMutation(DeletePromptDocument);
     const navigate = useNavigate();
     // Shared base key for the route; each DataTable appends its own suffix so
     // sorting / column visibility / search-column narrowing live in distinct

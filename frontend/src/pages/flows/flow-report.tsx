@@ -1,9 +1,10 @@
+import { useQuery } from '@apollo/client/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 
 import Logo from '@/components/icons/logo';
 import Markdown from '@/components/shared/markdown';
-import { useFlowReportQuery } from '@/graphql/types';
+import { FlowReportDocument } from '@/graphql/types';
 import { useLocale } from '@/hooks/use-locale';
 import { Log } from '@/lib/log';
 import { generateFileName, generatePDFFromMarkdown, generateReport } from '@/lib/report';
@@ -32,15 +33,15 @@ function FlowReport() {
 
     const {
         data,
-        error: queryError,
         loading,
-    } = useFlowReportQuery({
+    } = useQuery(FlowReportDocument, {
         errorPolicy: 'all',
         skip: !flowId,
         variables: { id: flowId! },
     });
 
-    const dataReady = !loading && !queryError && !!data?.flow;
+    // Under `errorPolicy:'all'` a partial error arrives alongside a flow that loaded fine.
+    const dataReady = !loading && !!data?.flow;
 
     const reportContent = useMemo(
         () => (dataReady ? generateReport(data.tasks || [], data.flow!, t('flow.report.noTasks')) : ''),
@@ -80,7 +81,7 @@ function FlowReport() {
 
     if (loading) {
         state = 'loading';
-    } else if (queryError || !data?.flow) {
+    } else if (!data?.flow) {
         state = 'error';
         errorMessage = t('flow.report.loadFailed');
     } else if (pdfPhase === 'error') {

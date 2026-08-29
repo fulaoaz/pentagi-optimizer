@@ -187,13 +187,13 @@ export function KnowledgesProvider({ children }: KnowledgesProviderProps) {
 
                 return result?.renameKnowledgeDocument;
             } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'Failed to rename knowledge document';
-                toast.error('Failed to rename knowledge document', { description: errorMessage });
+                const errorMessage = error instanceof Error ? error.message : t('knowledge.renameFailed');
+                toast.error(t('knowledge.renameFailed'), { description: errorMessage });
                 Log.error('Error renaming knowledge document:', error);
                 throw error;
             }
         },
-        [renameKnowledgeMutation],
+        [renameKnowledgeMutation, t],
     );
 
     const deleteKnowledge = useCallback(

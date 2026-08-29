@@ -20,7 +20,7 @@ import {
     UserIcon,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Link, useMatch, useParams } from 'react-router-dom';
+import { Link, useLocation, useMatch, useParams } from 'react-router-dom';
 
 import type { Locale } from '@/lib/i18n';
 import type { Flow } from '@/providers/sidebar-flows-provider';
@@ -56,6 +56,7 @@ import { useResourcesUpload } from '@/features/resources/use-resources-upload';
 import { useLocale } from '@/hooks/use-locale';
 import { useTheme } from '@/hooks/use-theme';
 import { localeNames, locales } from '@/lib/i18n';
+import { routes } from '@/lib/routes';
 import { useFavorites } from '@/providers/favorites-provider';
 import { useSidebarFlows } from '@/providers/sidebar-flows-provider';
 import { useUser } from '@/providers/user-provider';
@@ -75,6 +76,7 @@ export function MainSidebar() {
     const isKnowledgesActive = useMatch('/knowledges/*');
     const isResourcesActive = useMatch('/resources/*');
     const isSettingsActive = useMatch('/settings/*');
+    const location = useLocation();
     const { flowId: flowIdParam } = useParams<{ flowId: string }>();
 
     const { authInfo, logout } = useUser();
@@ -277,7 +279,10 @@ export function MainSidebar() {
                             asChild
                             isActive={!!isSettingsActive}
                         >
-                            <Link to="/settings">
+                            <Link
+                                state={{ from: location.pathname }}
+                                to={routes.settings.root}
+                            >
                                 <Settings />
                                 {t('nav.settings')}
                             </Link>
@@ -384,6 +389,16 @@ export function MainSidebar() {
                                             ))}
                                         </TabsList>
                                     </Tabs>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem asChild>
+                                    <Link
+                                        state={{ from: location.pathname }}
+                                        to={routes.settings.account}
+                                    >
+                                        <UserIcon className="mr-2 size-4" />
+                                        {t('nav.profile')}
+                                    </Link>
                                 </DropdownMenuItem>
                                 {user?.type === 'local' && (
                                     <>

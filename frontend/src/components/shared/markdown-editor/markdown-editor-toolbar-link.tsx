@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Toggle } from '@/components/ui/toggle';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
+import { useLocale } from '@/hooks/use-locale';
 import { returnFocusToEditor } from './markdown-editor-focus';
 import { LinkEditForm } from './markdown-editor-link-edit-form';
 
@@ -17,6 +18,7 @@ interface LinkPopoverProps {
 }
 
 export function LinkPopover({ disabled, editor, isActive }: LinkPopoverProps) {
+    const { t } = useLocale();
     const [open, setOpen] = useState(false);
 
     return (
@@ -28,7 +30,7 @@ export function LinkPopover({ disabled, editor, isActive }: LinkPopoverProps) {
                 <TooltipTrigger asChild>
                     <PopoverTrigger asChild>
                         <Toggle
-                            aria-label="Link"
+                            aria-label={t('markdownEditor.link')}
                             data-toolbar-item=""
                             disabled={disabled}
                             pressed={isActive}
@@ -38,7 +40,7 @@ export function LinkPopover({ disabled, editor, isActive }: LinkPopoverProps) {
                         </Toggle>
                     </PopoverTrigger>
                 </TooltipTrigger>
-                <TooltipContent>Link</TooltipContent>
+                <TooltipContent>{t('markdownEditor.link')}</TooltipContent>
             </Tooltip>
             <PopoverContent
                 align="start"

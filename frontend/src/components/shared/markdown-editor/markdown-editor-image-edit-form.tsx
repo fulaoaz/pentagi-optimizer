@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
 import { Label } from '@/components/ui/label';
 
+import { useLocale } from '@/hooks/use-locale';
 import { normalizeImageSrc } from './markdown-editor-toolbar-url';
 
 interface ImageEditFormProps {
@@ -31,6 +32,7 @@ export function ImageEditForm({
     isEditing,
     onDone,
 }: ImageEditFormProps) {
+    const { t } = useLocale();
     const [src, setSrc] = useState(initialSrc);
     const [alt, setAlt] = useState(initialAlt);
     const srcId = useId();
@@ -77,7 +79,7 @@ export function ImageEditForm({
     return (
         <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
-                <Label htmlFor={srcId}>Image URL</Label>
+                <Label htmlFor={srcId}>{t('markdownEditor.imageUrl')}</Label>
                 <InputGroup>
                     <InputGroupInput
                         aria-describedby={isInvalid ? errorId : undefined}
@@ -95,7 +97,7 @@ export function ImageEditForm({
                         className="gap-0"
                     >
                         <InputGroupButton
-                            aria-label={isEditing ? 'Apply image' : 'Insert image'}
+                            aria-label={isEditing ? t('markdownEditor.applyImage') : t('markdownEditor.insertImage')}
                             disabled={src === '' || isInvalid}
                             onClick={apply}
                             size="icon-xs"
@@ -104,7 +106,7 @@ export function ImageEditForm({
                         </InputGroupButton>
                         {isEditing ? (
                             <InputGroupButton
-                                aria-label="Remove image"
+                                aria-label={t('markdownEditor.removeImage')}
                                 onClick={remove}
                                 size="icon-xs"
                             >
@@ -115,12 +117,12 @@ export function ImageEditForm({
                 </InputGroup>
             </div>
             <div className="flex flex-col gap-1.5">
-                <Label htmlFor={altId}>Alt text (optional)</Label>
+                <Label htmlFor={altId}>{t('markdownEditor.altTextOptional')}</Label>
                 <Input
                     id={altId}
                     onChange={(event) => setAlt(event.target.value)}
                     onKeyDown={applyOnEnter}
-                    placeholder="Describe the image"
+                    placeholder={t('markdownEditor.describeImage')}
                     value={alt}
                 />
             </div>
@@ -130,7 +132,7 @@ export function ImageEditForm({
                     id={errorId}
                     role="alert"
                 >
-                    Only http(s) or base64 raster image URLs are allowed.
+                    {t('markdownEditor.onlyImageUrls')}
                 </p>
             ) : null}
         </div>

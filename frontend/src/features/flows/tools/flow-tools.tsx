@@ -160,7 +160,7 @@ function FlowTools() {
                                         {field.value && (
                                             <InputGroupAddon align="inline-end">
                                                 <InputGroupButton
-                                                    aria-label="Clear tool search"
+                                                    aria-label={t('flow.tools.clearSearch')}
                                                     onClick={() => {
                                                         form.reset({ search: '' });
                                                         setDebouncedSearchValue('');
@@ -210,7 +210,7 @@ function FlowTools() {
 
                     {!isScrolledToBottom && (
                         <Button
-                            aria-label="Scroll to latest tool log"
+                            aria-label={t('flow.tools.scrollToLatest')}
                             className="absolute right-4 bottom-4 z-10 shadow-md hover:shadow-lg"
                             onClick={() => scrollToEnd()}
                             size="icon-sm"
