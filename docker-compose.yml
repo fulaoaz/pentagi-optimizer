@@ -23,7 +23,7 @@ networks:
 
 services:
   pentagi:
-    image: ${PENTAGI_IMAGE:-ghcr.io/fulaoaz/pentagi:main}
+    image: ${PENTAGI_IMAGE:-ghcr.io/fulaoaz/pentagi-optimizer:main}
     restart: unless-stopped
     container_name: pentagi
     hostname: pentagi

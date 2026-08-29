@@ -35,18 +35,17 @@ node scripts/sync-upstream.mjs --remote=upstream --branch=main
 
 GitHub 账号需要开启 Actions 失败通知才能收到邮件：进入 **Settings → Notifications → Actions**，启用工作流失败邮件。邮件由 GitHub 发送，正文会链接到对应运行记录；冲突文件和详细说明在运行摘要与 artifact 中查看。本流程不把邮箱地址或 SMTP 密码写入仓库。若需要自定义收件人、主题或邮件模板，再单独配置 SMTP secrets 和通知步骤。
 
-## 自动构建汉化镜像
+## 自动构建镜像
 
-向 `main` 推送提交后，`.github/workflows/zh-cn-image.yml` 会使用当前源码构建 Linux amd64 镜像，并发布以下标签：
+向 `main` 推送提交后，`.github/workflows/ci.yml` 会构建并发布镜像：
 
-- `ghcr.io/fulaoaz/pentagi:main`：始终指向最新的中文默认、英文可选版本。
-- `ghcr.io/fulaoaz/pentagi:main-<commit>`：用于锁定和回滚到具体提交。
-- `ghcr.io/fulaoaz/pentagi:zh-cn` 和 `zh-cn-<commit>`：兼容旧部署的等价标签。
+- `ghcr.io/fulaoaz/pentagi-optimizer:main`：始终指向最新的中文默认、英文可选、带增强工具链的版本。
+- `ghcr.io/fulaoaz/pentagi-optimizer:main-<commit>`：用于锁定和回滚到具体提交。
 
-如果 GHCR 包尚未设为公开，请先在 WSL 中使用具有 `read:packages` 权限的 GitHub 令牌登录，然后拉取并通过 Compose 启动：
+原独立汉化版（`fulaoaz/pentagi`）已停止独立维护：`ghcr.io/fulaoaz/pentagi:main`、`zh-cn` 等旧标签保留为历史版本，不再更新。需要持续更新时请改用本仓库镜像。如果 GHCR 包尚未设为公开，请先在 WSL 中使用具有 `read:packages` 权限的 GitHub 令牌登录，然后拉取并通过 Compose 启动：
 
 ```bash
-docker pull ghcr.io/fulaoaz/pentagi:main
+docker pull ghcr.io/fulaoaz/pentagi-optimizer:main
 docker compose up -d
 ```
 

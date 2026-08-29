@@ -12,7 +12,7 @@
 
 ## 这是什么
 
-**PentAGI Optimizer** 基于 [fulaoaz/pentagi](https://github.com/fulaoaz/pentagi) 简体中文维护版独立演进：完整保留汉化版的中文默认、英文可选界面与全部修复，再叠加外部接入协议和漏洞情报工具链。
+**PentAGI Optimizer** 是 PentAGI 的唯一维护主线：完整保留简体中文默认、英文可选的界面与全部修复（原独立汉化版 [fulaoaz/pentagi](https://github.com/fulaoaz/pentagi) 已并入本仓库、停止独立维护），并在此基础上叠加外部接入协议和漏洞情报工具链。
 
 - 网页首次打开默认显示简体中文，登录页和侧边栏用户菜单可随时切换 English；
 - 保持与上游 [vxcontrol/pentagi](https://github.com/vxcontrol/pentagi) 的兼容性；

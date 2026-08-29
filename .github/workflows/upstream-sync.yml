@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   sync:
-    if: github.repository == 'fulaoaz/pentagi'
+    if: github.repository == 'fulaoaz/pentagi-optimizer'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout localized main
