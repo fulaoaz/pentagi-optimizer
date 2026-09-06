@@ -20,8 +20,6 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
-import { routes } from '@/lib/routes';
-
 import type {
     AgentConfigInput,
     AgentsConfigInput,
@@ -39,15 +37,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormSubmitButton } from '@/components/ui/form-submit-button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { StatusCard } from '@/components/ui/status-card';
+import { Textarea } from '@/components/ui/textarea';
 import {
     AgentConfigType,
-    ReasoningEffort,
     CreateProviderDocument,
     DeleteProviderDocument,
+    ReasoningEffort,
     SettingsProvidersDocument,
     TestAgentDocument,
     TestProviderDocument,
@@ -55,6 +53,7 @@ import {
 } from '@/graphql/types';
 import { useLocale } from '@/hooks/use-locale';
 import { translateAgentName, translateProviderFieldPath } from '@/lib/i18n/settings-labels';
+import { routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 
 import { translateProviderTestName, translateProviderTestType } from './provider-test-labels';
@@ -310,31 +309,6 @@ function FormInputStringItem({ control, description, disabled, label, name, plac
     );
 }
 
-function FormTextareaItem({ control, description, disabled, label, name, placeholder }: FormInputStringItemProps) {
-    const { field, fieldState } = useController({
-        control,
-        defaultValue: undefined,
-        disabled,
-        name,
-    });
-
-    return (
-        <FormItem>
-            <FormLabel>{label}</FormLabel>
-            <FormControl>
-                <Textarea
-                    {...field}
-                    className="font-mono text-xs"
-                    placeholder={placeholder}
-                    value={field.value ?? ''}
-                />
-            </FormControl>
-            {description && <FormDescription>{description}</FormDescription>}
-            {fieldState.error && <FormMessage>{fieldState.error.message}</FormMessage>}
-        </FormItem>
-    );
-}
-
 function FormModelComboboxItem({
     allowCustom = true,
     contentClass,
@@ -506,28 +480,51 @@ function FormModelComboboxItem({
     );
 }
 
+function FormTextareaItem({ control, description, disabled, label, name, placeholder }: FormInputStringItemProps) {
+    const { field, fieldState } = useController({
+        control,
+        defaultValue: undefined,
+        disabled,
+        name,
+    });
+
+    return (
+        <FormItem>
+            <FormLabel>{label}</FormLabel>
+            <FormControl>
+                <Textarea
+                    {...field}
+                    className="font-mono text-xs"
+                    placeholder={placeholder}
+                    value={field.value ?? ''}
+                />
+            </FormControl>
+            {description && <FormDescription>{description}</FormDescription>}
+            {fieldState.error && <FormMessage>{fieldState.error.message}</FormMessage>}
+        </FormItem>
+    );
+}
+
+const isOptionalJsonObject = (value: string | undefined): boolean => {
+    if (!value?.trim()) {
+        return true;
+    }
+
+    try {
+        const parsed: unknown = JSON.parse(value);
+
+        return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed);
+    } catch {
+        return false;
+    }
+};
+
+export const optionalJsonObject = z.string().optional().refine(isOptionalJsonObject);
+
 const buildAgentConfigSchema = (t: Translate) =>
     z
         .object({
-            extraBody: z
-                .string()
-                .optional()
-                .refine(
-                    (value) => {
-                        if (!value?.trim()) {
-                            return true;
-                        }
-
-                        try {
-                            const parsed: unknown = JSON.parse(value);
-
-                            return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed);
-                        } catch {
-                            return false;
-                        }
-                    },
-                    { message: t('settings.provider.extraBodyInvalid') },
-                ),
+            extraBody: z.string().optional().refine(isOptionalJsonObject, { message: t('settings.provider.extraBodyInvalid') }),
             frequencyPenalty: z.preprocess(
                 (value) => (value === '' || value === undefined ? null : value),
                 z.number().nullable().optional(),
@@ -640,7 +637,7 @@ const getReasoningEffort = (effort: null | string | undefined): null | Reasoning
     }
 };
 
-const transformFormToGraphQL = (
+export const transformFormToGraphQL = (
     formData: FormData,
 ): {
     agents: AgentsConfigInput;
@@ -693,7 +690,7 @@ const transformFormToGraphQL = (
     };
 };
 
-const normalizeGraphQLData = (obj: unknown): unknown => {
+export const normalizeGraphQLData = (obj: unknown): unknown => {
     if (obj === null || obj === undefined) {
         return obj;
     }

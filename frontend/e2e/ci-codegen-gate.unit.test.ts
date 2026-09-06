@@ -5,6 +5,13 @@ import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 const SCRIPT = join(__dirname, '..', '..', '.github', 'scripts', 'codegen-inputs-changed.sh');
+const SCRIPT_COMMAND =
+    process.platform === 'win32'
+        ? join(execFileSync('git', ['--exec-path'], { encoding: 'utf8' }).trim(), '..', '..', '..', 'bin', 'bash.exe')
+        : SCRIPT;
+const SCRIPT_TEST_TIMEOUT = process.platform === 'win32' ? 30_000 : 5_000;
+
+const scriptArgs = (args: string[]) => (process.platform === 'win32' ? [SCRIPT, ...args] : args);
 
 let repo = '';
 const sha = { base: '', merge: '', schema: '', unrelated: '' };
@@ -26,10 +33,10 @@ const commit = (path: string, body: string, message: string) => {
 };
 
 const run = (event: string, before: string, baseSha: string, headSha: string) =>
-    execFileSync(SCRIPT, [event, before, baseSha, headSha], { cwd: repo, encoding: 'utf8' }).trim();
+    execFileSync(SCRIPT_COMMAND, scriptArgs([event, before, baseSha, headSha]), { cwd: repo, encoding: 'utf8' }).trim();
 
 const runReason = (event: string, before: string, baseSha: string, headSha: string) =>
-    spawnSync(SCRIPT, [event, before, baseSha, headSha], { cwd: repo, encoding: 'utf8' }).stderr.trim();
+    spawnSync(SCRIPT_COMMAND, scriptArgs([event, before, baseSha, headSha]), { cwd: repo, encoding: 'utf8' }).stderr.trim();
 
 // The PR arrives as the merge commit GitHub builds, not as the branch head — the range the gate
 // picks has to span the whole PR, not the newest push.
@@ -73,7 +80,9 @@ describe('codegen freshness gate — range selection', () => {
         expect(run('pull_request', '', sha.schema, sha.unrelated)).toBe('changed=false');
     });
 
-    it('checks a codegen input whose diff is larger than one pipe buffer', () => {
+    it(
+        'checks a codegen input whose diff is larger than one pipe buffer',
+        () => {
         const pad = 'x'.repeat(180);
         mkdirSync(join(repo, 'frontend', 'filler'), { recursive: true });
 
@@ -87,5 +96,7 @@ describe('codegen freshness gate — range selection', () => {
         expect(names.split('\n')[0]).toBe('backend/pkg/graph/schema.graphqls');
         expect(names.length).toBeGreaterThan(64 * 1024);
         expect(run('push', sha.unrelated, '', bulk)).toBe('changed=true');
-    });
+        },
+        SCRIPT_TEST_TIMEOUT,
+    );
 });

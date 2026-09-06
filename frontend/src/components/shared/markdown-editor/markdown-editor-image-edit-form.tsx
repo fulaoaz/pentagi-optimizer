@@ -6,8 +6,8 @@ import { useId, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
 import { Label } from '@/components/ui/label';
-
 import { useLocale } from '@/hooks/use-locale';
+
 import { normalizeImageSrc } from './markdown-editor-toolbar-url';
 
 interface ImageEditFormProps {

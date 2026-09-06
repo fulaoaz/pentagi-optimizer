@@ -5,6 +5,18 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 const SCRIPT = join(__dirname, 'review-sandbox.sh');
+const SCRIPT_COMMAND =
+    process.platform === 'win32'
+        ? join(execFileSync('git', ['--exec-path'], { encoding: 'utf8' }).trim(), '..', '..', '..', 'bin', 'bash.exe')
+        : SCRIPT;
+const SCRIPT_TEST_TIMEOUT = process.platform === 'win32' ? 120_000 : 5_000;
+
+const scriptArgs = (args: string[]) => (process.platform === 'win32' ? [SCRIPT, ...args] : args);
+
+const runScript = (args: string[], options: Parameters<typeof execFileSync>[2]) =>
+    execFileSync(SCRIPT_COMMAND, scriptArgs(args), options);
+
+const scriptTest = (name: string, test: () => void) => it(name, test, SCRIPT_TEST_TIMEOUT);
 
 let sandboxRoot = '';
 
@@ -13,7 +25,7 @@ let sandboxRoot = '';
 // parent. PENTAGI_SANDBOX_ROOT moves both roots, which is what keeps a run inside its own tree.
 const run = (...args: string[]) => {
     try {
-        const stdout = execFileSync(SCRIPT, args, {
+        const stdout = runScript(args, {
             encoding: 'utf8',
             env: { ...process.env, PENTAGI_SANDBOX_ROOT: sandboxRoot, TMPDIR: sandboxRoot },
             stdio: ['ignore', 'pipe', 'pipe'],
@@ -21,16 +33,23 @@ const run = (...args: string[]) => {
 
         return { code: 0, stdout: stdout.trim() };
     } catch (error) {
-        const failure = error as { status: number; stdout: string };
+        const failure = error as { status: number; stdout?: string };
 
-        return { code: failure.status, stdout: failure.stdout.trim() };
+        return { code: failure.status, stdout: failure.stdout?.trim() ?? '' };
     }
 };
 
 // -h, because the checkout contains symlinks and touch would otherwise age their targets while the
 // links themselves keep a current mtime — which is what the sweep reads.
-const backdate = (sandbox: string) =>
+const backdate = (sandbox: string) => {
+    if (process.platform === 'win32') {
+        execFileSync(SCRIPT_COMMAND, ['-c', 'find "$1" -exec touch -h -t 202001010000 {} +', '--', sandbox]);
+
+        return;
+    }
+
     execFileSync('find', [sandbox, '-exec', 'touch', '-h', '-t', '202001010000', '{}', '+']);
+};
 
 beforeEach(() => {
     sandboxRoot = mkdtempSync(join(tmpdir(), 'sandbox-test-'));
@@ -44,7 +63,7 @@ afterEach(() => {
 });
 
 describe('review-sandbox clean — containment', () => {
-    it('removes a sandbox it created', () => {
+    scriptTest('removes a sandbox it created', () => {
         const { stdout: sandbox } = run('create');
 
         expect(existsSync(sandbox)).toBe(true);
@@ -52,7 +71,7 @@ describe('review-sandbox clean — containment', () => {
         expect(existsSync(sandbox)).toBe(false);
     });
 
-    it('refuses a path outside the sandbox root and leaves it intact', () => {
+    scriptTest('refuses a path outside the sandbox root and leaves it intact', () => {
         const outsider = mkdtempSync(join(tmpdir(), 'outsider-'));
 
         writeFileSync(join(outsider, 'keep-me'), 'payload');
@@ -63,7 +82,7 @@ describe('review-sandbox clean — containment', () => {
         rmSync(outsider, { force: true, recursive: true });
     });
 
-    it('refuses the sandbox root itself, and a sibling of it', () => {
+    scriptTest('refuses the sandbox root itself, and a sibling of it', () => {
         const { stdout: sandbox } = run('create');
         const root = join(sandboxRoot, 'pentagi-review-sandboxes');
 
@@ -72,7 +91,7 @@ describe('review-sandbox clean — containment', () => {
         expect(existsSync(sandbox)).toBe(true);
     });
 
-    it('refuses a traversal that lands outside the root', () => {
+    scriptTest('refuses a traversal that lands outside the root', () => {
         const { stdout: sandbox } = run('create');
 
         expect(run('clean', `${sandbox}/../../..`).code).not.toBe(0);
@@ -84,7 +103,7 @@ describe('review-sandbox create — where the sandbox lands', () => {
     // `clean --all` also sweeps a root derived from the script's own location, which no TMPDIR can
     // move: before PENTAGI_SANDBOX_ROOT governed it too, running this very file deleted real stale
     // sandboxes from the repo's parent directory on the developer's machine.
-    it('sweeps no root outside the one it was given', () => {
+    scriptTest('sweeps no root outside the one it was given', () => {
         const swept = run('clean', '--all')
             .stdout.split('\n')
             .filter((line) => line.startsWith('swept '))
@@ -97,16 +116,16 @@ describe('review-sandbox create — where the sandbox lands', () => {
         }
     });
 
-    it('honours PENTAGI_SANDBOX_ROOT, the escape hatch for a $TMPDIR on another filesystem', () => {
+    scriptTest('honours PENTAGI_SANDBOX_ROOT, the escape hatch for a $TMPDIR on another filesystem', () => {
         const override = mkdtempSync(join(tmpdir(), 'override-root-'));
-        const sandbox = execFileSync(SCRIPT, ['create'], {
+        const sandbox = runScript(['create'], {
             encoding: 'utf8',
             env: { ...process.env, PENTAGI_SANDBOX_ROOT: override, TMPDIR: sandboxRoot },
         }).trim();
 
         expect(sandbox.startsWith(`${override}/pentagi-review-sandboxes/`)).toBe(true);
 
-        execFileSync(SCRIPT, ['clean', sandbox], {
+        runScript(['clean', sandbox], {
             env: { ...process.env, PENTAGI_SANDBOX_ROOT: override, TMPDIR: sandboxRoot },
         });
         expect(existsSync(sandbox)).toBe(false);
@@ -116,14 +135,14 @@ describe('review-sandbox create — where the sandbox lands', () => {
 });
 
 describe('review-sandbox clean — the sweep', () => {
-    it('refuses a bare clean rather than taking the whole root', () => {
+    scriptTest('refuses a bare clean rather than taking the whole root', () => {
         const { stdout: sandbox } = run('create');
 
         expect(run('clean').code).not.toBe(0);
         expect(existsSync(sandbox)).toBe(true);
     });
 
-    it('sweeps only what has gone stale', () => {
+    scriptTest('sweeps only what has gone stale', () => {
         const { stdout: fresh } = run('create');
 
         expect(run('clean', '--all').code).toBe(0);
@@ -134,7 +153,7 @@ describe('review-sandbox clean — the sweep', () => {
         expect(existsSync(fresh), 'a stale sandbox is swept').toBe(false);
     });
 
-    it('keeps a sandbox an agent is still working in, however deep the edit sits', () => {
+    scriptTest('keeps a sandbox an agent is still working in, however deep the edit sits', () => {
         const { stdout: busy } = run('create');
 
         backdate(busy);

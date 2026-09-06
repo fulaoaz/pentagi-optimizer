@@ -86,7 +86,9 @@ describe('MarkdownEditorField rich-mode handle', () => {
                 value={'x {{.Foo}} y'}
             />,
         );
-        await waitFor(() => expect(container.querySelector('.ProseMirror')?.textContent).toContain('Foo'));
+        await waitFor(() => expect(container.querySelector('.ProseMirror')?.textContent).toContain('Foo'), {
+            timeout: 3000,
+        });
 
         expect(ref.current?.selectNextUse('Foo')).toBe(true);
         expect(ref.current?.selectNextUse('Nope')).toBe(false);

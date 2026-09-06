@@ -1,6 +1,6 @@
-import { useMutation, useQuery } from '@apollo/client/react';
 import type { ColumnDef, Row } from '@tanstack/react-table';
 
+import { useMutation, useQuery } from '@apollo/client/react';
 import { enUS, zhCN } from 'date-fns/locale';
 import { AlertCircle, ChevronDown, Copy, Ellipsis, Loader2, Pencil, Plus, Settings, Trash } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
@@ -32,7 +32,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { StatusCard } from '@/components/ui/status-card';
-import { ProviderType, DeleteProviderDocument, SettingsProvidersDocument } from '@/graphql/types';
+import { DeleteProviderDocument, ProviderType, SettingsProvidersDocument } from '@/graphql/types';
 import { useLocale } from '@/hooks/use-locale';
 import { useTableState } from '@/hooks/use-table-state';
 import { translateAgentName, translateProviderFieldName } from '@/lib/i18n/settings-labels';
@@ -64,6 +64,71 @@ const providerTypes = [
     { label: 'OpenAI', type: ProviderType.Openai },
     { label: 'Qwen', type: ProviderType.Qwen },
 ];
+
+export function SettingsProvidersHeader() {
+    const navigate = useNavigate();
+    const { t } = useLocale();
+    const { data } = useQuery(SettingsProvidersDocument);
+
+    const enabled = data?.settingsProviders?.enabled;
+    const availableTypes = providerTypes.filter(({ type }) => enabled?.[type as keyof typeof enabled]);
+
+    const handleProviderCreate = (providerType: string) => {
+        navigate(`/settings/providers/new?type=${providerType}`);
+    };
+
+    return (
+        <div className="flex items-center justify-between gap-4">
+            <p className="text-muted-foreground min-w-0 flex-1 truncate">{t('settings.providers.manage')}</p>
+
+            {/*
+             * "Create Provider" is a dropdown trigger, not a submit-style action — it
+             * opens a menu listing provider types (OpenAI, Anthropic, Custom, …). The
+             * `<ChevronDown />` icon plus Radix's `aria-haspopup="menu"` already signal
+             * "menu opens" to sighted and AT users; the explicit aria-label adds the
+             * intent ("create provider") so screen readers don't just announce
+             * "Create Provider, menu" but "Create provider, choose type, menu".
+             */}
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button
+                        aria-label={t('settings.providers.createAria')}
+                        className="shrink-0"
+                        variant="secondary"
+                    >
+                        {t('settings.createProvider')}
+                        <ChevronDown className="size-4" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                    align="end"
+                    style={{
+                        width: 'var(--radix-dropdown-menu-trigger-width)',
+                    }}
+                >
+                    {availableTypes.length === 0 ? (
+                        <DropdownMenuItem disabled>{t('settings.providers.noAvailableTypes')}</DropdownMenuItem>
+                    ) : (
+                        availableTypes.map(({ label, type }) => {
+                            const Icon = providerIcons[type];
+                            const displayLabel = type === ProviderType.Custom ? t('settings.providers.custom') : label;
+
+                            return (
+                                <DropdownMenuItem
+                                    key={type}
+                                    onClick={() => handleProviderCreate(type)}
+                                >
+                                    {Icon && <Icon className="size-4" />}
+                                    {displayLabel}
+                                </DropdownMenuItem>
+                            );
+                        })
+                    )}
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </div>
+    );
+}
 
 function SettingsProviders() {
     const { locale, t } = useLocale();
@@ -476,71 +541,6 @@ function SettingsProviders() {
                 itemType="provider"
                 title={t('settings.providers.deleteTitle')}
             />
-        </div>
-    );
-}
-
-function SettingsProvidersHeader() {
-    const navigate = useNavigate();
-    const { t } = useLocale();
-    const { data } = useQuery(SettingsProvidersDocument);
-
-    const enabled = data?.settingsProviders?.enabled;
-    const availableTypes = providerTypes.filter(({ type }) => enabled?.[type as keyof typeof enabled]);
-
-    const handleProviderCreate = (providerType: string) => {
-        navigate(`/settings/providers/new?type=${providerType}`);
-    };
-
-    return (
-        <div className="flex items-center justify-between gap-4">
-            <p className="text-muted-foreground min-w-0 flex-1 truncate">{t('settings.providers.manage')}</p>
-
-            {/*
-             * "Create Provider" is a dropdown trigger, not a submit-style action — it
-             * opens a menu listing provider types (OpenAI, Anthropic, Custom, …). The
-             * `<ChevronDown />` icon plus Radix's `aria-haspopup="menu"` already signal
-             * "menu opens" to sighted and AT users; the explicit aria-label adds the
-             * intent ("create provider") so screen readers don't just announce
-             * "Create Provider, menu" but "Create provider, choose type, menu".
-             */}
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button
-                        aria-label={t('settings.providers.createAria')}
-                        className="shrink-0"
-                        variant="secondary"
-                    >
-                        {t('settings.createProvider')}
-                        <ChevronDown className="size-4" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                    align="end"
-                    style={{
-                        width: 'var(--radix-dropdown-menu-trigger-width)',
-                    }}
-                >
-                    {availableTypes.length === 0 ? (
-                        <DropdownMenuItem disabled>{t('settings.providers.noAvailableTypes')}</DropdownMenuItem>
-                    ) : (
-                        availableTypes.map(({ label, type }) => {
-                            const Icon = providerIcons[type];
-                            const displayLabel = type === ProviderType.Custom ? t('settings.providers.custom') : label;
-
-                            return (
-                                <DropdownMenuItem
-                                    key={type}
-                                    onClick={() => handleProviderCreate(type)}
-                                >
-                                    {Icon && <Icon className="size-4" />}
-                                    {displayLabel}
-                                </DropdownMenuItem>
-                            );
-                        })
-                    )}
-                </DropdownMenuContent>
-            </DropdownMenu>
         </div>
     );
 }

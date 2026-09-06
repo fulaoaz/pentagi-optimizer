@@ -130,7 +130,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
                 clearAuth();
             }
         } catch {
-            clearAuth();
+            return;
         }
     }, [setAuth, clearAuth]);
 
@@ -342,10 +342,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
                     navigate(`/login${returnParam}`);
                 }
             } catch {
-                clearAuth();
-                toast.error(t('auth.sessionExpired'));
-                const returnParam = getReturnUrlParam(location.pathname);
-                navigate(`/login${returnParam}`);
+                return;
             }
         };
 

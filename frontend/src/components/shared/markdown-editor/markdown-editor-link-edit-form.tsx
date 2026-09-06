@@ -5,8 +5,8 @@ import { useId, useState } from 'react';
 
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
 import { Label } from '@/components/ui/label';
-
 import { useLocale } from '@/hooks/use-locale';
+
 import { normalizeLinkUrl } from './markdown-editor-toolbar-url';
 
 interface LinkEditFormProps {

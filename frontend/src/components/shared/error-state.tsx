@@ -1,8 +1,8 @@
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { useLocale } from '@/hooks/use-locale';
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import { useLocale } from '@/hooks/use-locale';
 
 interface ErrorStateProps {
     message?: null | string;

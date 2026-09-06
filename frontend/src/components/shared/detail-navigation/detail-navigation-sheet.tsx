@@ -4,6 +4,7 @@ import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useMemo, us
 import { Badge } from '@/components/ui/badge';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useElementVirtualList } from '@/hooks/use-element-virtual-list';
 import { useLocale } from '@/hooks/use-locale';
 import { cn } from '@/lib/utils';
 
@@ -62,7 +63,7 @@ export function DetailNavigationSheet<T extends { id: string }>({
         total,
     } = controller;
 
-    const listRef = useRef<HTMLUListElement>(null);
+    const listScrollRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const buttonRefs = useRef(new Map<string, HTMLButtonElement>());
     const [focusedId, setFocusedId] = useState<null | string>(null);
@@ -87,6 +88,20 @@ export function DetailNavigationSheet<T extends { id: string }>({
 
         return map;
     }, [items, getId]);
+
+    const shouldVirtualize = items.length > 100;
+    const getScrollElement = useCallback(() => listScrollRef.current, []);
+    const getItemKey = useCallback((index: number) => String(getId(items[index]!)), [getId, items]);
+    const { scrollToIndex, totalSize, virtualItems } = useElementVirtualList({
+        count: items.length,
+        enabled: shouldVirtualize,
+        estimateSize: () => 36,
+        gap: 2,
+        getItemKey,
+        getScrollElement,
+        overscan: 10,
+        padding: 8,
+    });
 
     // Single render-phase focus reconciliation. React's "adjust state when a
     // prop changes" idiom — see https://react.dev/reference/react/useState#storing-information-from-previous-renders
@@ -190,6 +205,18 @@ export function DetailNavigationSheet<T extends { id: string }>({
 
         return () => cancelAnimationFrame(id);
     }, [open, focusedId, currentId]);
+
+    useEffect(() => {
+        if (!open || focusedId === null || !shouldVirtualize) {
+            return;
+        }
+
+        const focusedIndex = indexById.get(focusedId);
+
+        if (focusedIndex !== undefined) {
+            scrollToIndex(focusedIndex, { align: 'auto' });
+        }
+    }, [focusedId, indexById, open, scrollToIndex, shouldVirtualize]);
 
     // Translate arrow / Home / End into roving moves over `items`. Using the
     // array index instead of `querySelectorAll` keeps the keyboard model in
@@ -328,6 +355,46 @@ export function DetailNavigationSheet<T extends { id: string }>({
         };
     }, []);
 
+    const renderListItem = (item: T, virtualStart?: number) => {
+        const id = String(getId(item));
+        const isCurrent = currentId != null && id === String(currentId);
+        const isFocused = id === focusedId;
+
+        return (
+            <li
+                className="min-w-0"
+                key={id}
+                role="presentation"
+                style={
+                    virtualStart === undefined
+                        ? undefined
+                        : { left: 0, position: 'absolute', top: 0, transform: `translateY(${virtualStart}px)`, width: '100%' }
+                }
+            >
+                <button
+                    aria-selected={isCurrent}
+                    className={cn(
+                        'hover:bg-muted/50 focus-visible:ring-ring flex w-full min-w-0 items-center gap-2 rounded-md px-3 py-2 text-left text-sm focus-visible:ring-2 focus-visible:outline-hidden',
+                        isCurrent && 'bg-muted text-foreground font-medium',
+                    )}
+                    data-item-id={id}
+                    onClick={() => handleItemClick(item)}
+                    onFocus={() => setFocusedId(id)}
+                    ref={setButtonRef}
+                    role="option"
+                    tabIndex={isFocused ? 0 : -1}
+                    type="button"
+                >
+                    {renderItem ? (
+                        renderItem(item, isCurrent)
+                    ) : (
+                        <span className="min-w-0 flex-1 truncate">{getLabel(item)}</span>
+                    )}
+                </button>
+            </li>
+        );
+    };
+
     return (
         <Sheet
             onOpenChange={onOpenChange}
@@ -388,48 +455,24 @@ export function DetailNavigationSheet<T extends { id: string }>({
                     ) : null}
                 </SheetHeader>
                 {hasEntries ? (
-                    <div className="min-w-0 flex-1 overflow-y-auto">
+                    <div
+                        className="min-w-0 flex-1 overflow-y-auto"
+                        ref={listScrollRef}
+                    >
                         <ul
                             aria-label={sheetTitle}
                             className="flex flex-col gap-0.5 p-2"
                             onKeyDown={handleListKeyDown}
-                            ref={listRef}
                             role="listbox"
+                            style={shouldVirtualize ? { height: `${totalSize}px`, position: 'relative' } : undefined}
                         >
-                            {items.map((item) => {
-                                const id = String(getId(item));
-                                const isCurrent = currentId != null && id === String(currentId);
-                                const isFocused = id === focusedId;
+                            {shouldVirtualize
+                                ? virtualItems.map((virtualItem) => {
+                                      const item = items[virtualItem.index];
 
-                                return (
-                                    <li
-                                        className="min-w-0"
-                                        key={id}
-                                        role="presentation"
-                                    >
-                                        <button
-                                            aria-selected={isCurrent}
-                                            className={cn(
-                                                'hover:bg-muted/50 focus-visible:ring-ring flex w-full min-w-0 items-center gap-2 rounded-md px-3 py-2 text-left text-sm focus-visible:ring-2 focus-visible:outline-hidden',
-                                                isCurrent && 'bg-muted text-foreground font-medium',
-                                            )}
-                                            data-item-id={id}
-                                            onClick={() => handleItemClick(item)}
-                                            onFocus={() => setFocusedId(id)}
-                                            ref={setButtonRef}
-                                            role="option"
-                                            tabIndex={isFocused ? 0 : -1}
-                                            type="button"
-                                        >
-                                            {renderItem ? (
-                                                renderItem(item, isCurrent)
-                                            ) : (
-                                                <span className="min-w-0 flex-1 truncate">{getLabel(item)}</span>
-                                            )}
-                                        </button>
-                                    </li>
-                                );
-                            })}
+                                      return item ? renderListItem(item, virtualItem.start) : null;
+                                  })
+                                : items.map((item) => renderListItem(item))}
                         </ul>
                     </div>
                 ) : (

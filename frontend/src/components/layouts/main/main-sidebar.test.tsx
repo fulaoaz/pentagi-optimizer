@@ -18,8 +18,8 @@ vi.mock('@/features/resources/use-resources-upload', () => ({
     useResourcesUpload: () => ({ fileInputKey: 'k', fileInputProps: {}, openFilePicker: vi.fn() }),
 }));
 
-import { LocaleProvider } from '@/providers/locale-provider';
 import { SidebarProvider } from '@/components/ui/sidebar';
+import { LocaleProvider } from '@/providers/locale-provider';
 
 import { MainSidebar } from './main-sidebar';
 

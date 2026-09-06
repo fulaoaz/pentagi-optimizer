@@ -22,6 +22,7 @@ vi.mock('@/providers/user-provider', () => ({
 vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 import { LocaleProvider } from '@/providers/locale-provider';
+
 import { EmailChangeForm } from './email-change-form';
 
 const apiError = (code: string, msg: string) => ({ response: { data: { code, msg, status: 'error' } } });

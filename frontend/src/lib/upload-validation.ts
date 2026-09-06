@@ -18,9 +18,9 @@ export interface UploadValidationLimits {
     /** Maximum combined size of the batch in megabytes. */
     maxTotalSizeMb: number;
     /**
-     * Reject 0-byte files. Defaults to `true` because both servers stream the
-     * upload body and surface a confusing `EOF on read` error mid-request when
-     * an empty file lands in the multipart payload.
+     * Reject 0-byte files when a caller needs that policy. By default, empty
+     * marker files such as `.gitkeep` and `__init__.py` are accepted, matching
+     * the resource and flow-file backends.
      */
     rejectEmpty?: boolean;
 }
@@ -54,7 +54,7 @@ export const validateUploadBatch = (
 
     const maxBytesPerFile = limits.maxFileSizeMb * MEGABYTE;
     const maxTotalBytes = limits.maxTotalSizeMb * MEGABYTE;
-    const rejectEmpty = limits.rejectEmpty ?? true;
+    const rejectEmpty = limits.rejectEmpty ?? false;
     let totalBytes = 0;
 
     for (const file of files) {

@@ -6,8 +6,8 @@ import { useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Toggle } from '@/components/ui/toggle';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-
 import { useLocale } from '@/hooks/use-locale';
+
 import { returnFocusToEditor } from './markdown-editor-focus';
 import { LinkEditForm } from './markdown-editor-link-edit-form';
 

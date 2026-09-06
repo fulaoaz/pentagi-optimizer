@@ -1,6 +1,7 @@
 import type { Translate } from '@/lib/i18n';
 
 export const providerTestNameKeys: Record<string, string> = {
+    'Adaptive Thinking Produces Reasoning': 'settings.provider.testName.adaptiveThinkingProducesReasoning',
     'Ask Advice Function': 'settings.provider.testName.askAdviceFunction',
     'Basic Context Memory Test': 'settings.provider.testName.basicContextMemory',
     'Basic Echo Function': 'settings.provider.testName.basicEchoFunction',
@@ -8,8 +9,10 @@ export const providerTestNameKeys: Record<string, string> = {
     'Count from 1 to 3 Streaming': 'settings.provider.testName.countOneToThreeStreaming',
     'Count from 1 to 5': 'settings.provider.testName.countOneToFive',
     'Cybersecurity Workflow Memory Test': 'settings.provider.testName.cybersecurityWorkflowMemory',
+    'Explicit Reasoning Off Suppresses Reasoning': 'settings.provider.testName.explicitReasoningOffSuppressesReasoning',
     'Function Argument Memory Test': 'settings.provider.testName.functionArgumentMemory',
     'Function Response Memory Test': 'settings.provider.testName.functionResponseMemory',
+    'JSON Array Response Without Schema': 'settings.provider.testName.jsonArrayResponseWithoutSchema',
     'JSON Response Function': 'settings.provider.testName.jsonResponseFunction',
     'Math Calculation': 'settings.provider.testName.mathCalculation',
     'Penetration Testing Framework': 'settings.provider.testName.pentestFramework',
@@ -24,6 +27,7 @@ export const providerTestNameKeys: Record<string, string> = {
     'Simple Math': 'settings.provider.testName.simpleMath',
     'Simple Math Streaming': 'settings.provider.testName.simpleMathStreaming',
     'SQL Injection Attack Type': 'settings.provider.testName.sqlInjectionAttackType',
+    'Structured Output With JSON Schema': 'settings.provider.testName.structuredOutputWithJsonSchema',
     'Text Transform Uppercase': 'settings.provider.testName.textTransformUppercase',
     'User Profile JSON': 'settings.provider.testName.userProfileJson',
     'Vulnerability Assessment Tools': 'settings.provider.testName.vulnerabilityAssessmentTools',

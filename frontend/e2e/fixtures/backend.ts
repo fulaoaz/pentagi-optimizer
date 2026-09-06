@@ -41,6 +41,8 @@ export const test = base.extend<BackendFixtures & BackendOptions & { _installMoc
             }
 
             await page.clock.install({ time: CASSETTE_EPOCH });
+            // The maintained fork defaults to zh-CN; upstream e2e assertions expect the English dictionary.
+            await page.addInitScript(() => window.localStorage.setItem('locale', 'en'));
 
             if (isAuthSeeded) {
                 await seedAuthenticated(page);

@@ -3,10 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { Editor } from '@tiptap/core';
 import { beforeAll, describe, expect, it } from 'vitest';
 
+import { LocaleProvider } from '@/providers/locale-provider';
+
 import { createMarkdownExtensions } from './markdown-editor-extensions';
 import { returnFocusToEditor } from './markdown-editor-focus';
 import { setupEditorJsdom } from './markdown-editor-test-setup';
-import { LocaleProvider } from '@/providers/locale-provider';
 import { MarkdownEditorToolbar } from './markdown-editor-toolbar';
 
 beforeAll(setupEditorJsdom);

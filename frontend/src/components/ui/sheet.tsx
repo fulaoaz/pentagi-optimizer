@@ -8,7 +8,17 @@ import * as React from 'react';
 import { useLocale } from '@/hooks/use-locale';
 import { cn } from '@/lib/utils';
 
-const Sheet = SheetPrimitive.Root;
+import { isRestorableFocusTarget, ModalFocusContext, useModalFocusTarget } from './modal-focus';
+
+function Sheet(props: React.ComponentProps<typeof SheetPrimitive.Root>) {
+    const focusTarget = useModalFocusTarget();
+
+    return (
+        <ModalFocusContext.Provider value={focusTarget}>
+            <SheetPrimitive.Root {...props} />
+        </ModalFocusContext.Provider>
+    );
+}
 
 const SheetTrigger = SheetPrimitive.Trigger;
 
@@ -51,14 +61,53 @@ interface SheetContentProps
     overlay?: boolean;
 }
 
-function SheetContent({ children, className, container, overlay = true, side = 'right', ...props }: SheetContentProps) {
+function SheetContent({
+    children,
+    className,
+    container,
+    onCloseAutoFocus,
+    onOpenAutoFocus,
+    overlay = true,
+    side = 'right',
+    ...props
+}: SheetContentProps) {
     const { t } = useLocale();
+    const modalFocusTarget = React.useContext(ModalFocusContext);
+    const lastFocusedElement = React.useRef<HTMLElement | null>(null);
+
+    const handleOpenAutoFocus = (event: Event) => {
+        const activeElement = document.activeElement;
+
+        if (isRestorableFocusTarget(activeElement)) {
+            lastFocusedElement.current = activeElement;
+        } else if (isRestorableFocusTarget(modalFocusTarget?.current ?? null)) {
+            lastFocusedElement.current = modalFocusTarget.current;
+        }
+
+        onOpenAutoFocus?.(event);
+    };
+
+    const handleCloseAutoFocus = (event: Event) => {
+        onCloseAutoFocus?.(event);
+
+        const target = isRestorableFocusTarget(lastFocusedElement.current)
+            ? lastFocusedElement.current
+            : modalFocusTarget?.current;
+
+        if (!event.defaultPrevented && isRestorableFocusTarget(target) && target.isConnected) {
+            event.preventDefault();
+            target.focus();
+        }
+
+    };
 
     return (
         <SheetPortal container={container ?? undefined}>
             {overlay && <SheetOverlay />}
             <SheetPrimitive.Content
                 className={cn(sheetVariants({ side }), className)}
+                onCloseAutoFocus={handleCloseAutoFocus}
+                onOpenAutoFocus={handleOpenAutoFocus}
                 {...props}
             >
                 <SheetPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">

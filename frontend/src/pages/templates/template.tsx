@@ -1,7 +1,6 @@
-import { useQuery } from '@apollo/client/react';
 import type { ReactNode } from 'react';
 
-import { zodResolver } from '@hookform/resolvers/zod';
+import { useQuery } from '@apollo/client/react';
 import {
     ChevronDown,
     Ellipsis,
@@ -15,7 +14,6 @@ import {
     Trash,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -52,6 +50,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { zhCNPresetTemplates } from '@/features/templates/preset-templates.zh-CN';
 import { useTemplateDetailNavigation } from '@/features/templates/use-template-detail-navigation';
 import { FlowTemplateDocument } from '@/graphql/types';
+import { useAppForm } from '@/hooks/use-app-form';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { useLocale } from '@/hooks/use-locale';
 import { cn } from '@/lib/utils';
@@ -297,10 +296,9 @@ function Template() {
         [locale],
     );
 
-    const form = useForm<FormValues>({
+    const form = useAppForm<FormValues>({
         defaultValues: { text: '', title: '' },
-        mode: 'onChange',
-        resolver: zodResolver(formSchema),
+        schema: formSchema,
     });
 
     const { control, formState, getValues, handleSubmit: handleFormSubmit, reset, setValue } = form;

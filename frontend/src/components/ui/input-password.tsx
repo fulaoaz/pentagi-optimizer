@@ -1,8 +1,8 @@
 import { Eye, EyeOff } from 'lucide-react';
 import * as React from 'react';
 
-import { useLocale } from '@/hooks/use-locale';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
+import { useLocale } from '@/hooks/use-locale';
 
 export type InputPasswordProps = Omit<React.ComponentProps<typeof InputGroupInput>, 'type'>;
 

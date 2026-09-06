@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormSubmitButton } from '@/components/ui/form-submit-button';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
 import { useLocale } from '@/hooks/use-locale';
 import { localeNames, locales } from '@/lib/i18n';
 import { useUser } from '@/providers/user-provider';
@@ -191,22 +191,26 @@ function LoginForm({ providers, returnUrl = '/flows/new' }: LoginFormProps) {
                             className="text-muted-foreground size-4"
                         />
                         <span className="text-muted-foreground">{t('settings.language')}</span>
-                        <Tabs
-                            onValueChange={(value) => setLocale(value as Locale)}
-                            value={locale}
+                        <div
+                            aria-label={t('settings.language')}
+                            className="bg-muted text-muted-foreground inline-flex h-8 items-center justify-center rounded-lg p-0.5"
+                            role="group"
                         >
-                            <TabsList className="h-8 p-0.5">
-                                {locales.map((value) => (
-                                    <TabsTrigger
-                                        className="h-7 px-2 text-xs"
-                                        key={value}
-                                        value={value}
-                                    >
-                                        {localeNames[value]}
-                                    </TabsTrigger>
-                                ))}
-                            </TabsList>
-                        </Tabs>
+                            {locales.map((value) => (
+                                <button
+                                    aria-pressed={locale === value}
+                                    className={cn(
+                                        'inline-flex h-7 items-center justify-center rounded-md px-2 text-xs font-medium whitespace-nowrap transition-all',
+                                        locale === value && 'bg-background text-foreground shadow-sm',
+                                    )}
+                                    key={value}
+                                    onClick={() => setLocale(value as Locale)}
+                                    type="button"
+                                >
+                                    {localeNames[value]}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
 

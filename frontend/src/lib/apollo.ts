@@ -162,7 +162,7 @@ const cacheActionStrategies: Record<SubscriptionAction, CacheActionApplier> = {
     update: (existingArray, newRef, itemExists) => (itemExists ? existingArray : [...existingArray, newRef]),
 };
 
-const updateCacheForSubscription = (
+export const updateCacheForSubscription = (
     cache: InMemoryCache,
     subscriptionName: string,
     cacheField: string,
@@ -236,7 +236,7 @@ const updateCacheForSubscription = (
     }
 };
 
-const createStreamingLink = (): ApolloLink => {
+export const createStreamingLink = (): ApolloLink => {
     const streamingLogs = new LRUCache<string, StreamingLogEntry>({
         max: STREAMING_CACHE_MAX_ENTRIES,
         ttl: STREAMING_CACHE_TTL_MS,
@@ -375,6 +375,56 @@ const replaceWithIncoming = {
     merge: (_existing: unknown, incoming: unknown) => incoming,
 };
 
+export const createCache = (): InMemoryCache =>
+    new InMemoryCache({
+        typePolicies: {
+            APIToken: {
+                keyFields: ['tokenId'],
+            },
+            ProviderConfig: {
+                keyFields: (object) => {
+                    if (object.id === 0 || object.id === '0') {
+                        return false;
+                    }
+
+                    return ['id'];
+                },
+            },
+            Query: {
+                fields: {
+                    agentLogs: { keyArgs: ['flowId'], ...replaceWithIncoming },
+                    apiTokens: { ...replaceWithIncoming },
+                    assistantLogs: { keyArgs: ['flowId', 'assistantId'], ...replaceWithIncoming },
+                    assistants: { keyArgs: ['flowId'], ...replaceWithIncoming },
+                    flow: {
+                        read(existing, { args, toReference }) {
+                            if (!args?.flowId) {
+                                return existing;
+                            }
+
+                            return existing ?? toReference({ __typename: 'Flow', id: args.flowId });
+                        },
+                    },
+                    flowFiles: { keyArgs: ['flowId'], ...replaceWithIncoming },
+                    flows: { ...replaceWithIncoming },
+                    flowTemplates: { ...replaceWithIncoming },
+                    knowledgeDocuments: { keyArgs: ['filter', 'withContent'], ...replaceWithIncoming },
+                    messageLogs: { keyArgs: ['flowId'], ...replaceWithIncoming },
+                    providers: { ...replaceWithIncoming },
+                    resources: { keyArgs: ['path', 'recursive'], ...replaceWithIncoming },
+                    screenshots: { keyArgs: ['flowId'], ...replaceWithIncoming },
+                    searchLogs: { keyArgs: ['flowId'], ...replaceWithIncoming },
+                    settingsPrompts: { ...replaceWithIncoming },
+                    settingsProviders: { ...replaceWithIncoming },
+                    settingsUser: { ...replaceWithIncoming },
+                    tasks: { keyArgs: ['flowId'], ...replaceWithIncoming },
+                    terminalLogs: { keyArgs: ['flowId'], ...replaceWithIncoming },
+                    vectorStoreLogs: { keyArgs: ['flowId'], ...replaceWithIncoming },
+                },
+            },
+        },
+    });
+
 const createApolloClient = () => {
     const httpLink = createHttpLink({
         credentials: 'include',
@@ -468,54 +518,7 @@ const createApolloClient = () => {
         }
     });
 
-    const cache = new InMemoryCache({
-        typePolicies: {
-            APIToken: {
-                keyFields: ['tokenId'],
-            },
-            ProviderConfig: {
-                keyFields: (object) => {
-                    if (object.id === 0 || object.id === '0') {
-                        return false;
-                    }
-
-                    return ['id'];
-                },
-            },
-            Query: {
-                fields: {
-                    agentLogs: { keyArgs: ['flowId'], ...replaceWithIncoming },
-                    apiTokens: { ...replaceWithIncoming },
-                    assistantLogs: { keyArgs: ['flowId', 'assistantId'], ...replaceWithIncoming },
-                    assistants: { keyArgs: ['flowId'], ...replaceWithIncoming },
-                    flow: {
-                        read(existing, { args, toReference }) {
-                            if (!args?.flowId) {
-                                return existing;
-                            }
-
-                            return existing ?? toReference({ __typename: 'Flow', id: args.flowId });
-                        },
-                    },
-                    flowFiles: { keyArgs: ['flowId'], ...replaceWithIncoming },
-                    flows: { ...replaceWithIncoming },
-                    flowTemplates: { ...replaceWithIncoming },
-                    knowledgeDocuments: { keyArgs: ['filter', 'withContent'], ...replaceWithIncoming },
-                    messageLogs: { keyArgs: ['flowId'], ...replaceWithIncoming },
-                    providers: { ...replaceWithIncoming },
-                    resources: { keyArgs: ['path', 'recursive'], ...replaceWithIncoming },
-                    screenshots: { keyArgs: ['flowId'], ...replaceWithIncoming },
-                    searchLogs: { keyArgs: ['flowId'], ...replaceWithIncoming },
-                    settingsPrompts: { ...replaceWithIncoming },
-                    settingsProviders: { ...replaceWithIncoming },
-                    settingsUser: { ...replaceWithIncoming },
-                    tasks: { keyArgs: ['flowId'], ...replaceWithIncoming },
-                    terminalLogs: { keyArgs: ['flowId'], ...replaceWithIncoming },
-                    vectorStoreLogs: { keyArgs: ['flowId'], ...replaceWithIncoming },
-                },
-            },
-        },
-    });
+    const cache = createCache();
 
     const streamingLink = createStreamingLink();
     const subscriptionCacheLink = createSubscriptionCacheLink(cache);

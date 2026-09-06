@@ -1,4 +1,3 @@
-import { zodResolver } from '@hookform/resolvers/zod';
 import {
     ArrowUp,
     Check,
@@ -15,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRef } from 'react';
-import { useController, useForm } from 'react-hook-form';
+import { useController } from 'react-hook-form';
 import { z } from 'zod';
 
 import type { UserResourceFragmentFragment } from '@/graphql/types';
@@ -44,6 +43,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useResourcesUpload } from '@/features/resources/use-resources-upload';
+import { useAppForm } from '@/hooks/use-app-form';
 import { useLocale } from '@/hooks/use-locale';
 import { getProviderDisplayName } from '@/models/provider';
 import { useProviders } from '@/providers/providers-provider';
@@ -162,15 +162,14 @@ export function FlowForm({
         });
     }, [providers, providerSearch]);
 
-    const form = useForm<FlowFormValues>({
+    const form = useAppForm<FlowFormValues>({
         defaultValues: {
             message: defaultValues?.message ?? '',
             providerName: defaultValues?.providerName ?? '',
             resourceIds: defaultValues?.resourceIds ?? [],
             useAgents: defaultValues?.useAgents ?? false,
         },
-        mode: 'onChange',
-        resolver: zodResolver(formSchema),
+        schema: formSchema,
     });
 
     const {

@@ -3,8 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { LocaleProvider } from '@/providers/locale-provider';
 import { StatusType } from '@/graphql/types';
+import { LocaleProvider } from '@/providers/locale-provider';
 
 const flowState = vi.hoisted(() => ({ current: {} as Record<string, unknown> }));
 

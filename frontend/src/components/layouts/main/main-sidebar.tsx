@@ -127,7 +127,7 @@ export function MainSidebar() {
                         <SidebarMenu>
                             <SidebarMenuItem className="group-data-[state=expanded]:hidden">
                                 <SidebarMenuButton asChild>
-                                    <Link to="/flows/new">
+                                    <Link aria-label={t('nav.newFlow')} to="/flows/new">
                                         <Plus />
                                         {t('nav.newFlow')}
                                     </Link>
@@ -159,7 +159,7 @@ export function MainSidebar() {
                                     className="data-[state=open]:bg-accent rounded-sm"
                                     showOnHover
                                 >
-                                    <Link to="/flows/new">
+                                    <Link aria-label={t('nav.newFlow')} to="/flows/new">
                                         <Plus />
                                     </Link>
                                 </SidebarMenuAction>
@@ -179,7 +179,7 @@ export function MainSidebar() {
                                     className="data-[state=open]:bg-accent rounded-sm"
                                     showOnHover
                                 >
-                                    <Link to="/templates/new">
+                                    <Link aria-label={t('nav.newTemplate')} to="/templates/new">
                                         <Plus />
                                     </Link>
                                 </SidebarMenuAction>
@@ -219,7 +219,7 @@ export function MainSidebar() {
                                     className="data-[state=open]:bg-accent rounded-sm"
                                     showOnHover
                                 >
-                                    <Link to="/knowledges/new">
+                                    <Link aria-label={t('nav.newKnowledge')} to="/knowledges/new">
                                         <Plus />
                                     </Link>
                                 </SidebarMenuAction>

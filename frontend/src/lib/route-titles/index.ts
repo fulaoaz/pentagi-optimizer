@@ -43,11 +43,11 @@ export const routeTitles = {
     dashboard: { title: 'title.dashboard' },
     flow: {
         title: apolloTitle({
+            document: FlowDocument,
             select: (data, { flowId }, t) =>
                 data?.flow?.title && flowId
                     ? t('title.flowNumbered', { id: flowId, title: data.flow.title })
                     : t('title.flow'),
-            document: FlowDocument,
             variables: ({ flowId }) => (flowId ? { id: flowId } : null),
         }),
     },
@@ -55,11 +55,11 @@ export const routeTitles = {
     flows: { title: 'title.flows' },
     knowledge: {
         title: apolloTitle({
+            document: KnowledgeDocumentDocument,
             select: (data, { knowledgeId }, t) =>
                 knowledgeId === 'new'
                     ? t('title.newKnowledge')
                     : data?.knowledgeDocument?.question || t('title.knowledge'),
-            document: KnowledgeDocumentDocument,
             variables: ({ knowledgeId }) => (!knowledgeId || knowledgeId === 'new' ? null : { id: knowledgeId }),
         }),
     },
@@ -75,6 +75,7 @@ export const routeTitles = {
 
     provider: {
         title: apolloTitle({
+            document: SettingsProvidersDocument,
             select: (data, { providerId }, t) => {
                 if (providerId === 'new') {
                     return t('title.newProvider');
@@ -86,7 +87,6 @@ export const routeTitles = {
 
                 return provider?.name || t('title.provider');
             },
-            document: SettingsProvidersDocument,
             variables: ({ providerId }) => (providerId === 'new' ? null : {}),
         }),
     },
@@ -97,9 +97,9 @@ export const routeTitles = {
 
     template: {
         title: apolloTitle({
+            document: FlowTemplateDocument,
             select: (data, { templateId }, t) =>
                 templateId === 'new' ? t('title.newTemplate') : data?.flowTemplate?.title || t('title.template'),
-            document: FlowTemplateDocument,
             variables: ({ templateId }) => (!templateId || templateId === 'new' ? null : { templateId }),
         }),
     },

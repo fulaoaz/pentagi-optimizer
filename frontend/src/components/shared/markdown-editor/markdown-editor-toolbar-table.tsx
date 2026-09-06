@@ -27,9 +27,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useLocale } from '@/hooks/use-locale';
 import { cn } from '@/lib/utils';
 
-import { useLocale } from '@/hooks/use-locale';
 import { ALIGN_OPTIONS, type ColumnAlign, setColumnAlign } from './markdown-editor-table-commands';
 
 export type { ColumnAlign };

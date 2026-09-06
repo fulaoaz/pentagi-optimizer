@@ -109,6 +109,12 @@ describe('validateUploadBatch', () => {
         expect(validateUploadBatch(files, DEFAULT_LIMITS)).toBeNull();
     });
 
+    it('rejects 0-byte files when the caller opts in', () => {
+        expect(validateUploadBatch([makeFile('.gitkeep', 0)], { ...DEFAULT_LIMITS, rejectEmpty: true })).toBe(
+            'File ".gitkeep" is empty',
+        );
+    });
+
     it('reports the first violation when multiple rules would fail', () => {
         // Both "too many files" AND a too-big file are present — the count
         // check runs first by contract.

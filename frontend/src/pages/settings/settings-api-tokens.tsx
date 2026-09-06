@@ -1,7 +1,6 @@
-import { useMutation, useQuery, useSubscription } from '@apollo/client/react';
 import type { ColumnDef } from '@tanstack/react-table';
 
-import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation, useQuery, useSubscription } from '@apollo/client/react';
 import { format } from 'date-fns';
 import { enUS, zhCN } from 'date-fns/locale';
 import {
@@ -19,7 +18,7 @@ import {
     X,
 } from 'lucide-react';
 import { useCallback, useId, useMemo, useState } from 'react';
-import { type Control, Controller, useForm, useFormState } from 'react-hook-form';
+import { type Control, Controller, useFormState } from 'react-hook-form';
 import { toast } from 'sonner';
 import * as z from 'zod';
 
@@ -46,15 +45,16 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { StatusCard } from '@/components/ui/status-card';
 import {
-    TokenStatus as TokenStatusEnum,
     ApiTokenCreatedDocument,
     ApiTokenDeletedDocument,
     ApiTokensDocument,
     ApiTokenUpdatedDocument,
     CreateApiTokenDocument,
     DeleteApiTokenDocument,
+    TokenStatus as TokenStatusEnum,
     UpdateApiTokenDocument,
 } from '@/graphql/types';
+import { useAppForm } from '@/hooks/use-app-form';
 import { useLocale } from '@/hooks/use-locale';
 import { useTableState } from '@/hooks/use-table-state';
 import { cn } from '@/lib/utils';
@@ -307,15 +307,13 @@ function SettingsAPITokens() {
     // Form state lives in the parent so that subscription-driven DataTable
     // re-renders and row remounts cannot drop user input. <Controller> in each
     // cell re-subscribes to this state on remount — no values are lost.
-    const createForm = useForm<CreateTokenFormValues>({
+    const createForm = useAppForm<CreateTokenFormValues>({
         defaultValues: CREATE_TOKEN_DEFAULTS,
-        mode: 'onChange',
-        resolver: zodResolver(createTokenFormSchema),
+        schema: createTokenFormSchema,
     });
-    const editForm = useForm<EditTokenFormValues>({
+    const editForm = useAppForm<EditTokenFormValues>({
         defaultValues: EDIT_TOKEN_DEFAULTS,
-        mode: 'onChange',
-        resolver: zodResolver(editTokenFormSchema),
+        schema: editTokenFormSchema,
     });
 
     const { filter, pageIndex: currentPage, setFilter, setPage: handlePageChange } = useTableState();

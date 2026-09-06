@@ -3,13 +3,14 @@ import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import * as z from 'zod';
 
+import type { Translate } from '@/lib/i18n';
+
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormSubmitButton } from '@/components/ui/form-submit-button';
 import { Input } from '@/components/ui/input';
 import { useAppForm } from '@/hooks/use-app-form';
 import { useLocale } from '@/hooks/use-locale';
-import type { Translate } from '@/lib/i18n';
 import { api, resolveApiErrorMessage } from '@/lib/axios';
 import { useUser } from '@/providers/user-provider';
 

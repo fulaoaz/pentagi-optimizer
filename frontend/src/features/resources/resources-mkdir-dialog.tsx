@@ -1,13 +1,12 @@
-import { zodResolver } from '@hookform/resolvers/zod';
 import { FolderPlus } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormSubmitButton } from '@/components/ui/form-submit-button';
 import { Input } from '@/components/ui/input';
+import { useAppForm } from '@/hooks/use-app-form';
 import { useLocale } from '@/hooks/use-locale';
 
 import {
@@ -58,10 +57,9 @@ function ResourcesMkdirDialogForm({ defaultParentPath, onClose }: ResourcesMkdir
     const { isCreating, mkdir } = useResourcesMkdir();
     const formSchema = useMemo(() => createResourcesMkdirFormSchema(t), [t]);
 
-    const form = useForm<ResourcesMkdirFormValues>({
+    const form = useAppForm<ResourcesMkdirFormValues>({
         defaultValues: { path: buildDefaultPath(defaultParentPath) },
-        mode: 'onChange',
-        resolver: zodResolver(formSchema),
+        schema: formSchema,
     });
 
     useEffect(() => {

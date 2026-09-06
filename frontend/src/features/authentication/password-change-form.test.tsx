@@ -14,6 +14,7 @@ vi.mock('@/lib/axios', async (importOriginal) => {
 vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 import { LocaleProvider } from '@/providers/locale-provider';
+
 import { PasswordChangeForm } from './password-change-form';
 
 const apiError = (code: string, msg: string) => ({ response: { data: { code, msg, status: 'error' } } });

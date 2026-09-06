@@ -1,7 +1,5 @@
-import { zodResolver } from '@hookform/resolvers/zod';
 import { FolderInput } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
 
 import type { FileNode } from '@/components/shared/file-manager';
 import type { OverwriteConflict } from '@/components/shared/overwrite';
@@ -11,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { useAppForm } from '@/hooks/use-app-form';
 import { useLocale } from '@/hooks/use-locale';
 import { useResources } from '@/providers/resources-provider';
 
@@ -143,10 +142,9 @@ function ResourcesMoveDialogForm({ files, onClose }: ResourcesMoveDialogFormProp
 
     const formSchema = useMemo(() => createResourcesMoveFormSchema(t), [t]);
 
-    const form = useForm<ResourcesMoveFormValues>({
+    const form = useAppForm<ResourcesMoveFormValues>({
         defaultValues: { destination: defaultDestination },
-        mode: 'onChange',
-        resolver: zodResolver(formSchema),
+        schema: formSchema,
     });
 
     useEffect(() => {

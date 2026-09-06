@@ -3,8 +3,8 @@ import { useEffect } from 'react';
 import { useRouteError } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
-import { useLocale } from '@/hooks/use-locale';
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import { useLocale } from '@/hooks/use-locale';
 import { isChunkLoadError, isDomDesyncError, reloadOnce } from '@/lib/chunk-reload';
 
 /**

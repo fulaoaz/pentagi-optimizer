@@ -1,8 +1,7 @@
 import { useMutation } from '@apollo/client/react';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { Save } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { type SubmitHandler, useForm } from 'react-hook-form';
+import { type SubmitHandler } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -18,7 +17,8 @@ import { HeaderButton } from '@/components/shared/header-button';
 import { UnsavedChangesDialog, useUnsavedChangesGuard } from '@/components/shared/unsaved-changes';
 import { Form } from '@/components/ui/form';
 import { Spinner } from '@/components/ui/spinner';
-import { KnowledgeAnswerType, KnowledgeDocType, KnowledgeGuideType, AnonymizeTextDocument } from '@/graphql/types';
+import { AnonymizeTextDocument, KnowledgeAnswerType, KnowledgeDocType, KnowledgeGuideType } from '@/graphql/types';
+import { useAppForm } from '@/hooks/use-app-form';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { useLocale } from '@/hooks/use-locale';
 import { Log } from '@/lib/log';
@@ -209,14 +209,8 @@ export function KnowledgeForm({ initialValues, isNew, knowledge, onSubmit }: Kno
     const canAnonymize = authInfo?.privileges?.includes('anonymize.call') ?? false;
     const formSchema = useMemo(() => createKnowledgeFormSchema(t), [t]);
 
-    const form = useForm<FormValues>({
+    const form = useAppForm<FormValues>({
         defaultValues: initialValues,
-        // `onTouched` validates a field on its first blur and on every change
-        // afterwards. With `onChange` we'd run the entire Zod schema on every
-        // keystroke (including every emit from the multi-kilobyte `content`
-        // markdown editor) — same UX after the first interaction, no waste
-        // on initial mount or untouched fields.
-        mode: 'onTouched',
         resetOptions: {
             // When `values` changes (e.g. a GraphQL subscription pushes an
             // updated document after an inline rename from the header),
@@ -225,7 +219,7 @@ export function KnowledgeForm({ initialValues, isNew, knowledge, onSubmit }: Kno
             // would silently wipe their in-flight changes.
             keepDirtyValues: true,
         },
-        resolver: zodResolver(formSchema),
+        schema: formSchema,
         // `values` reactively syncs the form with `initialValues`. The page
         // recomputes `initialValues` from `knowledge` whenever the cache
         // refreshes (rename, refetch, etc.), and RHF reapplies the new
@@ -237,7 +231,7 @@ export function KnowledgeForm({ initialValues, isNew, knowledge, onSubmit }: Kno
     const { isDirty, isValid } = formState;
 
     const performSave = useCallback(
-        async (values: FormValues): Promise<SubmitResult | null> => {
+        async (values: FormValues): Promise<null | SubmitResult> => {
             try {
                 // Snapshot dirty flags from the latest formState. We read it
                 // here (instead of capturing into deps) so partial-update

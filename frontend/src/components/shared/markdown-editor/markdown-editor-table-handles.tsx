@@ -27,8 +27,8 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
-
 import { useLocale } from '@/hooks/use-locale';
+
 import { returnFocusToEditor } from './markdown-editor-focus';
 import { getEditorScrollParent } from './markdown-editor-styles';
 import { ALIGN_OPTIONS, clearLineContents, hasHeaderRow, setColumnAlign } from './markdown-editor-table-commands';

@@ -1,7 +1,7 @@
 import { SquareMenu, Type } from 'lucide-react';
 
-import { useLocale } from '@/hooks/use-locale';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useLocale } from '@/hooks/use-locale';
 
 // 'rich' reflows whitespace on save (tiptap); 'raw' is a byte-exact textarea over the source.
 export type EditorViewMode = 'raw' | 'rich';

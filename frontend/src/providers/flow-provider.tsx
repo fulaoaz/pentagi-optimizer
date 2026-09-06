@@ -7,8 +7,6 @@ import type { FlowFormValues } from '@/features/flows/flow-form';
 import type { AssistantFragmentFragment, AssistantLogFragmentFragment, FlowQuery } from '@/graphql/types';
 
 import {
-    ResultType,
-    StatusType,
     AgentLogAddedDocument,
     AssistantCreatedDocument,
     AssistantDeletedDocument,
@@ -25,8 +23,10 @@ import {
     MessageLogAddedDocument,
     MessageLogUpdatedDocument,
     PutUserInputDocument,
+    ResultType,
     ScreenshotAddedDocument,
     SearchLogAddedDocument,
+    StatusType,
     StopAssistantDocument,
     StopFlowDocument,
     TaskCreatedDocument,
@@ -62,6 +62,9 @@ const FlowContext = createContext<FlowContextValue | undefined>(undefined);
 interface FlowProviderProps {
     children: React.ReactNode;
 }
+
+export const deriveFlowMissing = (flowData: undefined | { flow?: null | unknown }, flowError: Error | undefined): boolean =>
+    flowData?.flow === null || (!flowData?.flow && /no rows in result set|not found/i.test(flowError?.message ?? ''));
 
 export function FlowProvider({ children }: FlowProviderProps) {
     const { flowId } = useParams();
@@ -179,14 +182,14 @@ export function FlowProvider({ children }: FlowProviderProps) {
     useEffect(() => {
         if (flowError) {
             const raw = flowError.message ?? '';
-            const isNotFound = /no rows in result set|not found/i.test(raw);
+            const isNotFound = deriveFlowMissing(flowData, flowError);
             toast.error(isNotFound ? t('flow.provider.notFound') : t('flow.provider.loadFailed'), {
                 description: isNotFound ? undefined : raw || undefined,
                 id: 'flow-load-error',
             });
             Log.error('Error loading flow:', flowError);
         }
-    }, [flowError, t]);
+    }, [flowData, flowError, t]);
 
     const submitAutomationMessage = useCallback(
         async (values: FlowFormValues) => {
