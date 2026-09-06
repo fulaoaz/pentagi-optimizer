@@ -5,6 +5,7 @@ import {
     Check,
     CheckCircle,
     ChevronsUpDown,
+    Ellipsis,
     Clock,
     Cpu,
     Lightbulb,
@@ -34,6 +35,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormSubmitButton } from '@/components/ui/form-submit-button';
 import { Input } from '@/components/ui/input';
@@ -388,6 +390,7 @@ function FormModelComboboxItem({
                         {/* Dropdown trigger button */}
                         <PopoverTrigger asChild>
                             <Button
+                                aria-label={`Open ${label.toLowerCase()} list`}
                                 className="rounded-l-none border-l-0 px-3 hover:z-10"
                                 disabled={disabled}
                                 type="button"
@@ -525,6 +528,11 @@ const buildAgentConfigSchema = (t: Translate) =>
     z
         .object({
             extraBody: z.string().optional().refine(isOptionalJsonObject, { message: t('settings.provider.extraBodyInvalid') }),
+            json: z.boolean().nullable().optional(),
+            n: z.preprocess(
+                (value) => (value === '' || value === undefined ? null : value),
+                z.number().nullable().optional(),
+            ),
             frequencyPenalty: z.preprocess(
                 (value) => (value === '' || value === undefined ? null : value),
                 z.number().nullable().optional(),
@@ -649,6 +657,8 @@ export const transformFormToGraphQL = (
         .reduce((configs, [key, data]) => {
             const config: AgentConfigInput = {
                 extraBody: data?.extraBody?.trim() ? (JSON.parse(data.extraBody) as Record<string, unknown>) : null,
+                json: data?.json ?? null,
+                n: data?.n ?? null,
                 frequencyPenalty: data?.frequencyPenalty ?? null,
                 maxLength: data?.maxLength ?? null,
                 maxTokens: data?.maxTokens ?? null,
@@ -1417,6 +1427,7 @@ function SettingsProvider() {
     return (
         <>
             <div className="flex flex-col gap-4">
+                <header className="flex items-start justify-between gap-4">
                 <div className="flex flex-col gap-2">
                     <h2 className="flex items-center gap-2 text-lg font-semibold">
                         <Cpu className="text-muted-foreground size-5" />
@@ -1426,7 +1437,39 @@ function SettingsProvider() {
                     <div className="text-muted-foreground">
                         {isNew ? t('settings.provider.configureNew') : t('settings.provider.updateDescription')}
                     </div>
+                    {!isNew && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    aria-label="Provider actions"
+                                    className="size-8 p-0"
+                                    type="button"
+                                    variant="ghost"
+                                >
+                                    <Ellipsis />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="min-w-24">
+                                <DropdownMenuItem disabled={isDeleteLoading} onClick={handleDelete}>
+                                    {isDeleteLoading ? <Loader2 className="size-4 animate-spin" /> : <Trash2 />}
+                                    {isDeleteLoading ? t('common.deleting') : t('common.delete')}
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
+                    <div className="ml-auto flex shrink-0 items-center gap-2">
+                        <Button
+                            disabled={isLoading || isTestLoading || isAgentTestLoading}
+                            onClick={() => handleTest()}
+                            type="button"
+                            variant="outline"
+                        >
+                            {isTestLoading ? <Loader2 className="size-4 animate-spin" /> : <Play className="size-4" />}
+                            {isTestLoading ? t('common.testing') : t('common.test')}
+                        </Button>
+                    </div>
                 </div>
+                </header>
 
                 <Form {...form}>
                     <form
@@ -1493,21 +1536,42 @@ function SettingsProvider() {
                                                 <span className="group-hover:underline">
                                                     {translateAgentName(agentKey, t)}
                                                 </span>
-                                                <span
+                                                <Button
+                                                    asChild
                                                     className={cn(
-                                                        'hover:bg-accent hover:text-accent-foreground mr-2 flex items-center gap-1 rounded border px-2 py-1 text-xs',
+                                                        'mr-2',
                                                         (isTestLoading || isAgentTestLoading) &&
-                                                            'pointer-events-none cursor-not-allowed opacity-50',
+                                                            'pointer-events-none opacity-50',
                                                     )}
-                                                    onClick={(event) => {
-                                                        if (isTestLoading || isAgentTestLoading) {
-                                                            return;
-                                                        }
-
-                                                        event.stopPropagation();
-                                                        handleTestAgent(agentKey);
-                                                    }}
+                                                    size="xs"
+                                                    variant="outline"
                                                 >
+                                                    <span
+                                                        onClick={(event) => {
+                                                            if (isTestLoading || isAgentTestLoading) {
+                                                                return;
+                                                            }
+
+                                                            event.stopPropagation();
+                                                            handleTestAgent(agentKey);
+                                                        }}
+                                                        onKeyDown={(event) => {
+                                                            if (event.key !== 'Enter' && event.key !== ' ') {
+                                                                return;
+                                                            }
+
+                                                            event.preventDefault();
+                                                            event.stopPropagation();
+
+                                                            if (isTestLoading || isAgentTestLoading) {
+                                                                return;
+                                                            }
+
+                                                            handleTestAgent(agentKey);
+                                                        }}
+                                                        role="button"
+                                                        tabIndex={isTestLoading || isAgentTestLoading ? -1 : 0}
+                                                    >
                                                     {isAgentTestLoading && currentAgentKey === agentKey ? (
                                                         <Loader2 className="size-4 animate-spin" />
                                                     ) : (
@@ -1517,8 +1581,9 @@ function SettingsProvider() {
                                                         {isAgentTestLoading && currentAgentKey === agentKey
                                                             ? t('common.testing')
                                                             : t('common.test')}
+                                                        </span>
                                                     </span>
-                                                </span>
+                                                    </Button>
                                             </div>
                                         </AccordionTrigger>
                                         <AccordionContent className="flex flex-col gap-4 pt-4">

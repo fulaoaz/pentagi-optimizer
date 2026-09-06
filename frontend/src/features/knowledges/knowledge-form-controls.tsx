@@ -5,7 +5,7 @@ import type {
     KnowledgeGuideType as KnowledgeGuideTypeT,
 } from '@/graphql/types';
 
-import { MarkdownEditor } from '@/components/shared/markdown-editor';
+import { type EditorViewMode, MarkdownEditorField } from '@/components/shared/markdown-editor';
 import {
     Autocomplete,
     AutocompleteContent,
@@ -74,8 +74,9 @@ interface KnowledgeContentFieldProps {
     control: Control<FormValues>;
     /** When `true`, the editor stretches to fill its parent (desktop split view). */
     fillParent?: boolean;
+    hasLabel?: boolean;
     isSaving: boolean;
-    showLabel?: boolean;
+    viewMode?: EditorViewMode;
 }
 
 interface KnowledgeMetaFieldsProps {
@@ -87,8 +88,9 @@ interface KnowledgeMetaFieldsProps {
 export function KnowledgeContentField({
     control,
     fillParent = false,
+    hasLabel = false,
     isSaving,
-    showLabel = false,
+    viewMode = 'rich',
 }: KnowledgeContentFieldProps) {
     const { t } = useLocale();
 
@@ -98,15 +100,16 @@ export function KnowledgeContentField({
             name="content"
             render={({ field }) => (
                 <FormItem className={fillParent ? 'flex min-h-0 flex-1 flex-col' : undefined}>
-                    {showLabel ? <FormLabel>{t('knowledge.content')}</FormLabel> : null}
+                    {hasLabel ? <FormLabel>{t('knowledge.content')}</FormLabel> : null}
                     <FormControl>
-                        <MarkdownEditor
-                            className={fillParent ? 'min-h-0 flex-1' : 'min-h-[280px]'}
-                            contentClassName={fillParent ? undefined : 'min-h-[240px]'}
+                        <MarkdownEditorField
+                            aria-label={t('knowledge.content')}
                             disabled={isSaving}
+                            mode={viewMode}
                             onBlur={field.onBlur}
                             onChange={field.onChange}
                             placeholder={t('knowledge.contentPlaceholder')}
+                            ref={field.ref}
                             value={field.value}
                         />
                     </FormControl>

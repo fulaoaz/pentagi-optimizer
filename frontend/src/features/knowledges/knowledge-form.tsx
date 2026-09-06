@@ -332,7 +332,7 @@ export function KnowledgeForm({ initialValues, isNew, knowledge, onSubmit }: Kno
         skipNextBlockRef.current = guard.skipNextBlock;
     }, [guard.skipNextBlock]);
 
-    const canSubmit = !isSaving && isValid && (isNew || isDirty);
+    const canSubmit = !isSaving && (isNew || isDirty);
 
     const saveButton = (
         <HeaderButton

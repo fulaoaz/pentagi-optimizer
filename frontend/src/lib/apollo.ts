@@ -2,7 +2,8 @@ import type { FetchResult, Operation, Reference, StoreObject } from '@apollo/cli
 
 import { ApolloClient, ApolloLink, createHttpLink, InMemoryCache, Observable, split } from '@apollo/client';
 import { SetContextLink } from '@apollo/client/link/context';
-import { onError } from '@apollo/client/link/error';
+import { CombinedGraphQLErrors, ServerError, ServerParseError } from '@apollo/client/errors';
+import { ErrorLink } from '@apollo/client/link/error';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { getMainDefinition } from '@apollo/client/utilities';
 import { createClient } from 'graphql-ws';
@@ -426,6 +427,11 @@ export const createCache = (): InMemoryCache =>
     });
 
 const createApolloClient = () => {
+    // Holds the client for the ws `connected` handler, which is defined before the
+    // client exists; `lazy: true` means the socket only opens on the first
+    // subscription, after `.current` is set below.
+    const clientRef: { current?: ApolloClient } = {};
+
     const httpLink = createHttpLink({
         credentials: 'include',
         uri: `${window.location.origin}${GRAPHQL_ENDPOINT}`,
@@ -444,7 +450,22 @@ const createApolloClient = () => {
             lazy: true,
             on: {
                 closed: () => Log.debug('GraphQL WebSocket closed'),
-                connected: () => Log.debug('GraphQL WebSocket connected'),
+                connected: (_socket, _payload, wasRetry) => {
+                    Log.debug('GraphQL WebSocket connected');
+
+                    // Subscriptions are delta-only — the server never replays events
+                    // published while we were disconnected — so on a reconnect refetch
+                    // active queries to reconcile the cache with the backend.
+                    if (wasRetry) {
+                        void clientRef.current?.refetchObservableQueries().catch((error: unknown) => {
+                            Log.error('Reconnect cache reconcile failed:', error);
+                        });
+
+                        // refetchObservableQueries skips cache-only queries, so the REST-hydrated
+                        // resources slot isn't reconciled above — its provider re-fetches on this.
+                        window.dispatchEvent(new Event('ws:reconnected'));
+                    }
+                },
                 connecting: () => Log.debug('GraphQL WebSocket connecting...'),
                 error: (error) => {
                     Log.error('GraphQL WebSocket error:', error);
@@ -480,9 +501,9 @@ const createApolloClient = () => {
 
     const transportLink = split(isSubscriptionOperation, wsLink, localeLink.concat(httpLink));
 
-    const errorLink = onError(({ graphQLErrors, networkError, operation }) => {
-        if (graphQLErrors) {
-            for (const { extensions, locations, message, path } of graphQLErrors) {
+    const errorLink = new ErrorLink(({ error, operation }) => {
+                if (CombinedGraphQLErrors.is(error)) {
+            for (const { extensions, locations, message, path } of error.errors) {
                 Log.error(`[GraphQL Error] ${message}`, {
                     locations,
                     operation: operation.operationName,
@@ -502,18 +523,14 @@ const createApolloClient = () => {
                     window.dispatchEvent(new Event('auth:refresh'));
                 }
             }
-        }
+        } else if (error) {
+            Log.error(`[Network Error] ${error.message}`, error);
 
-        if (networkError) {
-            Log.error(`[Network Error] ${networkError.message}`, networkError);
+            const statusCode = ServerError.is(error) || ServerParseError.is(error) ? error.statusCode : undefined;
 
-            if ('statusCode' in networkError) {
-                const statusCode = (networkError as { statusCode?: number }).statusCode;
-
-                if (statusCode === 401 || statusCode === 403) {
-                    Log.warn('Network authorization error detected, refreshing auth info');
-                    window.dispatchEvent(new Event('auth:refresh'));
-                }
+            if (statusCode === 401 || statusCode === 403) {
+                Log.warn('Network authorization error detected, refreshing auth info');
+                window.dispatchEvent(new Event('auth:refresh'));
             }
         }
     });
@@ -525,7 +542,7 @@ const createApolloClient = () => {
 
     const link = ApolloLink.from([errorLink, subscriptionCacheLink, streamingLink, transportLink]);
 
-    return new ApolloClient({
+    const apolloClient = new ApolloClient({
         cache,
         defaultOptions: {
             watchQuery: {
@@ -536,6 +553,10 @@ const createApolloClient = () => {
         },
         link,
     });
+
+    clientRef.current = apolloClient;
+
+    return apolloClient;
 };
 
 export const client = createApolloClient();

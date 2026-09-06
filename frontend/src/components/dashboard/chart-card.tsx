@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { BarChart2, Loader2 } from 'lucide-react';
 import { ResponsiveContainer } from 'recharts';
 
+import { DashboardError } from '@/components/dashboard/dashboard-error';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLocale } from '@/hooks/use-locale';
 
@@ -11,6 +12,7 @@ export function ChartCard({
     className,
     description,
     empty,
+    error,
     height = 300,
     loading,
     title,
@@ -19,6 +21,7 @@ export function ChartCard({
     className?: string;
     description?: ReactNode;
     empty?: boolean;
+    error?: boolean;
     height?: number;
     loading?: boolean;
     title: ReactNode;
@@ -34,23 +37,28 @@ export function ChartCard({
             <CardContent>
                 {loading ? (
                     <div
-                        className="flex items-center justify-center"
+                        className='flex items-center justify-center'
                         style={{ height }}
                     >
-                        <Loader2 className="text-muted-foreground size-6 animate-spin" />
+                        <Loader2 className='text-muted-foreground size-6 animate-spin' />
                     </div>
+                ) : error ? (
+                    <DashboardError
+                        iconClassName='size-10'
+                        style={{ height }}
+                    />
                 ) : empty ? (
                     <div
-                        className="flex flex-col items-center justify-center gap-2"
+                        className='flex flex-col items-center justify-center gap-2'
                         style={{ height }}
                     >
-                        <BarChart2 className="text-muted-foreground/30 size-10" />
-                        <p className="text-muted-foreground text-sm">{t('common.noDataForPeriod')}</p>
+                        <BarChart2 className='text-muted-foreground/30 size-10' />
+                        <p className='text-muted-foreground text-sm'>{t('common.noDataForPeriod')}</p>
                     </div>
                 ) : (
                     <ResponsiveContainer
                         height={height}
-                        width="100%"
+                        width='100%'
                     >
                         {children}
                     </ResponsiveContainer>

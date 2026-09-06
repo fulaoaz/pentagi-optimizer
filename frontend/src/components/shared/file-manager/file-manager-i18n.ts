@@ -5,9 +5,9 @@ import type { FileManagerLabels, FileManagerSortColumn } from './file-manager-ty
 import { formatModifiedRelative } from './file-manager-utils';
 
 const columnKey: Record<FileManagerSortColumn, string> = {
-    modified: 'fileManager.columnModified',
-    name: 'fileManager.columnName',
-    size: 'fileManager.columnSize',
+    modified: 'fileManager.column.modified',
+    name: 'fileManager.column.name',
+    size: 'fileManager.column.size',
 };
 
 export const buildFileManagerLabels = (locale: Locale, t: Translate): FileManagerLabels => ({

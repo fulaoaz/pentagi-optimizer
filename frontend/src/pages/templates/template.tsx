@@ -10,7 +10,6 @@ import {
     PanelRightClose,
     PanelRightOpen,
     Pencil,
-    Save,
     Trash,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -21,6 +20,7 @@ import { z } from 'zod';
 import type { Translate } from '@/lib/i18n';
 
 import ConfirmationDialog from '@/components/shared/confirmation-dialog';
+import { ErrorState } from '@/components/shared/error-state';
 import {
     DetailNavigationButtons,
     DetailNavigationSheet,
@@ -41,7 +41,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextareaAutosize } from '@/components/ui/input-group';
+import { type EditorViewMode, EditorViewModeToggle, MarkdownEditorField } from '@/components/shared/markdown-editor';
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -54,6 +54,7 @@ import { useAppForm } from '@/hooks/use-app-form';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { useLocale } from '@/hooks/use-locale';
 import { cn } from '@/lib/utils';
+import { isNotFoundError } from '@/lib/errors';
 import { type Template, useTemplates } from '@/providers/templates-provider';
 
 const createFormSchema = (t: Translate) =>
@@ -273,6 +274,7 @@ function Template() {
     const [isRenaming, setIsRenaming] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [viewMode, setViewMode] = useState<EditorViewMode>('rich');
 
     const {
         handleDropdownCloseAutoFocus,
@@ -282,7 +284,12 @@ function Template() {
         stopEdit: handleTemplateRenameCancel,
     } = useInlineEdit({ resetKey: templateId });
 
-    const { data: templateData, loading: isLoadingTemplate } = useQuery(FlowTemplateDocument, {
+    const {
+        data: templateData,
+        error: templateError,
+        loading: isLoadingTemplate,
+        refetch: refetchTemplate,
+    } = useQuery(FlowTemplateDocument, {
         skip: isNew || !templateId,
         variables: templateId && !isNew ? { templateId } : undefined,
     });
@@ -314,6 +321,12 @@ function Template() {
 
     const hasUnsavedChanges = formState.isDirty;
     const templateName = templateData?.flowTemplate?.title ?? null;
+    // A real load failure (network, 5xx) must render an in-page ErrorState + Retry rather than the
+    // "Template not found" card that a genuine 404 shows. Mirrors flow.
+    const templateLoadError =
+        templateError && !templateData?.flowTemplate && !isNotFoundError(templateError)
+            ? templateError
+            : undefined;
 
     const handleTemplateRenameSave = useCallback(async () => {
         const newTitle = editingInputRef.current?.value.trim();
@@ -383,16 +396,6 @@ function Template() {
         }
     };
 
-    const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        const { ctrlKey, key, metaKey, shiftKey } = event;
-
-        if (isSaving || key !== 'Enter' || shiftKey || ctrlKey || metaKey) {
-            return;
-        }
-
-        event.preventDefault();
-        handleFormSubmit(handleSubmit)();
-    };
 
     const handleApplyPreset = useCallback(
         (preset: { text: string; title: string }) => {
@@ -473,6 +476,16 @@ function Template() {
                         />
                     )}
                     <Button
+                        aria-label={isNew ? 'Create' : 'Save'}
+                        disabled={isSaving || !formState.isValid || (!isNew && !hasUnsavedChanges)}
+                        form="template-form"
+                        size="sm"
+                        type="submit"
+                        variant="default"
+                    >
+                        {isSaving ? <Spinner variant="circle" /> : (isNew ? t('templates.create') : t('templates.save'))}
+                    </Button>
+                    <Button
                         onClick={() => setIsAsideOpen((open) => !open)}
                         size="icon"
                         variant="ghost"
@@ -517,6 +530,19 @@ function Template() {
                                 <DropdownMenuItem onClick={handleTemplateRenameStart}>
                                     <Pencil className="size-3" />
                                     {t('templates.rename')}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    className="cursor-default gap-4 hover:bg-transparent focus:bg-transparent"
+                                    onSelect={(event) => event.preventDefault()}
+                                >
+                                    {t('templates.view')}
+                                    <EditorViewModeToggle
+                                        className="-my-1.5 -mr-2 ml-auto"
+                                        mode={viewMode}
+                                        onModeChange={setViewMode}
+                                        rawTooltip={t('markdownEditor.rawSource')}
+                                    />
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
@@ -683,6 +709,21 @@ function Template() {
         );
     }
 
+    if (templateLoadError) {
+        return (
+            <>
+                {pageHeader}
+                <div className="flex min-h-[calc(100dvh-3rem)] flex-col gap-4 p-4">
+                    <ErrorState
+                        message={templateLoadError.message}
+                        onRetry={() => refetchTemplate()}
+                        title={t('templates.loadError')}
+                    />
+                </div>
+            </>
+        );
+    }
+
     if (!isNew && !isLoadingTemplate && !templateData?.flowTemplate) {
         return (
             <>
@@ -725,6 +766,7 @@ function Template() {
                             <Form {...form}>
                                 <form
                                     className="flex flex-col gap-4"
+                                    id="template-form"
                                     onSubmit={handleFormSubmit(handleSubmit)}
                                 >
                                     <FormField
@@ -736,6 +778,7 @@ function Template() {
                                                     <Input
                                                         autoFocus={isNew}
                                                         disabled={isSaving}
+aria-label={t('templates.title')}
                                                         placeholder={t('templates.title')}
                                                         {...field}
                                                     />
@@ -749,42 +792,16 @@ function Template() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormControl>
-                                                    <InputGroup className="block">
-                                                        <InputGroupTextareaAutosize
-                                                            {...field}
-                                                            className="min-h-0"
-                                                            disabled={isSaving}
-                                                            maxRows={9}
-                                                            minRows={1}
-                                                            onKeyDown={handleKeyDown}
-                                                            placeholder={t('templates.content')}
-                                                        />
-                                                        <InputGroupAddon align="block-end">
-                                                            <InputGroupButton
-                                                                aria-label={
-                                                                    isNew ? t('templates.create') : t('templates.save')
-                                                                }
-                                                                className="ml-auto"
-                                                                disabled={
-                                                                    isSaving ||
-                                                                    !formState.isValid ||
-                                                                    (!isNew && !hasUnsavedChanges)
-                                                                }
-                                                                size="icon-xs"
-                                                                title={
-                                                                    isNew ? t('templates.create') : t('templates.save')
-                                                                }
-                                                                type="submit"
-                                                                variant="default"
-                                                            >
-                                                                {isSaving ? (
-                                                                    <Spinner variant="circle" />
-                                                                ) : (
-                                                                    <Save aria-hidden="true" />
-                                                                )}
-                                                            </InputGroupButton>
-                                                        </InputGroupAddon>
-                                                    </InputGroup>
+                                                    <MarkdownEditorField
+                                                        aria-label={t('templates.contentEditorLabel')}
+                                                        disabled={isSaving}
+                                                        mode={viewMode}
+                                                        onBlur={field.onBlur}
+                                                        onChange={field.onChange}
+                                                        placeholder={t('templates.content')}
+                                                        ref={field.ref}
+                                                        value={field.value}
+                                                    />
                                                 </FormControl>
                                             </FormItem>
                                         )}

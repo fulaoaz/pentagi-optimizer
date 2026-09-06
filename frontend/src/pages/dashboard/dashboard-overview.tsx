@@ -23,13 +23,13 @@ import { formatCost, formatDuration, formatNumber, formatTokenCount } from '@/li
 
 export function DashboardOverview() {
     const { locale, t } = useLocale();
-    const { data: usageTotalData, loading: usageTotalLoading } = useQuery(UsageStatsTotalDocument);
-    const { data: usageByProviderData, loading: usageByProviderLoading } = useQuery(UsageStatsByProviderDocument);
-    const { data: usageByModelData, loading: usageByModelLoading } = useQuery(UsageStatsByModelDocument);
-    const { data: usageByAgentTypeData, loading: usageByAgentTypeLoading } = useQuery(UsageStatsByAgentTypeDocument);
-    const { data: toolcallsTotalData, loading: toolcallsTotalLoading } = useQuery(ToolcallsStatsTotalDocument);
-    const { data: toolcallsByFunctionData, loading: toolcallsByFunctionLoading } = useQuery(ToolcallsStatsByFunctionDocument);
-    const { data: flowsTotalData, loading: flowsTotalLoading } = useQuery(FlowsStatsTotalDocument);
+    const { data: usageTotalData, error: usageTotalDataError, loading: usageTotalLoading } = useQuery(UsageStatsTotalDocument);
+    const { data: usageByProviderData, error: usageByProviderDataError, loading: usageByProviderLoading } = useQuery(UsageStatsByProviderDocument);
+    const { data: usageByModelData, error: usageByModelDataError, loading: usageByModelLoading } = useQuery(UsageStatsByModelDocument);
+    const { data: usageByAgentTypeData, error: usageByAgentTypeDataError, loading: usageByAgentTypeLoading } = useQuery(UsageStatsByAgentTypeDocument);
+    const { data: toolcallsTotalData, error: toolcallsTotalDataError, loading: toolcallsTotalLoading } = useQuery(ToolcallsStatsTotalDocument);
+    const { data: toolcallsByFunctionData, error: toolcallsByFunctionDataError, loading: toolcallsByFunctionLoading } = useQuery(ToolcallsStatsByFunctionDocument);
+    const { data: flowsTotalData, error: flowsTotalDataError, loading: flowsTotalLoading } = useQuery(FlowsStatsTotalDocument);
 
     const usageTotal = usageTotalData?.usageStatsTotal;
     const toolcallsTotal = toolcallsTotalData?.toolcallsStatsTotal;
@@ -69,6 +69,7 @@ export function DashboardOverview() {
                         tasks: flowsTotal?.totalTasksCount ?? 0,
                     })}
                     icon={<GitFork className="text-muted-foreground size-4" />}
+                    error={!!flowsTotalDataError}
                     loading={flowsTotalLoading}
                     title={t('dashboard.totalFlows')}
                     value={flowsTotal ? formatNumber(flowsTotal.totalFlowsCount) : '0'}
@@ -78,6 +79,7 @@ export function DashboardOverview() {
                         duration: toolcallsTotal ? formatDuration(toolcallsTotal.totalDurationSeconds, locale) : '—',
                     })}
                     icon={<Activity className="text-muted-foreground size-4" />}
+                    error={!!toolcallsTotalDataError}
                     loading={toolcallsTotalLoading}
                     title={t('flow.dashboard.toolCalls')}
                     value={toolcallsTotal ? formatNumber(toolcallsTotal.totalCount) : '0'}
@@ -85,6 +87,7 @@ export function DashboardOverview() {
                 <MetricCard
                     description={t('dashboard.totalTokensDescription')}
                     icon={<Cpu className="text-muted-foreground size-4" />}
+                    error={!!usageTotalDataError}
                     loading={usageTotalLoading}
                     title={t('dashboard.totalTokens')}
                     value={formatTokenCount(totalTokens)}
@@ -93,6 +96,7 @@ export function DashboardOverview() {
                     description={t('dashboard.totalCostDescription')}
                     icon={<CircleDollarSign className="text-muted-foreground size-4" />}
                     loading={usageTotalLoading}
+error={!!usageTotalDataError}
                     title={t('flow.dashboard.totalCost')}
                     value={formatCost(totalCost)}
                 />

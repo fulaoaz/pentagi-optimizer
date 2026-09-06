@@ -179,6 +179,7 @@ export function FlowForm({
         handleSubmit: handleFormSubmit,
         resetField,
         setValue,
+
     } = form;
 
     // useController registers the field; with useWatch alone resetField('resourceIds') is a no-op.
@@ -255,9 +256,12 @@ export function FlowForm({
             })
             .forEach(([fieldName, defaultValue]) => {
                 const typedFieldName = fieldName as keyof FlowFormValues;
-                setValue(typedFieldName, defaultValue as never, { shouldDirty: false });
+                // resetField, not setValue: it moves react-hook-form's own baseline too,
+                // so a later pick that happens to equal the mount-time default still counts
+                // as dirty and this effect leaves it alone.
+                resetField(typedFieldName, { defaultValue: defaultValue as never });
             });
-    }, [defaultValues, dirtyFields, setValue, getValues]);
+    }, [defaultValues, dirtyFields, resetField, getValues]);
 
     const isFormDisabled = isDisabled || isLoading || isSubmitting || isCanceling;
 
@@ -629,7 +633,8 @@ export function FlowForm({
                                                                                 return;
                                                                             }
 
-                                                                            providerField.onChange(provider.name);
+                                                                            setValue('providerName', provider.name, { shouldDirty: true, shouldValidate: true });
+
                                                                             setSelectedProvider(provider);
                                                                             setProviderSearch('');
                                                                         }}
@@ -788,7 +793,7 @@ export function FlowForm({
                                         </InputGroupButton>
                                     ) : (
                                         <InputGroupButton
-                                            aria-label={isCanceling ? t('flow.form.cancelling') : t('flow.form.stop')}
+                                            aria-label={isCanceling ? t('flow.form.cancelling') : t('common.cancel')}
                                             className="shrink-0"
                                             disabled={isCanceling || !onCancel}
                                             onClick={() => onCancel?.()}

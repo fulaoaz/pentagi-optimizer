@@ -654,12 +654,12 @@ function Flows() {
                 <ConfirmationDialog
                     cancelText={t('common.cancel')}
                     confirmText={t('common.delete')}
-                    description={t('flow.page.deleteDescription', { name: deletingFlow?.title ?? '' })}
                     handleConfirm={handleFlowDelete}
                     handleOpenChange={setIsDeleteDialogOpen}
                     isOpen={isDeleteDialogOpen}
                     itemName={deletingFlow?.title}
                     itemType={t('title.flow')}
+                    title={t('flow.page.deleteTitle')}
                 />
             </div>
         </>

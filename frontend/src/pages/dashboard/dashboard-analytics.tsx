@@ -9,6 +9,7 @@ import type { FlowFragmentFragment, UsageStatsPeriod } from '@/graphql/types';
 import type { Locale } from '@/lib/i18n';
 
 import { ChartCard, ChartTooltip } from '@/components/dashboard';
+import { DashboardError } from '@/components/dashboard/dashboard-error';
 import { FlowStatusBadge } from '@/components/icons/flow-status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -66,16 +67,16 @@ type FlowExecution = {
 
 export function DashboardAnalytics({ period }: { period: UsageStatsPeriod }) {
     const { locale, t } = useLocale();
-    const { data: usageByPeriodData, loading: usageByPeriodLoading } = useQuery(UsageStatsByPeriodDocument, {
+    const { data: usageByPeriodData, error: usageByPeriodDataError, loading: usageByPeriodLoading } = useQuery(UsageStatsByPeriodDocument, {
         variables: { period },
     });
-    const { data: toolcallsByPeriodData, loading: toolcallsByPeriodLoading } = useQuery(ToolcallsStatsByPeriodDocument, {
+    const { data: toolcallsByPeriodData, error: toolcallsByPeriodDataError, loading: toolcallsByPeriodLoading } = useQuery(ToolcallsStatsByPeriodDocument, {
         variables: { period },
     });
-    const { data: flowsByPeriodData, loading: flowsByPeriodLoading } = useQuery(FlowsStatsByPeriodDocument, {
+    const { data: flowsByPeriodData, error: flowsByPeriodDataError, loading: flowsByPeriodLoading } = useQuery(FlowsStatsByPeriodDocument, {
         variables: { period },
     });
-    const { data: executionStatsData, loading: executionStatsLoading } = useQuery(FlowsExecutionStatsByPeriodDocument, {
+    const { data: executionStatsData, error: executionStatsDataError, loading: executionStatsLoading } = useQuery(FlowsExecutionStatsByPeriodDocument, {
         variables: { period },
     });
     const { data: flowsData } = useQuery(FlowsDocument);
@@ -144,6 +145,7 @@ export function DashboardAnalytics({ period }: { period: UsageStatsPeriod }) {
                 description={t('dashboard.flowsChartDescription')}
                 empty={!flowsByPeriodLoading && flowsChartData.length === 0}
                 height={320}
+                error={!!flowsByPeriodDataError}
                 loading={flowsByPeriodLoading}
                 title={t('dashboard.flowsChartTitle')}
             >
@@ -202,6 +204,7 @@ export function DashboardAnalytics({ period }: { period: UsageStatsPeriod }) {
                 <ChartCard
                     description={t('dashboard.toolCallsChartDescription')}
                     empty={!toolcallsByPeriodLoading && toolcallsChartData.length === 0}
+                    error={!!toolcallsByPeriodDataError}
                     loading={toolcallsByPeriodLoading}
                     title={t('dashboard.toolCallsChartTitle')}
                 >
@@ -247,6 +250,7 @@ export function DashboardAnalytics({ period }: { period: UsageStatsPeriod }) {
                 <ChartCard
                     description={t('dashboard.tokensChartDescription')}
                     empty={!usageByPeriodLoading && usageChartData.length === 0}
+                    error={!!usageByPeriodDataError}
                     loading={usageByPeriodLoading}
                     title={t('dashboard.tokensChartTitle')}
                 >
@@ -305,6 +309,7 @@ export function DashboardAnalytics({ period }: { period: UsageStatsPeriod }) {
                 description={t('dashboard.costChartDescription')}
                 empty={!usageByPeriodLoading && usageChartData.length === 0}
                 height={240}
+                error={!!usageByPeriodDataError}
                 loading={usageByPeriodLoading}
                 title={t('dashboard.costChartTitle')}
             >
@@ -368,6 +373,8 @@ export function DashboardAnalytics({ period }: { period: UsageStatsPeriod }) {
                         <div className="flex items-center justify-center py-8">
                             <Loader2 className="text-muted-foreground size-6 animate-spin" />
                         </div>
+                                        ) : executionStatsDataError ? (
+                        <DashboardError className="py-8" />
                     ) : !deferredExecutionStats.length ? (
                         <p className="text-muted-foreground py-8 text-center text-sm">{t('dashboard.noExecutions')}</p>
                     ) : (

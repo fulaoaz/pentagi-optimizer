@@ -5,6 +5,7 @@ import {
     Bot,
     CheckCircle,
     Code,
+    Ellipsis,
     FileDiff,
     Loader2,
     RotateCcw,
@@ -17,7 +18,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactDiffViewer from 'react-diff-viewer-continued';
 import {
     type Control,
-    type ControllerRenderProps,
     type FieldValues,
     useController,
     useForm,
@@ -33,11 +33,24 @@ import ConfirmationDialog from '@/components/shared/confirmation-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormSubmitButton } from '@/components/ui/form-submit-button';
 import { StatusCard } from '@/components/ui/status-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
+import {
+    type EditorViewMode,
+    EditorViewModeToggle,
+    MarkdownEditorField,
+    type MarkdownEditorFieldHandle,
+} from '@/components/shared/markdown-editor';
+import { composeRefs } from '@/lib/compose-refs';
 import {
     CreatePromptDocument,
     DeletePromptDocument,
@@ -64,10 +77,6 @@ const buildHumanFormSchema = (t: Translate) =>
 interface BaseFieldProps extends ControllerProps {
     label?: string;
 }
-interface BaseTextareaProps {
-    className?: string;
-    placeholder?: string;
-}
 
 interface ControllerProps {
     control: Control<FieldValues>;
@@ -75,38 +84,56 @@ interface ControllerProps {
     name: string;
 }
 
-interface FormTextareaItemProps extends BaseFieldProps, BaseTextareaProps {
-    description?: string;
-}
 
 type HumanFormData = z.infer<ReturnType<typeof buildHumanFormSchema>>;
 
 type SystemFormData = z.infer<ReturnType<typeof buildSystemFormSchema>>;
 
-function FormTextareaItem({ className, control, disabled, label, name, placeholder }: FormTextareaItemProps) {
+interface FormMarkdownItemProps extends BaseFieldProps {
+    'aria-label'?: string;
+    editorRef?: Ref<MarkdownEditorFieldHandle>;
+    mode: EditorViewMode;
+    placeholder?: string;
+}
+
+function FormMarkdownItem({
+    'aria-label': ariaLabel,
+    control,
+    disabled,
+    editorRef,
+    mode,
+    name,
+    placeholder,
+}: FormMarkdownItemProps) {
     const { field, fieldState } = useController({
         control,
-        defaultValue: '',
         disabled,
         name,
     });
+    // `field.ref` lets RHF focus this field on a failed submit; `editorRef` drives the variable panel. One
+    // element, two owners !锟?compose so both are honored.
+    const composedRef = useMemo(() => composeRefs(field.ref, editorRef), [field.ref, editorRef]);
 
     return (
-        <FormItem>
-            {label && <FormLabel>{label}</FormLabel>}
+        <FormItem className="flex min-h-0 flex-1 flex-col">
             <FormControl>
-                <Textarea
-                    {...field}
-                    className={cn('min-h-[640px]! font-mono text-sm', className)}
+                <MarkdownEditorField
+                    aria-label={ariaLabel}
                     disabled={disabled}
+                    mode={mode}
+                    onBlur={field.onBlur}
+                    onChange={field.onChange}
                     placeholder={placeholder}
+                    ref={composedRef}
+                    value={field.value}
                 />
             </FormControl>
-            {fieldState.error && <FormMessage>{fieldState.error.message}</FormMessage>}
+            {/* Full-height field: the invalid state shows as the editor's red border (via aria-invalid), not
+                text below it (no room in the flex layout). Kept sr-only so screen readers still announce it. */}
+            {fieldState.error && <FormMessage className="sr-only">{fieldState.error.message}</FormMessage>}
         </FormItem>
     );
 }
-
 const getUsedVariables = (template: string | undefined): Set<string> => {
     const usedVariables = new Set<string>();
 
@@ -155,6 +182,8 @@ function SettingsPrompt() {
     const [pendingBrowserBack, setPendingBrowserBack] = useState(false);
     const allowBrowserLeaveRef = useRef(false);
     const hasPushedBlockerStateRef = useRef(false);
+    const editorRef = useRef<MarkdownEditorFieldHandle>(null);
+    const [viewMode, setViewMode] = useState<EditorViewMode>('rich');
 
     const isLoading = isCreateLoading || isUpdateLoading || isDeleteLoading || isValidateLoading;
     const validationCopy = useMemo(
@@ -162,47 +191,11 @@ function SettingsPrompt() {
         [t, validationResult],
     );
 
-    const handleVariableClick = (
-        variable: string,
-        field: ControllerRenderProps<FieldValues, string>,
-        formId: string,
-    ) => {
-        const textarea = document.querySelector(`#${formId} textarea`) as HTMLTextAreaElement;
-
-        if (textarea) {
-            const currentValue = field.value || '';
-            const variablePattern = `{{.${variable}}}`;
-
-            const variableIndex = currentValue.indexOf(variablePattern);
-
-            if (variableIndex !== -1) {
-                textarea.focus();
-                textarea.setSelectionRange(variableIndex, variableIndex + variablePattern.length);
-
-                const lineHeight = 20;
-                const textBeforeSelection = currentValue.slice(0, Math.max(0, variableIndex));
-                const linesBeforeSelection = textBeforeSelection.split('\n').length - 1;
-                const selectionTop = linesBeforeSelection * lineHeight;
-                const textareaHeight = textarea.clientHeight;
-                const scrollTop = Math.max(0, selectionTop - textareaHeight / 2);
-
-                textarea.scrollTop = scrollTop;
-            } else {
-                const start = textarea.selectionStart;
-                const end = textarea.selectionEnd;
-                const newValue =
-                    currentValue.slice(0, Math.max(0, start)) + variablePattern + currentValue.slice(Math.max(0, end));
-                field.onChange(newValue);
-
-                // preventScroll: avoid yanking the user away from where they were typing.
-                setTimeout(() => {
-                    textarea.focus({ preventScroll: true });
-                    textarea.setSelectionRange(start + variablePattern.length, start + variablePattern.length);
-                }, 0);
-            }
+    const handleVariableClick = useCallback((variable: string) => {
+        if (!editorRef.current?.selectNextUse(variable)) {
+            editorRef.current?.insertAtCursor(`{{.${variable}}}`);
         }
-    };
-
+    }, []);
     const handleReset = () => {
         setResetDialogOpen(true);
     };
@@ -359,6 +352,9 @@ function SettingsPrompt() {
 
         return null;
     }, [promptId, data?.settingsPrompts, t]);
+    const hasOverride =
+        (activeTab === 'system' && !!promptInfo?.userSystemPrompt) ||
+        (activeTab === 'human' && !!promptInfo?.userHumanPrompt);
 
     const variablesData = useMemo(() => {
         if (!promptInfo) {
@@ -385,27 +381,9 @@ function SettingsPrompt() {
         return { currentTemplate, formId, variables };
     }, [promptInfo, activeTab, systemTemplate, humanTemplate]);
 
-    const handleVariableClickCallback = useCallback(
-        (variable: string) => {
-            if (!variablesData) {
-                return;
-            }
-
-            const field =
-                activeTab === 'system'
-                    ? {
-                          onChange: (value: string) => systemForm.setValue('template', value),
-                          value: systemTemplate,
-                      }
-                    : {
-                          onChange: (value: string) => humanForm.setValue('template', value),
-                          value: humanTemplate,
-                      };
-            handleVariableClick(variable, field, variablesData.formId);
-        },
-        [activeTab, systemTemplate, humanTemplate, variablesData, systemForm, humanForm],
-    );
-
+    const handleVariableClickCallback = useCallback((variable: string) => {
+        handleVariableClick(variable);
+    }, [handleVariableClick]);
     useEffect(() => {
         if (promptInfo) {
             systemForm.reset({
@@ -702,14 +680,61 @@ function SettingsPrompt() {
     return (
         <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-                <h2 className="flex items-center gap-2 text-lg font-semibold">
-                    {promptInfo.type === 'agent' ? (
-                        <Bot className="text-muted-foreground size-5" />
-                    ) : (
-                        <Wrench className="text-muted-foreground size-5" />
-                    )}
-                    {promptInfo.displayName}
-                </h2>
+                <div className="flex items-center justify-between gap-2">
+                    <h2 className="flex items-center gap-2 text-lg font-semibold">
+                        {promptInfo.type === 'agent' ? (
+                            <Bot className="text-muted-foreground size-5" />
+                        ) : (
+                            <Wrench className="text-muted-foreground size-5" />
+                        )}
+                        {promptInfo.displayName}
+                    </h2>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                aria-label="Prompt actions"
+                                className="size-8 p-0"
+                                type="button"
+                                variant="ghost"
+                            >
+                                <Ellipsis />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                            align="end"
+                            className="min-w-24"
+                        >
+                            {hasOverride && (
+                                <>
+                                    <DropdownMenuItem onClick={() => setIsDiffDialogOpen(true)}>
+                                        <FileDiff />
+                                        {t('common.diff')}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        disabled={isLoading}
+                                        onClick={handleReset}
+                                    >
+                                        {isDeleteLoading ? <Loader2 className="size-4 animate-spin" /> : <RotateCcw />}
+                                        {isDeleteLoading ? t('common.resetting') : t('common.reset')}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                </>
+                            )}
+                            <DropdownMenuItem
+                                className="cursor-default gap-4 hover:bg-transparent focus:bg-transparent"
+                                onSelect={(event) => event.preventDefault()}
+                            >
+                                {t('flow.list.view')}
+                                <EditorViewModeToggle
+                                    className="-my-1.5 -mr-2 ml-auto"
+                                    mode={viewMode}
+                                    onModeChange={setViewMode}
+                                    rawTooltip={t('settings.prompts.editRawPromptTemplate')}
+                                />
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
 
                 <div className="text-muted-foreground">
                     {promptInfo.type === 'agent'
@@ -766,9 +791,12 @@ function SettingsPrompt() {
                             )}
 
                             {/* System Template Field */}
-                            <FormTextareaItem
+                            <FormMarkdownItem
+                                aria-label="System prompt template"
                                 control={systemForm.control}
                                 disabled={isLoading}
+                                editorRef={editorRef}
+                                mode={viewMode}
                                 name="template"
                                 placeholder={
                                     promptInfo.type === 'tool'
@@ -807,9 +835,12 @@ function SettingsPrompt() {
                                 )}
 
                                 {/* Human Template Field */}
-                                <FormTextareaItem
+                                <FormMarkdownItem
+                                    aria-label="Human prompt template"
                                     control={humanForm.control}
                                     disabled={isLoading}
+                                    editorRef={editorRef}
+                                    mode={viewMode}
                                     name="template"
                                     placeholder={t('settings.prompts.enterHumanTemplate')}
                                 />
@@ -884,6 +915,7 @@ function SettingsPrompt() {
                         </Button>
                         {activeTab === 'system' && (
                             <FormSubmitButton
+                                aria-label="Save"
                                 form="system-prompt-form"
                                 icon={<Save className="size-4" />}
                                 loading={isLoading}
@@ -894,6 +926,7 @@ function SettingsPrompt() {
                         )}
                         {activeTab === 'human' && promptInfo?.type === 'agent' && promptInfo?.hasHuman && (
                             <FormSubmitButton
+                                aria-label="Save"
                                 form="human-prompt-form"
                                 icon={<Save className="size-4" />}
                                 loading={isLoading}

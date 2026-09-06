@@ -265,6 +265,7 @@ function Flow() {
                         </Breadcrumb>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
+                        {!!(flowData?.tasks ?? [])?.length && <FlowReportDropdown />}
                         {flow && !isMobile && (
                             <DetailNavigationToolbar<FlowItem>
                                 controller={flowNav}
@@ -285,7 +286,6 @@ function Flow() {
                                 <Star className={isFavoriteFlow(flowId) ? 'fill-yellow-500 stroke-yellow-500' : ''} />
                             </Button>
                         )}
-                        {!!(flowData?.tasks ?? [])?.length && <FlowReportDropdown />}
                         {flow && (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -431,12 +431,12 @@ function Flow() {
             <ConfirmationDialog
                 cancelText={t('common.cancel')}
                 confirmText={t('common.delete')}
-                description={t('flow.page.deleteDescription', { name: flow?.title ?? '' })}
                 handleConfirm={handleFlowDelete}
                 handleOpenChange={setIsDeleteDialogOpen}
                 isOpen={isDeleteDialogOpen}
                 itemName={flow?.title}
                 itemType={t('title.flow')}
+                title={t('flow.page.deleteTitle')}
             />
         </>
     );

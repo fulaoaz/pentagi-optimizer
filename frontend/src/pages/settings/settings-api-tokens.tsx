@@ -156,7 +156,7 @@ function SettingsAPITokensHeader({ onCreateClick }: { onCreateClick: () => void 
                 <p className="text-muted-foreground truncate">{t('settings.apiTokens.manage')}</p>
                 <div className="flex gap-4 text-sm">
                     <a
-                        className="text-primary inline-flex items-center gap-1 underline hover:no-underline"
+                        className="text-link inline-flex items-center gap-1 underline hover:no-underline"
                         href={`${window.location.origin}${baseUrl}/graphql/playground`}
                         rel="noopener noreferrer"
                         target="_blank"
@@ -165,7 +165,7 @@ function SettingsAPITokensHeader({ onCreateClick }: { onCreateClick: () => void 
                         <ExternalLink className="size-3" />
                     </a>
                     <a
-                        className="text-primary inline-flex items-center gap-1 underline hover:no-underline"
+                        className="text-link inline-flex items-center gap-1 underline hover:no-underline"
                         href={`${window.location.origin}${baseUrl}/swagger/index.html`}
                         rel="noopener noreferrer"
                         target="_blank"
@@ -1005,7 +1005,6 @@ function SettingsAPITokens() {
                 isOpen={isDeleteDialogOpen}
                 itemName={deletingToken?.name || deletingToken?.tokenId}
                 itemType="token"
-                title={t('settings.apiTokens.deleteTitle')}
             />
         </div>
     );

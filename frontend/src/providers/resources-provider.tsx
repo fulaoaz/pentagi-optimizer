@@ -59,6 +59,15 @@ export function ResourcesProvider({ children }: ResourcesProviderProps) {
     const [restError, setRestError] = useState<Error | null>(null);
     const [refreshTick, setRefreshTick] = useState(0);
 
+    // Subscriptions are delta-only and the reconnect sweep skips this cache-only slot,
+    // so re-hydrate from REST when the socket reconnects after an outage.
+    useEffect(() => {
+        const reconcile = () => setRefreshTick((tick) => tick + 1);
+        window.addEventListener('ws:reconnected', reconcile);
+
+        return () => window.removeEventListener('ws:reconnected', reconcile);
+    }, []);
+
     // Hydrate the Apollo cache from REST. We write to the same `resources(recursive: true)`
     // cache slot that `useResourcesQuery` reads, so subscription delta updates plumbed
     // through `lib/apollo.ts` keep working without any extra wiring.

@@ -280,7 +280,6 @@ function AssistantsDropdown({
             <ConfirmationDialog
                 cancelText={t('common.cancel')}
                 confirmText={t('common.delete')}
-                description={t('flow.messages.deleteAssistantDescription', { name: currentAssistant?.title ?? '' })}
                 handleConfirm={handleConfirmDelete}
                 handleOpenChange={setDeleteDialogOpen}
                 isOpen={deleteDialogOpen}

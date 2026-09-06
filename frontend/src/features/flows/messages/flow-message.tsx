@@ -220,7 +220,12 @@ function FlowMessage({ log, searchValue = '' }: FlowMessageProps) {
                 <span className="text-muted-foreground/50">
                     {formatDate(new Date(createdAt), locale === 'zh-CN' ? zhCN : enUS)}
                 </span>
-                <span className="text-muted-foreground/50">{log.id}</span>
+                <span
+                    className="text-muted-foreground/50"
+                    data-slot="flow-message-id"
+                >
+                    {log.id}
+                </span>
             </div>
         </div>
     );

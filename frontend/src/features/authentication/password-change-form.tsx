@@ -23,6 +23,10 @@ const buildPasswordChangeSchema = (t: Translate) =>
                 .string()
                 .min(8, { message: t('auth.passwordMinLength') })
                 .max(100, { message: t('auth.passwordMaxLength') })
+                // bcrypt, which hashes it server-side, refuses anything longer than 72 bytes.
+                .refine((password) => new TextEncoder().encode(password).length <= 72, {
+                    message: t('auth.passwordTooLong'),
+                })
                 .refine(
                     (password) => {
                         if (password.length > 15) {
@@ -153,6 +157,7 @@ export function PasswordChangeForm({
                             <FormControl>
                                 <div className="relative">
                                     <Input
+                                        aria-label={t('auth.currentPassword')}
                                         {...field}
                                         placeholder={t('auth.enterCurrentPassword')}
                                         type={showCurrentPassword ? 'text' : 'password'}
@@ -190,6 +195,7 @@ export function PasswordChangeForm({
                             <FormControl>
                                 <div className="relative">
                                     <Input
+                                        aria-label={t('auth.newPassword')}
                                         {...field}
                                         placeholder={t('auth.enterNewPassword')}
                                         type={showNewPassword ? 'text' : 'password'}
@@ -226,6 +232,7 @@ export function PasswordChangeForm({
                             <FormControl>
                                 <div className="relative">
                                     <Input
+                                        aria-label={t('auth.confirmNewPassword')}
                                         {...field}
                                         placeholder={t('auth.confirmNewPasswordPlaceholder')}
                                         type={showConfirmPassword ? 'text' : 'password'}
