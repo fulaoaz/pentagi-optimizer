@@ -28,6 +28,7 @@ export interface MenuItem {
 }
 
 interface SettingsSidebarMenuItemProps {
+    backTarget: string;
     item: MenuItem;
 }
 
@@ -51,6 +52,62 @@ const menuItems: readonly MenuItem[] = [
         titleKey: 'nav.apiTokens',
     },
 ] as const;
+
+export function SettingsSidebar() {
+    const location = useLocation();
+    const backTarget = getBackTarget(location.state) ?? '/flows';
+    const { t } = useLocale();
+
+    return (
+        <Sidebar collapsible="icon">
+            <SidebarHeader>
+                <SidebarMenu>
+                    <SidebarMenuItem className="flex items-center gap-2">
+                        <div className="flex aspect-square size-8 items-center justify-center">
+                            <SettingsIcon className="size-6" />
+                        </div>
+                        <div className="grid flex-1 text-left leading-tight">
+                            <span className="truncate font-semibold">{t('nav.settings')}</span>
+                        </div>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarHeader>
+            <SidebarContent>
+                <SidebarGroup>
+                    <SidebarGroupContent>
+                        <SidebarMenu>
+                            {menuItems.map((item) => (
+                                <SettingsSidebarMenuItem
+                                    backTarget={backTarget}
+                                    item={item}
+                                    key={item.id}
+                                />
+                            ))}
+                        </SidebarMenu>
+                    </SidebarGroupContent>
+                </SidebarGroup>
+            </SidebarContent>
+            <SidebarFooter>
+                <SidebarMenuButton asChild>
+                    <NavLink to={backTarget}>
+                        <ArrowLeft className="size-4" />
+                        {t('settings.backToApp')}
+                    </NavLink>
+                </SidebarMenuButton>
+            </SidebarFooter>
+        </Sidebar>
+    );
+}
+
+function getBackTarget(state: unknown): string | undefined {
+    if (!state || typeof state !== 'object') {
+        return undefined;
+    }
+
+    const from = (state as { from?: unknown }).from;
+
+    return typeof from === 'string' && from.startsWith('/') ? from : undefined;
+}
 
 function SettingsHeader() {
     const location = useLocation();
@@ -109,50 +166,7 @@ function SettingsLayout() {
     );
 }
 
-function SettingsSidebar() {
-    const { t } = useLocale();
-
-    return (
-        <Sidebar collapsible="icon">
-            <SidebarHeader>
-                <SidebarMenu>
-                    <SidebarMenuItem className="flex items-center gap-2">
-                        <div className="flex aspect-square size-8 items-center justify-center">
-                            <SettingsIcon className="size-6" />
-                        </div>
-                        <div className="grid flex-1 text-left leading-tight">
-                            <span className="truncate font-semibold">{t('nav.settings')}</span>
-                        </div>
-                    </SidebarMenuItem>
-                </SidebarMenu>
-            </SidebarHeader>
-            <SidebarContent>
-                <SidebarGroup>
-                    <SidebarGroupContent>
-                        <SidebarMenu>
-                            {menuItems.map((item) => (
-                                <SettingsSidebarMenuItem
-                                    item={item}
-                                    key={item.id}
-                                />
-                            ))}
-                        </SidebarMenu>
-                    </SidebarGroupContent>
-                </SidebarGroup>
-            </SidebarContent>
-            <SidebarFooter>
-                <SidebarMenuButton asChild>
-                    <NavLink to="/flows">
-                        <ArrowLeft className="size-4" />
-                        {t('settings.backToApp')}
-                    </NavLink>
-                </SidebarMenuButton>
-            </SidebarFooter>
-        </Sidebar>
-    );
-}
-
-function SettingsSidebarMenuItem({ item }: SettingsSidebarMenuItemProps) {
+function SettingsSidebarMenuItem({ backTarget, item }: SettingsSidebarMenuItemProps) {
     const location = useLocation();
     const isActive = location.pathname.startsWith(item.path);
     const { t } = useLocale();
@@ -163,7 +177,10 @@ function SettingsSidebarMenuItem({ item }: SettingsSidebarMenuItemProps) {
                 asChild
                 isActive={isActive}
             >
-                <NavLink to={item.path}>
+                <NavLink
+                    state={{ from: backTarget }}
+                    to={item.path}
+                >
                     {item.icon}
                     {t(item.titleKey)}
                 </NavLink>

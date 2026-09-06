@@ -1,4 +1,5 @@
-import { NetworkStatus, useMutation, useQuery, useSubscription } from '@apollo/client';
+import { NetworkStatus } from '@apollo/client';
+import { useMutation, useQuery, useSubscription } from '@apollo/client/react';
 import { createContext, useCallback, useContext, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 
