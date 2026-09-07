@@ -502,7 +502,7 @@ const createApolloClient = () => {
     const transportLink = split(isSubscriptionOperation, wsLink, localeLink.concat(httpLink));
 
     const errorLink = new ErrorLink(({ error, operation }) => {
-                if (CombinedGraphQLErrors.is(error)) {
+        if (CombinedGraphQLErrors.is(error)) {
             for (const { extensions, locations, message, path } of error.errors) {
                 Log.error(`[GraphQL Error] ${message}`, {
                     locations,

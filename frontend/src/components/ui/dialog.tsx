@@ -57,7 +57,6 @@ function DialogContent({
             event.preventDefault();
             target.focus();
         }
-
     };
 
     return (

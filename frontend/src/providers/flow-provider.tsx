@@ -63,7 +63,10 @@ interface FlowProviderProps {
     children: React.ReactNode;
 }
 
-export const deriveFlowMissing = (flowData: undefined | { flow?: null | unknown }, flowError: Error | undefined): boolean =>
+export const deriveFlowMissing = (
+    flowData: undefined | { flow?: null | unknown },
+    flowError: Error | undefined,
+): boolean =>
     flowData?.flow === null || (!flowData?.flow && /no rows in result set|not found/i.test(flowError?.message ?? ''));
 
 export function FlowProvider({ children }: FlowProviderProps) {

@@ -58,18 +58,18 @@ const assistantFlowState = {
 const renderWithFlow = (state: Record<string, unknown>, ui: React.ReactElement) => {
     flowState.current = { flowId: '42', ...state };
 
-    return render(<LocaleProvider><TooltipProvider>{ui}</TooltipProvider></LocaleProvider>);
+    return render(
+        <LocaleProvider>
+            <TooltipProvider>{ui}</TooltipProvider>
+        </LocaleProvider>,
+    );
 };
 
 describe('scroll-to-latest buttons carry an accessible name', () => {
     it.each([
         ['滚动到最新智能体日志', { flowData: { agentLogs: [item] } }, <FlowAgents key="agents" />],
         ['滚动到最新工具日志', { flowData: { searchLogs: [item] } }, <FlowTools key="tools" />],
-        [
-            '滚动到最新向量库日志',
-            { flowData: { vectorStoreLogs: [item] } },
-            <FlowVectorStores key="vector-stores" />,
-        ],
+        ['滚动到最新向量库日志', { flowData: { vectorStoreLogs: [item] } }, <FlowVectorStores key="vector-stores" />],
         ['滚动到最新任务', { flowData: { tasks: [item] } }, <FlowTasks key="tasks" />],
         ['滚动到最新截图', { flowData: { screenshots: [item] } }, <FlowScreenshots key="screenshots" />],
         [

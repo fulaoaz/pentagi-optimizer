@@ -34,22 +34,22 @@ function renderSidebar() {
         <LocaleProvider>
             <MemoryRouter initialEntries={['/dashboard']}>
                 <SidebarProvider>
-                <MainSidebar />
-            </SidebarProvider>
-            <Routes>
-                <Route
-                    element={<div>dashboard</div>}
-                    path="/dashboard"
-                />
-                <Route
-                    element={<FromProbe />}
-                    path="/settings"
-                />
-                <Route
-                    element={<FromProbe />}
-                    path="/settings/account"
-                />
-            </Routes>
+                    <MainSidebar />
+                </SidebarProvider>
+                <Routes>
+                    <Route
+                        element={<div>dashboard</div>}
+                        path="/dashboard"
+                    />
+                    <Route
+                        element={<FromProbe />}
+                        path="/settings"
+                    />
+                    <Route
+                        element={<FromProbe />}
+                        path="/settings/account"
+                    />
+                </Routes>
             </MemoryRouter>
         </LocaleProvider>,
     );

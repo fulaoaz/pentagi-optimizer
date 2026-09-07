@@ -98,7 +98,6 @@ function SheetContent({
             event.preventDefault();
             target.focus();
         }
-
     };
 
     return (

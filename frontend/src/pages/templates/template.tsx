@@ -324,9 +324,7 @@ function Template() {
     // A real load failure (network, 5xx) must render an in-page ErrorState + Retry rather than the
     // "Template not found" card that a genuine 404 shows. Mirrors flow.
     const templateLoadError =
-        templateError && !templateData?.flowTemplate && !isNotFoundError(templateError)
-            ? templateError
-            : undefined;
+        templateError && !templateData?.flowTemplate && !isNotFoundError(templateError) ? templateError : undefined;
 
     const handleTemplateRenameSave = useCallback(async () => {
         const newTitle = editingInputRef.current?.value.trim();
@@ -395,7 +393,6 @@ function Template() {
             setIsSaving(false);
         }
     };
-
 
     const handleApplyPreset = useCallback(
         (preset: { text: string; title: string }) => {
@@ -483,7 +480,7 @@ function Template() {
                         type="submit"
                         variant="default"
                     >
-                        {isSaving ? <Spinner variant="circle" /> : (isNew ? t('templates.create') : t('templates.save'))}
+                        {isSaving ? <Spinner variant="circle" /> : isNew ? t('templates.create') : t('templates.save')}
                     </Button>
                     <Button
                         onClick={() => setIsAsideOpen((open) => !open)}
@@ -778,7 +775,7 @@ function Template() {
                                                     <Input
                                                         autoFocus={isNew}
                                                         disabled={isSaving}
-aria-label={t('templates.title')}
+                                                        aria-label={t('templates.title')}
                                                         placeholder={t('templates.title')}
                                                         {...field}
                                                     />

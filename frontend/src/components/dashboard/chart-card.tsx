@@ -37,28 +37,28 @@ export function ChartCard({
             <CardContent>
                 {loading ? (
                     <div
-                        className='flex items-center justify-center'
+                        className="flex items-center justify-center"
                         style={{ height }}
                     >
-                        <Loader2 className='text-muted-foreground size-6 animate-spin' />
+                        <Loader2 className="text-muted-foreground size-6 animate-spin" />
                     </div>
                 ) : error ? (
                     <DashboardError
-                        iconClassName='size-10'
+                        iconClassName="size-10"
                         style={{ height }}
                     />
                 ) : empty ? (
                     <div
-                        className='flex flex-col items-center justify-center gap-2'
+                        className="flex flex-col items-center justify-center gap-2"
                         style={{ height }}
                     >
-                        <BarChart2 className='text-muted-foreground/30 size-10' />
-                        <p className='text-muted-foreground text-sm'>{t('common.noDataForPeriod')}</p>
+                        <BarChart2 className="text-muted-foreground/30 size-10" />
+                        <p className="text-muted-foreground text-sm">{t('common.noDataForPeriod')}</p>
                     </div>
                 ) : (
                     <ResponsiveContainer
                         height={height}
-                        width='100%'
+                        width="100%"
                     >
                         {children}
                     </ResponsiveContainer>

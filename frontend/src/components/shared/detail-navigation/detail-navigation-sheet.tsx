@@ -368,7 +368,13 @@ export function DetailNavigationSheet<T extends { id: string }>({
                 style={
                     virtualStart === undefined
                         ? undefined
-                        : { left: 0, position: 'absolute', top: 0, transform: `translateY(${virtualStart}px)`, width: '100%' }
+                        : {
+                              left: 0,
+                              position: 'absolute',
+                              top: 0,
+                              transform: `translateY(${virtualStart}px)`,
+                              width: '100%',
+                          }
                 }
             >
                 <button

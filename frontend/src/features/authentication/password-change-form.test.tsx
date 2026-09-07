@@ -26,7 +26,11 @@ beforeEach(() => {
 describe('PasswordChangeForm', () => {
     it('toggles password visibility via the InputPassword control', async () => {
         const user = userEvent.setup();
-        render(<LocaleProvider><PasswordChangeForm /></LocaleProvider>);
+        render(
+            <LocaleProvider>
+                <PasswordChangeForm />
+            </LocaleProvider>,
+        );
 
         const current = screen.getByPlaceholderText('请输入当前密码') as HTMLInputElement;
         expect(current.type).toBe('password');
@@ -45,7 +49,11 @@ describe('PasswordChangeForm', () => {
     it('submits the snake_case payload — proves RHF ref/onChange survive the InputPassword hop', async () => {
         const user = userEvent.setup();
         const onSuccess = vi.fn();
-        render(<LocaleProvider><PasswordChangeForm onSuccess={onSuccess} /></LocaleProvider>);
+        render(
+            <LocaleProvider>
+                <PasswordChangeForm onSuccess={onSuccess} />
+            </LocaleProvider>,
+        );
 
         await user.type(screen.getByPlaceholderText('请输入当前密码'), 'Oldpass0!');
         await user.type(screen.getByPlaceholderText('请输入新密码'), 'Abcdef1!gh');
@@ -61,7 +69,11 @@ describe('PasswordChangeForm', () => {
     });
 
     it('renders Skip only when onSkip and showSkip are set, and keeps the submit button last', () => {
-        const { rerender } = render(<LocaleProvider><PasswordChangeForm /></LocaleProvider>);
+        const { rerender } = render(
+            <LocaleProvider>
+                <PasswordChangeForm />
+            </LocaleProvider>,
+        );
         expect(screen.queryByRole('button', { name: '暂时跳过' })).not.toBeInTheDocument();
 
         rerender(
@@ -83,7 +95,11 @@ describe('PasswordChangeForm', () => {
         put.mockRejectedValueOnce(
             apiError('Users.ChangePasswordCurrentUser.InvalidCurrentPassword', 'invalid current password'),
         );
-        render(<LocaleProvider><PasswordChangeForm /></LocaleProvider>);
+        render(
+            <LocaleProvider>
+                <PasswordChangeForm />
+            </LocaleProvider>,
+        );
 
         await user.type(screen.getByPlaceholderText('请输入当前密码'), 'Oldpass0!');
         await user.type(screen.getByPlaceholderText('请输入新密码'), 'Abcdef1!gh');

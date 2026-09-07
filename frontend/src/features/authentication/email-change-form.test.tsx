@@ -37,7 +37,11 @@ describe('EmailChangeForm', () => {
     it('submits the new email and refreshes auth before closing', async () => {
         const user = userEvent.setup();
         const onSuccess = vi.fn();
-        render(<LocaleProvider><EmailChangeForm onSuccess={onSuccess} /></LocaleProvider>);
+        render(
+            <LocaleProvider>
+                <EmailChangeForm onSuccess={onSuccess} />
+            </LocaleProvider>,
+        );
 
         await user.type(screen.getByPlaceholderText('请输入新的邮箱地址'), 'New@Example.com');
         await user.type(screen.getByPlaceholderText('请输入当前密码'), 'Oldpass0!');
@@ -52,7 +56,11 @@ describe('EmailChangeForm', () => {
     it('maps the email-already-exists code to friendly copy', async () => {
         const user = userEvent.setup();
         put.mockRejectedValueOnce(apiError('Users.ChangeEmailCurrentUser.EmailAlreadyExists', 'email already exists'));
-        render(<LocaleProvider><EmailChangeForm /></LocaleProvider>);
+        render(
+            <LocaleProvider>
+                <EmailChangeForm />
+            </LocaleProvider>,
+        );
 
         await user.type(screen.getByPlaceholderText('请输入新的邮箱地址'), 'taken@example.com');
         await user.type(screen.getByPlaceholderText('请输入当前密码'), 'Oldpass0!');

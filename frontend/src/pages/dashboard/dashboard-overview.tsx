@@ -23,13 +23,41 @@ import { formatCost, formatDuration, formatNumber, formatTokenCount } from '@/li
 
 export function DashboardOverview() {
     const { locale, t } = useLocale();
-    const { data: usageTotalData, error: usageTotalDataError, loading: usageTotalLoading } = useQuery(UsageStatsTotalDocument);
-    const { data: usageByProviderData, error: usageByProviderDataError, loading: usageByProviderLoading } = useQuery(UsageStatsByProviderDocument);
-    const { data: usageByModelData, error: usageByModelDataError, loading: usageByModelLoading } = useQuery(UsageStatsByModelDocument);
-    const { data: usageByAgentTypeData, error: usageByAgentTypeDataError, loading: usageByAgentTypeLoading } = useQuery(UsageStatsByAgentTypeDocument);
-    const { data: toolcallsTotalData, error: toolcallsTotalDataError, loading: toolcallsTotalLoading } = useQuery(ToolcallsStatsTotalDocument);
-    const { data: toolcallsByFunctionData, error: toolcallsByFunctionDataError, loading: toolcallsByFunctionLoading } = useQuery(ToolcallsStatsByFunctionDocument);
-    const { data: flowsTotalData, error: flowsTotalDataError, loading: flowsTotalLoading } = useQuery(FlowsStatsTotalDocument);
+    const {
+        data: usageTotalData,
+        error: usageTotalDataError,
+        loading: usageTotalLoading,
+    } = useQuery(UsageStatsTotalDocument);
+    const {
+        data: usageByProviderData,
+        error: usageByProviderDataError,
+        loading: usageByProviderLoading,
+    } = useQuery(UsageStatsByProviderDocument);
+    const {
+        data: usageByModelData,
+        error: usageByModelDataError,
+        loading: usageByModelLoading,
+    } = useQuery(UsageStatsByModelDocument);
+    const {
+        data: usageByAgentTypeData,
+        error: usageByAgentTypeDataError,
+        loading: usageByAgentTypeLoading,
+    } = useQuery(UsageStatsByAgentTypeDocument);
+    const {
+        data: toolcallsTotalData,
+        error: toolcallsTotalDataError,
+        loading: toolcallsTotalLoading,
+    } = useQuery(ToolcallsStatsTotalDocument);
+    const {
+        data: toolcallsByFunctionData,
+        error: toolcallsByFunctionDataError,
+        loading: toolcallsByFunctionLoading,
+    } = useQuery(ToolcallsStatsByFunctionDocument);
+    const {
+        data: flowsTotalData,
+        error: flowsTotalDataError,
+        loading: flowsTotalLoading,
+    } = useQuery(FlowsStatsTotalDocument);
 
     const usageTotal = usageTotalData?.usageStatsTotal;
     const toolcallsTotal = toolcallsTotalData?.toolcallsStatsTotal;
@@ -96,7 +124,7 @@ export function DashboardOverview() {
                     description={t('dashboard.totalCostDescription')}
                     icon={<CircleDollarSign className="text-muted-foreground size-4" />}
                     loading={usageTotalLoading}
-error={!!usageTotalDataError}
+                    error={!!usageTotalDataError}
                     title={t('flow.dashboard.totalCost')}
                     value={formatCost(totalCost)}
                 />

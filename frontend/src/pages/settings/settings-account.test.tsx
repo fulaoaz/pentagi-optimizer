@@ -33,7 +33,11 @@ beforeEach(() => {
 
 describe('SettingsAccount gating', () => {
     it('renders nothing without a user', () => {
-        const { container } = render(<LocaleProvider><SettingsAccount /></LocaleProvider>);
+        const { container } = render(
+            <LocaleProvider>
+                <SettingsAccount />
+            </LocaleProvider>,
+        );
         expect(container).toBeEmptyDOMElement();
     });
 

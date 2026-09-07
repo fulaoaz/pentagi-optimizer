@@ -67,16 +67,32 @@ type FlowExecution = {
 
 export function DashboardAnalytics({ period }: { period: UsageStatsPeriod }) {
     const { locale, t } = useLocale();
-    const { data: usageByPeriodData, error: usageByPeriodDataError, loading: usageByPeriodLoading } = useQuery(UsageStatsByPeriodDocument, {
+    const {
+        data: usageByPeriodData,
+        error: usageByPeriodDataError,
+        loading: usageByPeriodLoading,
+    } = useQuery(UsageStatsByPeriodDocument, {
         variables: { period },
     });
-    const { data: toolcallsByPeriodData, error: toolcallsByPeriodDataError, loading: toolcallsByPeriodLoading } = useQuery(ToolcallsStatsByPeriodDocument, {
+    const {
+        data: toolcallsByPeriodData,
+        error: toolcallsByPeriodDataError,
+        loading: toolcallsByPeriodLoading,
+    } = useQuery(ToolcallsStatsByPeriodDocument, {
         variables: { period },
     });
-    const { data: flowsByPeriodData, error: flowsByPeriodDataError, loading: flowsByPeriodLoading } = useQuery(FlowsStatsByPeriodDocument, {
+    const {
+        data: flowsByPeriodData,
+        error: flowsByPeriodDataError,
+        loading: flowsByPeriodLoading,
+    } = useQuery(FlowsStatsByPeriodDocument, {
         variables: { period },
     });
-    const { data: executionStatsData, error: executionStatsDataError, loading: executionStatsLoading } = useQuery(FlowsExecutionStatsByPeriodDocument, {
+    const {
+        data: executionStatsData,
+        error: executionStatsDataError,
+        loading: executionStatsLoading,
+    } = useQuery(FlowsExecutionStatsByPeriodDocument, {
         variables: { period },
     });
     const { data: flowsData } = useQuery(FlowsDocument);
@@ -373,7 +389,7 @@ export function DashboardAnalytics({ period }: { period: UsageStatsPeriod }) {
                         <div className="flex items-center justify-center py-8">
                             <Loader2 className="text-muted-foreground size-6 animate-spin" />
                         </div>
-                                        ) : executionStatsDataError ? (
+                    ) : executionStatsDataError ? (
                         <DashboardError className="py-8" />
                     ) : !deferredExecutionStats.length ? (
                         <p className="text-muted-foreground py-8 text-center text-sm">{t('dashboard.noExecutions')}</p>

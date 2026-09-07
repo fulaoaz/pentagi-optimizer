@@ -62,7 +62,9 @@ export function HeadingMenu({ activeLevel, disabled, editor, isInTableCell }: He
                 <TooltipTrigger asChild>
                     <DropdownMenuTrigger asChild>
                         <Button
-                            aria-label={t('markdownEditor.textStyle', { label: active?.label ?? t('markdownEditor.paragraph') })}
+                            aria-label={t('markdownEditor.textStyle', {
+                                label: active?.label ?? t('markdownEditor.paragraph'),
+                            })}
                             className="gap-0.5 px-1.5"
                             data-toolbar-item=""
                             disabled={disabled}

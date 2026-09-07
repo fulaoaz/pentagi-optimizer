@@ -31,10 +31,7 @@ function FlowReport() {
         setPdfError(null);
     }
 
-    const {
-        data,
-        loading,
-    } = useQuery(FlowReportDocument, {
+    const { data, loading } = useQuery(FlowReportDocument, {
         errorPolicy: 'all',
         skip: !flowId,
         variables: { id: flowId! },

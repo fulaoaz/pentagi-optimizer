@@ -43,7 +43,9 @@ function getFocusTarget(target: EventTarget | null) {
         return null;
     }
 
-    const candidate = target.closest<HTMLElement>('button, [href], input, select, textarea, [tabindex], [data-slot$="-trigger"]');
+    const candidate = target.closest<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex], [data-slot$="-trigger"]',
+    );
 
     return isRestorableFocusTarget(candidate) ? candidate : null;
 }

@@ -52,7 +52,9 @@ export function ListMenu({ activeType, disabled, editor, isInTableCell }: ListMe
                 <TooltipTrigger asChild>
                     <DropdownMenuTrigger asChild>
                         <Button
-                            aria-label={t('markdownEditor.listLabel', { label: active?.label ?? t('markdownEditor.none') })}
+                            aria-label={t('markdownEditor.listLabel', {
+                                label: active?.label ?? t('markdownEditor.none'),
+                            })}
                             className={cn('gap-0.5 px-1.5', active && 'bg-accent text-accent-foreground')}
                             data-toolbar-item=""
                             disabled={disabled}

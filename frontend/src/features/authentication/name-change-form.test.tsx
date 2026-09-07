@@ -35,7 +35,11 @@ beforeEach(() => {
 
 describe('NameChangeForm', () => {
     it('seeds the field with the current name', () => {
-        render(<LocaleProvider><NameChangeForm /></LocaleProvider>);
+        render(
+            <LocaleProvider>
+                <NameChangeForm />
+            </LocaleProvider>,
+        );
 
         expect((screen.getByLabelText('显示名称') as HTMLInputElement).value).toBe('Old Name');
     });
@@ -43,7 +47,11 @@ describe('NameChangeForm', () => {
     it('submits the trimmed name and refreshes auth before closing', async () => {
         const user = userEvent.setup();
         const onSuccess = vi.fn();
-        render(<LocaleProvider><NameChangeForm onSuccess={onSuccess} /></LocaleProvider>);
+        render(
+            <LocaleProvider>
+                <NameChangeForm onSuccess={onSuccess} />
+            </LocaleProvider>,
+        );
 
         const input = screen.getByLabelText('显示名称');
         await user.clear(input);
@@ -58,7 +66,11 @@ describe('NameChangeForm', () => {
 
     it('blocks an empty name without calling the API', async () => {
         const user = userEvent.setup();
-        render(<LocaleProvider><NameChangeForm /></LocaleProvider>);
+        render(
+            <LocaleProvider>
+                <NameChangeForm />
+            </LocaleProvider>,
+        );
 
         await user.clear(screen.getByLabelText('显示名称'));
         await user.click(screen.getByRole('button', { name: '更新名称' }));
@@ -70,7 +82,11 @@ describe('NameChangeForm', () => {
     it('maps the user-not-found code to friendly copy', async () => {
         const user = userEvent.setup();
         put.mockRejectedValueOnce(apiError('Users.NotFound', 'user not found'));
-        render(<LocaleProvider><NameChangeForm /></LocaleProvider>);
+        render(
+            <LocaleProvider>
+                <NameChangeForm />
+            </LocaleProvider>,
+        );
 
         const input = screen.getByLabelText('显示名称');
         await user.clear(input);

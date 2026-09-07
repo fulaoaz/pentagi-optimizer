@@ -354,8 +354,9 @@ function FlowFilesPullDialogForm({ cachedFiles, flowId, onClose, onSuccess }: Fl
                 </EmptyMedia>
                 <EmptyTitle>{t('flow.files.nothingReadableTitle')}</EmptyTitle>
                 <EmptyDescription>
-                    {t('flow.files.noneOfThe')} {listingFailures.length} {listingFailures.length === 1 ? t('flow.files.entry') : t('flow.files.entries')} {t('flow.files.in')}{' '}
-                    <code>{currentPath}</code> {t('flow.files.couldBeRead')}
+                    {t('flow.files.noneOfThe')} {listingFailures.length}{' '}
+                    {listingFailures.length === 1 ? t('flow.files.entry') : t('flow.files.entries')}{' '}
+                    {t('flow.files.in')} <code>{currentPath}</code> {t('flow.files.couldBeRead')}
                 </EmptyDescription>
             </EmptyHeader>
             <ul className="text-muted-foreground max-w-full space-y-1 px-4 text-left text-xs">
@@ -367,7 +368,9 @@ function FlowFilesPullDialogForm({ cachedFiles, flowId, onClose, onSuccess }: Fl
                         <span className="text-foreground font-medium">{failure.name}</span> — {failure.message}
                     </li>
                 ))}
-                {listingFailures.length > 5 && <li>{t('flow.files.andMore', { count: listingFailures.length - 5 })}</li>}
+                {listingFailures.length > 5 && (
+                    <li>{t('flow.files.andMore', { count: listingFailures.length - 5 })}</li>
+                )}
             </ul>
         </Empty>
     ) : (
@@ -464,7 +467,8 @@ function FlowFilesPullDialogForm({ cachedFiles, flowId, onClose, onSuccess }: Fl
                         <Alert>
                             <TriangleAlert />
                             <AlertTitle>
-                                {listingFailures.length} {listingFailures.length === 1 ? t('flow.files.entry') : t('flow.files.entries')}{' '}
+                                {listingFailures.length}{' '}
+                                {listingFailures.length === 1 ? t('flow.files.entry') : t('flow.files.entries')}{' '}
                                 {t('flow.files.couldNotBeRead')}
                             </AlertTitle>
                             <AlertDescription>
@@ -473,7 +477,10 @@ function FlowFilesPullDialogForm({ cachedFiles, flowId, onClose, onSuccess }: Fl
                                     .slice(0, 5)
                                     .map((failure) => failure.name)
                                     .join(', ')}
-                                {listingFailures.length > 5 ? t('flow.files.andMoreTrailing', { count: listingFailures.length - 5 }) : ''}.
+                                {listingFailures.length > 5
+                                    ? t('flow.files.andMoreTrailing', { count: listingFailures.length - 5 })
+                                    : ''}
+                                .
                             </AlertDescription>
                         </Alert>
                     )}
@@ -484,7 +491,6 @@ function FlowFilesPullDialogForm({ cachedFiles, flowId, onClose, onSuccess }: Fl
                             <AlertTitle>{t('flow.files.directoryTruncated')}</AlertTitle>
                             <AlertDescription>
                                 {t('flow.files.directoryTruncatedDescription', { count: files.length })}
-
                             </AlertDescription>
                         </Alert>
                     )}

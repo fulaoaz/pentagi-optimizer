@@ -30,7 +30,8 @@ export function FlowDashboardOverview({ flowId }: { flowId: string }) {
     const { data: usageByAgentData, loading: usageByAgentLoading } = useQuery(UsageStatsByAgentTypeForFlowDocument, {
         variables: { flowId },
     });
-    const { data: usageByModelAgentsData, loading: usageByModelAgentsLoading } = useQuery(UsageStatsByModelAgentsForFlowDocument, 
+    const { data: usageByModelAgentsData, loading: usageByModelAgentsLoading } = useQuery(
+        UsageStatsByModelAgentsForFlowDocument,
         {
             variables: { flowId },
         },
@@ -38,10 +39,12 @@ export function FlowDashboardOverview({ flowId }: { flowId: string }) {
     const { data: toolcallsData, loading: toolcallsLoading } = useQuery(ToolcallsStatsByFlowDocument, {
         variables: { flowId },
     });
-    const { data: toolcallsByFunctionData, loading: toolcallsByFunctionLoading } =
-        useQuery(ToolcallsStatsByFunctionForFlowDocument, {
+    const { data: toolcallsByFunctionData, loading: toolcallsByFunctionLoading } = useQuery(
+        ToolcallsStatsByFunctionForFlowDocument,
+        {
             variables: { flowId },
-        });
+        },
+    );
     const { data: flowStatsData, loading: flowStatsLoading } = useQuery(FlowStatsByFlowDocument, {
         variables: { flowId },
     });

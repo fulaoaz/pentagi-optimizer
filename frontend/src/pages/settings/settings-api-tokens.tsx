@@ -63,7 +63,8 @@ import { baseUrl } from '@/models/api';
 
 type APIToken = ApiTokenFragmentFragment;
 
-export const buildTokenNameSchema = (t: Translate) => z.string().trim().max(100, t('settings.apiTokens.nameMax')).default('');
+export const buildTokenNameSchema = (t: Translate) =>
+    z.string().trim().max(100, t('settings.apiTokens.nameMax')).default('');
 
 const buildCreateTokenFormSchema = (t: Translate) =>
     z.object({

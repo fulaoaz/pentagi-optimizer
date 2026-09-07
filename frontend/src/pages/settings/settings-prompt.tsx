@@ -16,13 +16,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactDiffViewer from 'react-diff-viewer-continued';
-import {
-    type Control,
-    type FieldValues,
-    useController,
-    useForm,
-    useFormState,
-} from 'react-hook-form';
+import { type Control, type FieldValues, useController, useForm, useFormState } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
 
@@ -83,7 +77,6 @@ interface ControllerProps {
     disabled?: boolean;
     name: string;
 }
-
 
 type HumanFormData = z.infer<ReturnType<typeof buildHumanFormSchema>>;
 
@@ -381,9 +374,12 @@ function SettingsPrompt() {
         return { currentTemplate, formId, variables };
     }, [promptInfo, activeTab, systemTemplate, humanTemplate]);
 
-    const handleVariableClickCallback = useCallback((variable: string) => {
-        handleVariableClick(variable);
-    }, [handleVariableClick]);
+    const handleVariableClickCallback = useCallback(
+        (variable: string) => {
+            handleVariableClick(variable);
+        },
+        [handleVariableClick],
+    );
     useEffect(() => {
         if (promptInfo) {
             systemForm.reset({

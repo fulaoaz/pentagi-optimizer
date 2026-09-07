@@ -179,7 +179,6 @@ export function FlowForm({
         handleSubmit: handleFormSubmit,
         resetField,
         setValue,
-
     } = form;
 
     // useController registers the field; with useWatch alone resetField('resourceIds') is a no-op.
@@ -633,7 +632,10 @@ export function FlowForm({
                                                                                 return;
                                                                             }
 
-                                                                            setValue('providerName', provider.name, { shouldDirty: true, shouldValidate: true });
+                                                                            setValue('providerName', provider.name, {
+                                                                                shouldDirty: true,
+                                                                                shouldValidate: true,
+                                                                            });
 
                                                                             setSelectedProvider(provider);
                                                                             setProviderSearch('');

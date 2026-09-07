@@ -35,7 +35,12 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormSubmitButton } from '@/components/ui/form-submit-button';
 import { Input } from '@/components/ui/input';
@@ -527,7 +532,10 @@ export const optionalJsonObject = z.string().optional().refine(isOptionalJsonObj
 const buildAgentConfigSchema = (t: Translate) =>
     z
         .object({
-            extraBody: z.string().optional().refine(isOptionalJsonObject, { message: t('settings.provider.extraBodyInvalid') }),
+            extraBody: z
+                .string()
+                .optional()
+                .refine(isOptionalJsonObject, { message: t('settings.provider.extraBodyInvalid') }),
             json: z.boolean().nullable().optional(),
             n: z.preprocess(
                 (value) => (value === '' || value === undefined ? null : value),
@@ -1428,47 +1436,57 @@ function SettingsProvider() {
         <>
             <div className="flex flex-col gap-4">
                 <header className="flex items-start justify-between gap-4">
-                <div className="flex flex-col gap-2">
-                    <h2 className="flex items-center gap-2 text-lg font-semibold">
-                        <Cpu className="text-muted-foreground size-5" />
-                        {isNew ? t('settings.provider.newTitle') : t('settings.provider.settingsTitle')}
-                    </h2>
+                    <div className="flex flex-col gap-2">
+                        <h2 className="flex items-center gap-2 text-lg font-semibold">
+                            <Cpu className="text-muted-foreground size-5" />
+                            {isNew ? t('settings.provider.newTitle') : t('settings.provider.settingsTitle')}
+                        </h2>
 
-                    <div className="text-muted-foreground">
-                        {isNew ? t('settings.provider.configureNew') : t('settings.provider.updateDescription')}
-                    </div>
-                    {!isNew && (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button
-                                    aria-label="Provider actions"
-                                    className="size-8 p-0"
-                                    type="button"
-                                    variant="ghost"
+                        <div className="text-muted-foreground">
+                            {isNew ? t('settings.provider.configureNew') : t('settings.provider.updateDescription')}
+                        </div>
+                        {!isNew && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        aria-label="Provider actions"
+                                        className="size-8 p-0"
+                                        type="button"
+                                        variant="ghost"
+                                    >
+                                        <Ellipsis />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                    align="end"
+                                    className="min-w-24"
                                 >
-                                    <Ellipsis />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="min-w-24">
-                                <DropdownMenuItem disabled={isDeleteLoading} onClick={handleDelete}>
-                                    {isDeleteLoading ? <Loader2 className="size-4 animate-spin" /> : <Trash2 />}
-                                    {isDeleteLoading ? t('common.deleting') : t('common.delete')}
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    )}
-                    <div className="ml-auto flex shrink-0 items-center gap-2">
-                        <Button
-                            disabled={isLoading || isTestLoading || isAgentTestLoading}
-                            onClick={() => handleTest()}
-                            type="button"
-                            variant="outline"
-                        >
-                            {isTestLoading ? <Loader2 className="size-4 animate-spin" /> : <Play className="size-4" />}
-                            {isTestLoading ? t('common.testing') : t('common.test')}
-                        </Button>
+                                    <DropdownMenuItem
+                                        disabled={isDeleteLoading}
+                                        onClick={handleDelete}
+                                    >
+                                        {isDeleteLoading ? <Loader2 className="size-4 animate-spin" /> : <Trash2 />}
+                                        {isDeleteLoading ? t('common.deleting') : t('common.delete')}
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
+                        <div className="ml-auto flex shrink-0 items-center gap-2">
+                            <Button
+                                disabled={isLoading || isTestLoading || isAgentTestLoading}
+                                onClick={() => handleTest()}
+                                type="button"
+                                variant="outline"
+                            >
+                                {isTestLoading ? (
+                                    <Loader2 className="size-4 animate-spin" />
+                                ) : (
+                                    <Play className="size-4" />
+                                )}
+                                {isTestLoading ? t('common.testing') : t('common.test')}
+                            </Button>
+                        </div>
                     </div>
-                </div>
                 </header>
 
                 <Form {...form}>
@@ -1572,18 +1590,18 @@ function SettingsProvider() {
                                                         role="button"
                                                         tabIndex={isTestLoading || isAgentTestLoading ? -1 : 0}
                                                     >
-                                                    {isAgentTestLoading && currentAgentKey === agentKey ? (
-                                                        <Loader2 className="size-4 animate-spin" />
-                                                    ) : (
-                                                        <Play className="size-4" />
-                                                    )}
-                                                    <span className="no-underline! hover:no-underline!">
-                                                        {isAgentTestLoading && currentAgentKey === agentKey
-                                                            ? t('common.testing')
-                                                            : t('common.test')}
+                                                        {isAgentTestLoading && currentAgentKey === agentKey ? (
+                                                            <Loader2 className="size-4 animate-spin" />
+                                                        ) : (
+                                                            <Play className="size-4" />
+                                                        )}
+                                                        <span className="no-underline! hover:no-underline!">
+                                                            {isAgentTestLoading && currentAgentKey === agentKey
+                                                                ? t('common.testing')
+                                                                : t('common.test')}
                                                         </span>
                                                     </span>
-                                                    </Button>
+                                                </Button>
                                             </div>
                                         </AccordionTrigger>
                                         <AccordionContent className="flex flex-col gap-4 pt-4">

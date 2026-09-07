@@ -55,7 +55,9 @@ function SettingsAccount() {
         <>
             <AppHeader>
                 <AppHeaderContent>
-                    <AppHeaderTitle icon={<User className="size-4 shrink-0" />}>{t('settings.account.account')}</AppHeaderTitle>
+                    <AppHeaderTitle icon={<User className="size-4 shrink-0" />}>
+                        {t('settings.account.account')}
+                    </AppHeaderTitle>
                 </AppHeaderContent>
             </AppHeader>
             <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-4">
@@ -67,7 +69,9 @@ function SettingsAccount() {
                         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                             <CardTitle className="truncate">{displayName}</CardTitle>
                             {memberSince && (
-                                <CardDescription className="truncate">{t('settings.account.memberSince', { date: memberSince })}</CardDescription>
+                                <CardDescription className="truncate">
+                                    {t('settings.account.memberSince', { date: memberSince })}
+                                </CardDescription>
                             )}
                         </div>
                         <Badge
@@ -115,7 +119,9 @@ function SettingsAccount() {
                         <div className="grid gap-1.5">
                             <CardTitle>{t('settings.account.emailAddress')}</CardTitle>
                             <CardDescription>
-                                {isLocal ? t('settings.account.emailDescription') : t('settings.account.linkedFrom', { provider: accountLabel })}
+                                {isLocal
+                                    ? t('settings.account.emailDescription')
+                                    : t('settings.account.linkedFrom', { provider: accountLabel })}
                             </CardDescription>
                         </div>
                         {isLocal && !editingSections.has('email') && (

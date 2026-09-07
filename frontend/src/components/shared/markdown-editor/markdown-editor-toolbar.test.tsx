@@ -30,7 +30,11 @@ const mount = (caret: number) => {
 
     editor.commands.setTextSelection(caret);
 
-    const view = render(<LocaleProvider><MarkdownEditorToolbar editor={editor} /></LocaleProvider>);
+    const view = render(
+        <LocaleProvider>
+            <MarkdownEditorToolbar editor={editor} />
+        </LocaleProvider>,
+    );
 
     return {
         cleanup: () => {
@@ -163,7 +167,11 @@ describe('block controls that a table cell cannot hold are disabled inside one',
         });
         editor.commands.setTextSelection(caret);
 
-        const view = render(<LocaleProvider><MarkdownEditorToolbar editor={editor} /></LocaleProvider>);
+        const view = render(
+            <LocaleProvider>
+                <MarkdownEditorToolbar editor={editor} />
+            </LocaleProvider>,
+        );
 
         return {
             cleanup: () => {
