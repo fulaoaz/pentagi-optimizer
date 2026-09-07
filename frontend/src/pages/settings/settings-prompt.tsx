@@ -688,7 +688,7 @@ function SettingsPrompt() {
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button
-                                aria-label="Prompt actions"
+                                aria-label={t('settings.prompts.actions')}
                                 className="size-8 p-0"
                                 type="button"
                                 variant="ghost"
@@ -788,7 +788,7 @@ function SettingsPrompt() {
 
                             {/* System Template Field */}
                             <FormMarkdownItem
-                                aria-label="System prompt template"
+                                aria-label={t('settings.prompts.systemPromptTemplate')}
                                 control={systemForm.control}
                                 disabled={isLoading}
                                 editorRef={editorRef}
@@ -832,7 +832,7 @@ function SettingsPrompt() {
 
                                 {/* Human Template Field */}
                                 <FormMarkdownItem
-                                    aria-label="Human prompt template"
+                                    aria-label={t('settings.prompts.humanPromptTemplate')}
                                     control={humanForm.control}
                                     disabled={isLoading}
                                     editorRef={editorRef}
@@ -911,7 +911,7 @@ function SettingsPrompt() {
                         </Button>
                         {activeTab === 'system' && (
                             <FormSubmitButton
-                                aria-label="Save"
+                                aria-label={t('common.save')}
                                 form="system-prompt-form"
                                 icon={<Save className="size-4" />}
                                 loading={isLoading}
@@ -922,7 +922,7 @@ function SettingsPrompt() {
                         )}
                         {activeTab === 'human' && promptInfo?.type === 'agent' && promptInfo?.hasHuman && (
                             <FormSubmitButton
-                                aria-label="Save"
+                                aria-label={t('common.save')}
                                 form="human-prompt-form"
                                 icon={<Save className="size-4" />}
                                 loading={isLoading}

@@ -473,7 +473,7 @@ function Template() {
                         />
                     )}
                     <Button
-                        aria-label={isNew ? 'Create' : 'Save'}
+                        aria-label={isNew ? t('common.create') : t('common.save')}
                         disabled={isSaving || !formState.isValid || (!isNew && !hasUnsavedChanges)}
                         form="template-form"
                         size="sm"

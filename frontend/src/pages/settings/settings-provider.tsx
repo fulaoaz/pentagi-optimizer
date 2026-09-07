@@ -395,7 +395,7 @@ function FormModelComboboxItem({
                         {/* Dropdown trigger button */}
                         <PopoverTrigger asChild>
                             <Button
-                                aria-label={`Open ${label.toLowerCase()} list`}
+                                aria-label={t('settings.provider.openFieldList', { name: label.toLowerCase() })}
                                 className="rounded-l-none border-l-0 px-3 hover:z-10"
                                 disabled={disabled}
                                 type="button"
@@ -1449,7 +1449,7 @@ function SettingsProvider() {
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button
-                                        aria-label="Provider actions"
+                                        aria-label={t('settings.provider.actions')}
                                         className="size-8 p-0"
                                         type="button"
                                         variant="ghost"
