@@ -112,8 +112,8 @@ func (t *traversaal) parseHTTPResponse(resp *http.Response) (string, error) {
 	var respBody struct {
 		Data traversaalSearchResult `json:"data"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&respBody); err != nil {
-		return "", Fatal(fmt.Errorf("failed to decode response body: %v", err))
+	if err := decodeSearchResponseBody(resp.Body, &respBody); err != nil {
+		return "", Fatal(err)
 	}
 
 	var writer strings.Builder

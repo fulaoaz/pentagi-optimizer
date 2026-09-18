@@ -73,10 +73,19 @@ type Config struct {
 	CookieSigningSalt string `env:"COOKIE_SIGNING_SALT"`
 
 	// === MCP Protocol Bridge ===
-	MCPEnabled       bool   `env:"MCP_ENABLED" envDefault:"true"`
-	MCPServerName    string `env:"MCP_SERVER_NAME" envDefault:"PentAGI"`
-	MCPServerVersion string `env:"MCP_SERVER_VERSION" envDefault:"1.0.0"`
-	MCPAPIKey        string `env:"MCP_API_KEY"`
+	MCPEnabled            bool     `env:"MCP_ENABLED" envDefault:"true"`
+	MCPServerName         string   `env:"MCP_SERVER_NAME" envDefault:"PentAGI"`
+	MCPServerVersion      string   `env:"MCP_SERVER_VERSION" envDefault:"1.0.0"`
+	MCPAPIKey             string   `env:"MCP_API_KEY"`
+	MCPWriteAPIKey        string   `env:"MCP_WRITE_API_KEY"`
+	MCPAllowAnonymous     bool     `env:"MCP_ALLOW_ANONYMOUS" envDefault:"false"`
+	MCPAllowedOrigins     []string `env:"MCP_ALLOWED_ORIGINS"`
+	MCPAllowedTools       []string `env:"MCP_ALLOWED_TOOLS"`
+	MCPMaxRequestBytes    int      `env:"MCP_MAX_REQUEST_BYTES" envDefault:"1048576"`
+	MCPEnableWriteTools   bool     `env:"MCP_ENABLE_WRITE_TOOLS" envDefault:"false"`
+	MCPReadToolRateLimit  int      `env:"MCP_READ_TOOL_RATE_LIMIT" envDefault:"60"`
+	MCPWriteToolRateLimit int      `env:"MCP_WRITE_TOOL_RATE_LIMIT" envDefault:"10"`
+	MCPApprovalMode       string   `env:"MCP_APPROVAL_MODE" envDefault:"scope"`
 
 	// === Web Scraper Service Endpoints ===
 	ScraperPublicURL  string `env:"SCRAPER_PUBLIC_URL"`
@@ -442,6 +451,11 @@ func (c *Config) WorkerNetwork() string {
 	return c.DockerNetwork
 }
 
+// MCPWriteToolsEnabled reports whether write-capable MCP tools can be registered.
+func (c *Config) MCPWriteToolsEnabled() bool {
+	return c != nil && c.MCPEnableWriteTools && strings.TrimSpace(c.MCPAPIKey) != ""
+}
+
 // GetSecretPatterns returns a list of patterns for all secrets in the config
 func (c *Config) GetSecretPatterns() []patterns.Pattern {
 	var result []patterns.Pattern
@@ -453,6 +467,8 @@ func (c *Config) GetSecretPatterns() []patterns.Pattern {
 		{c.DatabaseURL, "Database URL"},
 		{c.LicenseKey, "License Key"},
 		{c.CookieSigningSalt, "Cookie Salt"},
+		{c.MCPAPIKey, "MCP API Key"},
+		{c.MCPWriteAPIKey, "MCP Write API Key"},
 		{c.OpenAIKey, "OpenAI Key"},
 		{c.AnthropicAPIKey, "Anthropic Key"},
 		{c.EmbeddingKey, "Embedding Key"},

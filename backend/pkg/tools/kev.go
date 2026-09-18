@@ -142,7 +142,7 @@ func (k *kev) lookup(ctx context.Context, cves, vendor, product string, limit in
 	}
 
 	var apiResp kevResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+	if err := decodeBoundedJSON(resp.Body, &apiResp, maxExternalJSONResponseBytes); err != nil {
 		return "", fmt.Errorf("failed to decode CISA KEV response: %w", err)
 	}
 

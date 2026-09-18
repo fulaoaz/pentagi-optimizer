@@ -171,7 +171,7 @@ func (s *sploitus) search(ctx context.Context, query, exploitType, sort string, 
 	}
 
 	var apiResp sploitusResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+	if err := decodeSearchResponseBody(resp.Body, &apiResp); err != nil {
 		return "", Fatal(fmt.Errorf("failed to decode Sploitus response: %w", err))
 	}
 

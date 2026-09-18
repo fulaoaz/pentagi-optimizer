@@ -3,7 +3,6 @@ package searchers
 import (
 	"context"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -182,7 +181,7 @@ func (d *duckduckgo) search(ctx context.Context, query string, maxResults int) (
 			continue
 		}
 
-		body, err := io.ReadAll(resp.Body)
+		body, err := readSearchResponseBody(resp.Body)
 		resp.Body.Close()
 		if err != nil {
 			return "", fmt.Errorf("failed to read response body: %w", err)

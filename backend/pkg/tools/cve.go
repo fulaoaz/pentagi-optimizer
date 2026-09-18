@@ -163,7 +163,7 @@ func (c *cve) lookupOne(ctx context.Context, client *http.Client, cveID string) 
 	}
 
 	var apiResp cveResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+	if err := decodeBoundedJSON(resp.Body, &apiResp, maxExternalJSONResponseBytes); err != nil {
 		return "", fmt.Errorf("failed to decode NVD response: %w", err)
 	}
 
@@ -215,8 +215,8 @@ type cvssV31Data struct {
 }
 
 type cvssMetricV31 struct {
-	Source   string     `json:"source"`
-	Type     string     `json:"type"`
+	Source   string      `json:"source"`
+	Type     string      `json:"type"`
 	CvssData cvssV31Data `json:"cvssData"`
 }
 
@@ -228,8 +228,8 @@ type cvssV30Data struct {
 }
 
 type cvssMetricV30 struct {
-	Source   string     `json:"source"`
-	Type     string     `json:"type"`
+	Source   string      `json:"source"`
+	Type     string      `json:"type"`
 	CvssData cvssV30Data `json:"cvssData"`
 }
 
@@ -247,10 +247,10 @@ type cvssMetricV2 struct {
 }
 
 type cveDetail struct {
-	ID           string            `json:"id"`
-	Published    string            `json:"published"`
-	LastModified string            `json:"lastModified"`
-	Descriptions []cveDescription  `json:"descriptions"`
+	ID           string           `json:"id"`
+	Published    string           `json:"published"`
+	LastModified string           `json:"lastModified"`
+	Descriptions []cveDescription `json:"descriptions"`
 	Metrics      struct {
 		CvssMetricV31 []cvssMetricV31 `json:"cvssMetricV31"`
 		CvssMetricV30 []cvssMetricV30 `json:"cvssMetricV30"`

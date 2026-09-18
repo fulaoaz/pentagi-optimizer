@@ -285,10 +285,26 @@ func NewRouter(
 		}
 
 		if cfg.MCPEnabled {
-			mcpBridge := mcpbridge.NewFlowBridge(cfg.MCPServerName, cfg.MCPServerVersion, controller, db)
-			mcpAuth := mcpbridge.APIKeyMiddleware(cfg.MCPAPIKey)
-			mcpSSEHandler := mcpAuth(mcpBridge.SSEHandler())
-			mcpMsgHandler := mcpAuth(mcpBridge.MessageHandler())
+			mcpBridge := mcpbridge.NewFlowBridgeWithGovernance(
+				cfg.MCPServerName,
+				cfg.MCPServerVersion,
+				controller,
+				db,
+				cfg.MCPWriteToolsEnabled(),
+				cfg.MCPAllowedOrigins,
+				cfg.MCPAllowedTools,
+				mcpbridge.MCPGovernanceConfig{
+					ReadRequestsPerMinute:  cfg.MCPReadToolRateLimit,
+					WriteRequestsPerMinute: cfg.MCPWriteToolRateLimit,
+					ApprovalMode:           cfg.MCPApprovalMode,
+				},
+			)
+			mcpAuth := mcpbridge.APIKeyMiddlewareWithWriteKey(cfg.MCPAPIKey, cfg.MCPWriteAPIKey, cfg.MCPAllowAnonymous)
+			mcpOrigin := mcpbridge.MCPOriginMiddleware(cfg.MCPAllowedOrigins)
+			mcpLimit := mcpbridge.MCPRequestBodyLimitMiddleware(int64(cfg.MCPMaxRequestBytes))
+			mcpContext := mcpbridge.MCPRequestContextMiddleware
+			mcpSSEHandler := mcpContext(mcpOrigin(mcpAuth(mcpLimit(mcpBridge.SSEHandler()))))
+			mcpMsgHandler := mcpContext(mcpOrigin(mcpAuth(mcpLimit(mcpBridge.MessageHandler()))))
 			publicGroup.Any("/mcp", gin.WrapH(mcpSSEHandler))
 			publicGroup.Any("/mcp/sse", gin.WrapH(mcpSSEHandler))
 			publicGroup.Any("/mcp/message", gin.WrapH(mcpMsgHandler))

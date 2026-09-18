@@ -48,6 +48,22 @@ func TestGetSecretPatterns_WithSecrets(t *testing.T) {
 	}
 }
 
+func TestGetSecretPatterns_IncludesMCPAPIKey(t *testing.T) {
+	patterns := (&Config{MCPAPIKey: "mcp-test-secret"}).GetSecretPatterns()
+
+	require.Len(t, patterns, 1)
+	assert.Equal(t, "MCP API Key", patterns[0].Name)
+	assert.Contains(t, patterns[0].Regex, "mcp-test-secret")
+}
+
+func TestGetSecretPatterns_IncludesMCPWriteAPIKey(t *testing.T) {
+	patterns := (&Config{MCPWriteAPIKey: "mcp-write-test-secret"}).GetSecretPatterns()
+
+	require.Len(t, patterns, 1)
+	assert.Equal(t, "MCP Write API Key", patterns[0].Name)
+	assert.Contains(t, patterns[0].Regex, "mcp-write-test-secret")
+}
+
 func TestGetSecretPatterns_TrimsWhitespace(t *testing.T) {
 	cfg := &Config{
 		OpenAIKey:    "  sk-1234  ",
@@ -277,6 +293,7 @@ func clearConfigEnv(t *testing.T) {
 		"DOCKER_PUBLIC_IP", "DOCKER_WORK_DIR", "DOCKER_DEFAULT_IMAGE", "DOCKER_DEFAULT_IMAGE_FOR_PENTEST", "TERMINAL_TOOL_TIMEOUT",
 		"SERVER_PORT", "SERVER_HOST", "SERVER_USE_SSL", "SERVER_SSL_KEY", "SERVER_SSL_CRT",
 		"STATIC_URL", "STATIC_DIR", "CORS_ORIGINS", "COOKIE_SIGNING_SALT",
+		"MCP_ENABLED", "MCP_SERVER_NAME", "MCP_SERVER_VERSION", "MCP_API_KEY", "MCP_WRITE_API_KEY", "MCP_ALLOW_ANONYMOUS", "MCP_ALLOWED_ORIGINS", "MCP_ALLOWED_TOOLS", "MCP_MAX_REQUEST_BYTES", "MCP_ENABLE_WRITE_TOOLS", "MCP_READ_TOOL_RATE_LIMIT", "MCP_WRITE_TOOL_RATE_LIMIT", "MCP_APPROVAL_MODE",
 		"SCRAPER_PUBLIC_URL", "SCRAPER_PRIVATE_URL",
 		"OPEN_AI_KEY", "OPEN_AI_SERVER_URL",
 		"ANTHROPIC_API_KEY", "ANTHROPIC_SERVER_URL",
@@ -342,6 +359,16 @@ func TestNewConfig_Defaults(t *testing.T) {
 	assert.Equal(t, true, config.DuckDuckGoEnabled)
 	assert.Equal(t, "debian:latest", config.DockerDefaultImage)
 	assert.Equal(t, "vxcontrol/kali-linux", config.DockerDefaultImageForPentest)
+	assert.True(t, config.MCPEnabled)
+	assert.Empty(t, config.MCPWriteAPIKey)
+	assert.False(t, config.MCPAllowAnonymous)
+	assert.Empty(t, config.MCPAllowedOrigins)
+	assert.Empty(t, config.MCPAllowedTools)
+	assert.Equal(t, 1<<20, config.MCPMaxRequestBytes)
+	assert.False(t, config.MCPEnableWriteTools)
+	assert.Equal(t, 60, config.MCPReadToolRateLimit)
+	assert.Equal(t, 10, config.MCPWriteToolRateLimit)
+	assert.Equal(t, "scope", config.MCPApprovalMode)
 }
 
 func TestNewConfig_EnvOverride(t *testing.T) {
@@ -359,6 +386,62 @@ func TestNewConfig_EnvOverride(t *testing.T) {
 	assert.Equal(t, 9090, config.ServerPort)
 	assert.Equal(t, "127.0.0.1", config.ServerHost)
 	assert.Equal(t, true, config.Debug)
+}
+
+func TestNewConfig_MCPOverrides(t *testing.T) {
+	clearConfigEnv(t)
+	t.Chdir(t.TempDir())
+
+	t.Setenv("MCP_ENABLED", "false")
+	t.Setenv("MCP_SERVER_NAME", "PentAGI Test")
+	t.Setenv("MCP_SERVER_VERSION", "2.0.0")
+	t.Setenv("MCP_API_KEY", "mcp-test-key")
+	t.Setenv("MCP_WRITE_API_KEY", "mcp-write-key")
+	t.Setenv("MCP_ALLOW_ANONYMOUS", "true")
+	t.Setenv("MCP_ALLOWED_ORIGINS", "https://console.example.com,https://admin.example.com")
+	t.Setenv("MCP_ALLOWED_TOOLS", "get_flow_status,list_assistants")
+	t.Setenv("MCP_MAX_REQUEST_BYTES", "2097152")
+	t.Setenv("MCP_ENABLE_WRITE_TOOLS", "true")
+	t.Setenv("MCP_READ_TOOL_RATE_LIMIT", "120")
+	t.Setenv("MCP_WRITE_TOOL_RATE_LIMIT", "4")
+	t.Setenv("MCP_APPROVAL_MODE", "destructive")
+
+	config, err := NewConfig()
+	require.NoError(t, err)
+
+	assert.False(t, config.MCPEnabled)
+	assert.Equal(t, "PentAGI Test", config.MCPServerName)
+	assert.Equal(t, "2.0.0", config.MCPServerVersion)
+	assert.Equal(t, "mcp-test-key", config.MCPAPIKey)
+	assert.Equal(t, "mcp-write-key", config.MCPWriteAPIKey)
+	assert.True(t, config.MCPAllowAnonymous)
+	assert.Equal(t, []string{"https://console.example.com", "https://admin.example.com"}, config.MCPAllowedOrigins)
+	assert.Equal(t, []string{"get_flow_status", "list_assistants"}, config.MCPAllowedTools)
+	assert.Equal(t, 2097152, config.MCPMaxRequestBytes)
+	assert.True(t, config.MCPEnableWriteTools)
+	assert.Equal(t, 120, config.MCPReadToolRateLimit)
+	assert.Equal(t, 4, config.MCPWriteToolRateLimit)
+	assert.Equal(t, "destructive", config.MCPApprovalMode)
+}
+
+func TestMCPWriteToolsEnabled(t *testing.T) {
+	testCases := []struct {
+		name   string
+		config *Config
+		want   bool
+	}{
+		{name: "nil config", want: false},
+		{name: "write tools disabled", config: &Config{MCPAPIKey: "key"}, want: false},
+		{name: "empty key", config: &Config{MCPEnableWriteTools: true}, want: false},
+		{name: "whitespace key", config: &Config{MCPEnableWriteTools: true, MCPAPIKey: " \t "}, want: false},
+		{name: "configured key", config: &Config{MCPEnableWriteTools: true, MCPAPIKey: "key"}, want: true},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			assert.Equal(t, testCase.want, testCase.config.MCPWriteToolsEnabled())
+		})
+	}
 }
 
 func TestNewConfig_ProviderDefaults(t *testing.T) {

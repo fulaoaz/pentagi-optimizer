@@ -118,8 +118,39 @@ type flowProviderWorkers struct {
 const flowInputTimeout = 1 * time.Second
 
 type flowInput struct {
-	input string
-	done  chan error
+	input       string
+	done        chan error
+	correlation obs.AuditCorrelation
+}
+
+func newFlowInput(ctx context.Context, input string) flowInput {
+	return flowInput{
+		input:       input,
+		done:        make(chan error, 1),
+		correlation: obs.AuditCorrelationFromContext(ctx),
+	}
+}
+
+func safeFlowInputLogFields(input string) logrus.Fields {
+	return logrus.Fields{"input_bytes": len(input)}
+}
+
+func mcpTaskTriggerAuditFields(ctx context.Context, flowID, taskID int64, trigger string) (logrus.Fields, bool) {
+	correlation := obs.AuditCorrelationFromContext(ctx)
+	if correlation.Source != obs.AuditSourceMCP {
+		return nil, false
+	}
+
+	fields := logrus.Fields{
+		"action":  "mcp_task_trigger",
+		"trigger": trigger,
+		"flow_id": flowID,
+		"task_id": taskID,
+	}
+	for key, value := range correlation.Fields() {
+		fields[key] = value
+	}
+	return fields, true
 }
 
 func NewFlowWorker(
@@ -657,7 +688,7 @@ func (fw *flowWorker) PutInput(
 		fw.logger.WithError(err).Warn("failed to copy resources before user input")
 	}
 
-	flin := flowInput{input: input, done: make(chan error, 1)}
+	flin := newFlowInput(ctx, input)
 	select {
 	case <-fw.ctx.Done():
 		close(flin.done)
@@ -988,8 +1019,11 @@ func (fw *flowWorker) worker() {
 
 	_, observation := obs.Observer.NewObservation(fw.ctx)
 
-	getLogger := func(input string, task TaskWorker) *logrus.Entry {
-		logger := fw.logger.WithField("input", input)
+	getLogger := func(ctx context.Context, input string, task TaskWorker) *logrus.Entry {
+		logger := fw.logger.WithContext(ctx).WithFields(safeFlowInputLogFields(input))
+		for key, value := range obs.AuditCorrelationFromContext(ctx).Fields() {
+			logger = logger.WithField(key, value)
+		}
 		if task != nil {
 			logger = logger.WithFields(logrus.Fields{
 				"task_id":       task.GetTaskID(),
@@ -1007,56 +1041,58 @@ func (fw *flowWorker) worker() {
 		if !task.IsCompleted() && !task.IsWaiting() {
 			input := "continue after loading"
 			spanName := fmt.Sprintf("continue task %d: %s", task.GetTaskID(), task.GetTitle())
-			if err := fw.runTask(spanName, input, task); err != nil {
+			if err := fw.runTask(fw.ctx, spanName, input, task); err != nil {
 				if errors.Is(err, context.Canceled) {
-					getLogger(input, task).Info("flow are going to be stopped by user")
+					getLogger(fw.ctx, input, task).Info("flow are going to be stopped by user")
 					return
 				} else {
-					getLogger(input, task).WithError(err).Error("failed to continue task")
+					getLogger(fw.ctx, input, task).WithError(err).Error("failed to continue task")
 
 					// anyway there need to set flow status to Waiting new user input even an error happened
 					_ = fw.SetStatus(fw.ctx, database.FlowStatusWaiting)
 				}
 			} else {
-				getLogger(input, task).Info("task continued successfully")
+				getLogger(fw.ctx, input, task).Info("task continued successfully")
 			}
 		}
 	}
 
 	// process user input in regular job
 	for flin := range fw.input {
-		if task, err := fw.processInput(flin); err != nil {
+		inputCtx := obs.WithAuditCorrelation(fw.ctx, flin.correlation)
+		if task, err := fw.processInput(inputCtx, flin); err != nil {
 			if errors.Is(err, context.Canceled) {
-				getLogger(flin.input, task).Info("flow are going to be stopped by user")
+				getLogger(inputCtx, flin.input, task).Info("flow are going to be stopped by user")
 				return
 			} else {
-				getLogger(flin.input, task).WithError(err).Error("failed to process input")
+				getLogger(inputCtx, flin.input, task).WithError(err).Error("failed to process input")
 
 				// anyway there need to set flow status to Waiting new user input even an error happened
 				_ = fw.SetStatus(fw.ctx, database.FlowStatusWaiting)
 			}
 		} else {
-			getLogger(flin.input, task).Info("user input processed")
+			getLogger(inputCtx, flin.input, task).Info("user input processed")
 		}
 	}
 }
 
-func (fw *flowWorker) processInput(flin flowInput) (TaskWorker, error) {
-	for _, task := range fw.tc.ListTasks(fw.ctx) {
+func (fw *flowWorker) processInput(ctx context.Context, flin flowInput) (TaskWorker, error) {
+	for _, task := range fw.tc.ListTasks(ctx) {
 		if !task.IsCompleted() && task.IsWaiting() {
-			if err := task.PutInput(fw.ctx, flin.input); err != nil {
+			if err := task.PutInput(ctx, flin.input); err != nil {
 				err = fmt.Errorf("failed to process input to task %d: %w", task.GetTaskID(), err)
 				flin.done <- err
 				return nil, err
 			} else {
 				flin.done <- nil
-				return task, fw.runTask("put input to task and run", flin.input, task)
+				fw.logMCPTaskTrigger(ctx, task, "resumed")
+				return task, fw.runTask(ctx, "put input to task and run", flin.input, task)
 			}
 		}
 	}
 
 	// anyway there need to set flow status to Running to disable user input
-	_ = fw.SetStatus(fw.ctx, database.FlowStatusRunning)
+	_ = fw.SetStatus(ctx, database.FlowStatusRunning)
 
 	// Pre-create the per-task cancellable context BEFORE calling CreateTask.
 	// GenerateSubtasks (an LLM call) runs synchronously inside CreateTask and may take
@@ -1064,7 +1100,7 @@ func (fw *flowWorker) processInput(flin flowInput) (TaskWorker, error) {
 	// find taskWG at zero—reporting success while the generator is still running.
 	fw.taskMX.Lock()
 	fw.taskST()
-	ctx, taskST := context.WithCancel(fw.ctx)
+	ctx, taskST := context.WithCancel(ctx)
 	fw.taskST = taskST
 	fw.taskMX.Unlock()
 
@@ -1089,16 +1125,17 @@ func (fw *flowWorker) processInput(flin flowInput) (TaskWorker, error) {
 	}
 
 	flin.done <- nil
+	fw.logMCPTaskTrigger(ctx, task, "created")
 	spanName := fmt.Sprintf("perform task %d: %s", task.GetTaskID(), task.GetTitle())
 	return task, fw.execTask(ctx, spanName, flin.input, task)
 }
 
 // runTask creates a fresh per-task cancellable context and runs an already-created task.
 // Use this for tasks that were previously created and are being resumed (e.g. after waiting).
-func (fw *flowWorker) runTask(spanName, input string, task TaskWorker) error {
+func (fw *flowWorker) runTask(ctx context.Context, spanName, input string, task TaskWorker) error {
 	fw.taskMX.Lock()
 	fw.taskST()
-	ctx, taskST := context.WithCancel(fw.ctx)
+	ctx, taskST := context.WithCancel(ctx)
 	fw.taskST = taskST
 	fw.taskMX.Unlock()
 
@@ -1113,7 +1150,7 @@ func (fw *flowWorker) runTask(spanName, input string, task TaskWorker) error {
 
 // execTask executes a task using an already-prepared context and cancel function.
 func (fw *flowWorker) execTask(ctx context.Context, spanName, input string, task TaskWorker) error {
-	_, observation := obs.Observer.NewObservation(fw.ctx)
+	_, observation := obs.Observer.NewObservation(ctx)
 	span := observation.Span(
 		langfuse.WithSpanName(spanName),
 		langfuse.WithSpanInput(input),
@@ -1156,6 +1193,17 @@ func (fw *flowWorker) execTask(ctx context.Context, spanName, input string, task
 	}
 
 	return nil
+}
+
+func (fw *flowWorker) logMCPTaskTrigger(ctx context.Context, task TaskWorker, trigger string) {
+	if task == nil {
+		return
+	}
+	fields, ok := mcpTaskTriggerAuditFields(ctx, fw.flowCtx.FlowID, task.GetTaskID(), trigger)
+	if !ok {
+		return
+	}
+	logrus.WithContext(ctx).WithFields(fields).Info("MCP task execution triggered")
 }
 
 func newFlowProviderWorkers(

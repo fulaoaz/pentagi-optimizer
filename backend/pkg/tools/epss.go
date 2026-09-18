@@ -148,7 +148,7 @@ func (e *epss) lookup(ctx context.Context, cveList []string) (string, error) {
 	}
 
 	var apiResp epssResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+	if err := decodeBoundedJSON(resp.Body, &apiResp, maxExternalJSONResponseBytes); err != nil {
 		return "", fmt.Errorf("failed to decode EPSS response: %w", err)
 	}
 

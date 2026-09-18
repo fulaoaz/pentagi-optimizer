@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -57,7 +58,7 @@ func TestBrowserResolveUrl(t *testing.T) {
 			name:      "both URLs set, public target uses public",
 			scPrvURL:  "http://scraper-prv:8080",
 			scPubURL:  "http://scraper-pub:8080",
-			targetURL: "https://google.com",
+			targetURL: "https://8.8.8.8/test",
 			wantURL:   "http://scraper-pub:8080",
 			wantErr:   false,
 		},
@@ -81,7 +82,7 @@ func TestBrowserResolveUrl(t *testing.T) {
 			name:      "only public URL set, public target uses public",
 			scPrvURL:  "",
 			scPubURL:  "http://scraper-pub:8080",
-			targetURL: "https://google.com",
+			targetURL: "https://8.8.8.8/test",
 			wantURL:   "http://scraper-pub:8080",
 			wantErr:   false,
 		},
@@ -132,6 +133,48 @@ func TestBrowserResolveUrl(t *testing.T) {
 			targetURL: "http://172.16.0.1",
 			wantURL:   "http://scraper-prv:8080",
 			wantErr:   false,
+		},
+		{
+			name:      "IPv6 loopback uses private",
+			scPrvURL:  "http://scraper-prv:8080",
+			scPubURL:  "http://scraper-pub:8080",
+			targetURL: "http://[::1]/",
+			wantURL:   "http://scraper-prv:8080",
+			wantErr:   false,
+		},
+		{
+			name:      "IPv6 link local uses private",
+			scPrvURL:  "http://scraper-prv:8080",
+			scPubURL:  "http://scraper-pub:8080",
+			targetURL: "http://[fe80::1]/",
+			wantURL:   "http://scraper-prv:8080",
+			wantErr:   false,
+		},
+		{
+			name:      "shared IPv4 space uses private",
+			scPrvURL:  "http://scraper-prv:8080",
+			scPubURL:  "http://scraper-pub:8080",
+			targetURL: "http://100.64.0.1/",
+			wantURL:   "http://scraper-prv:8080",
+			wantErr:   false,
+		},
+		{
+			name:      "unsupported scheme is rejected",
+			scPrvURL:  "http://scraper-prv:8080",
+			targetURL: "file:///etc/passwd",
+			wantErr:   true,
+		},
+		{
+			name:      "target credentials are rejected",
+			scPrvURL:  "http://scraper-prv:8080",
+			targetURL: "https://user:pass@example.com/",
+			wantErr:   true,
+		},
+		{
+			name:      "relative URL is rejected",
+			scPrvURL:  "http://scraper-prv:8080",
+			targetURL: "example.com/page",
+			wantErr:   true,
 		},
 	}
 
@@ -477,6 +520,78 @@ func TestCallScraper_ClientError4xx_NoBodyPreview(t *testing.T) {
 	// so the body preview (only meaningful for 5xx) must not be included.
 	if strings.Contains(err.Error(), "not found body") {
 		t.Errorf("callScraper() error should not include the response body for 4xx, got: %v", err)
+	}
+}
+
+func TestCallScraper_ResponseBodyLimit(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Length", fmt.Sprintf("%d", maxScraperResponseBytes+1))
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	b := &browser{flowID: 1}
+	_, err := b.callScraper(ts.URL)
+	if err == nil {
+		t.Fatal("callScraper() should reject a response larger than the hard limit")
+	}
+	if !strings.Contains(err.Error(), "exceeds") || !strings.Contains(err.Error(), "limit") {
+		t.Fatalf("callScraper() error = %v, want a response-limit error", err)
+	}
+}
+
+func TestParseBrowserTargetURLRejectsUnsafeForms(t *testing.T) {
+	for _, rawURL := range []string{
+		"",
+		"ftp://example.com/file",
+		"https:///missing-host",
+		"https://user@example.com/",
+		"https://example.com:0/",
+		"https://example.com:65536/",
+		"https://-bad.example/",
+		"https://bad_.example/",
+	} {
+		if _, err := parseBrowserTargetURL(rawURL); err == nil {
+			t.Errorf("parseBrowserTargetURL(%q) should return an error", rawURL)
+		}
+	}
+}
+
+func TestParseBrowserTargetURLAcceptsIPv6Zone(t *testing.T) {
+	if _, err := parseBrowserTargetURL("http://[fe80::1%25loopback]/"); err != nil {
+		t.Fatalf("parseBrowserTargetURL() rejected a valid IPv6 zone: %v", err)
+	}
+}
+
+func TestIsNonPublicTargetIP(t *testing.T) {
+	for _, rawIP := range []string{
+		"0.0.0.0",
+		"127.0.0.1",
+		"169.254.1.1",
+		"192.0.2.1",
+		"100.64.0.1",
+		"::",
+		"::1",
+		"fe80::1",
+		"fc00::1",
+		"2001:db8::1",
+		"ff02::1",
+	} {
+		if !isNonPublicTargetIP(net.ParseIP(rawIP)) {
+			t.Errorf("isNonPublicTargetIP(%q) = false, want true", rawIP)
+		}
+	}
+	for _, rawIP := range []string{"8.8.8.8", "2001:4860:4860::8888"} {
+		if isNonPublicTargetIP(net.ParseIP(rawIP)) {
+			t.Errorf("isNonPublicTargetIP(%q) = true, want false", rawIP)
+		}
+	}
+}
+
+func TestRedactURLRemovesCredentialsAndQuery(t *testing.T) {
+	got := redactURL("https://user:secret@example.com/path?token=value#fragment")
+	if got != "https://example.com/path" {
+		t.Fatalf("redactURL() = %q, want %q", got, "https://example.com/path")
 	}
 }
 

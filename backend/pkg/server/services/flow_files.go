@@ -603,12 +603,16 @@ func (s *FlowFileService) PullFlowFiles(c *gin.Context) {
 		response.Error(c, response.ErrFlowFilesInvalidRequest, err)
 		return
 	}
+	audit := newContainerArtifactAudit(c.Request.Context(), flowID)
+	defer func() { audit.emit(c.Writer.Status()) }()
+	audit.setStage("flow_lookup")
 
 	flow, err := s.getFlow(c, flowID, true)
 	if err != nil {
 		s.handleFlowLookupError(c, flowID, err)
 		return
 	}
+	audit.setStage("authorization")
 
 	// Container interaction additionally requires containers.view (or containers.admin).
 	privs := c.GetStringSlice("prm")
@@ -616,6 +620,7 @@ func (s *FlowFileService) PullFlowFiles(c *gin.Context) {
 		response.Error(c, response.ErrNotPermitted, fmt.Errorf("containers.view privilege is required to pull from container"))
 		return
 	}
+	audit.setStage("request")
 
 	var req models.PullFlowFilesRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -623,6 +628,7 @@ func (s *FlowFileService) PullFlowFiles(c *gin.Context) {
 		response.Error(c, response.ErrFlowFilesInvalidRequest, err)
 		return
 	}
+	audit.setStage("validation")
 
 	// Collect container paths from both req.Path and req.Paths, then deduplicate
 	// with coverage semantics using flowfiles.DeduplicatePaths.
@@ -646,6 +652,7 @@ func (s *FlowFileService) PullFlowFiles(c *gin.Context) {
 		}
 	}
 	dedupedRel := flowfiles.DeduplicatePaths(relPaths)
+	audit.setRequest(len(dedupedRel), req.Force)
 	if len(dedupedRel) == 0 {
 		err = errors.New("at least one valid path is required (use 'path' or 'paths' fields)")
 		logger.FromContext(c).WithError(err).WithField("flow_id", flowID).Error("missing container paths in pull request")
@@ -715,12 +722,14 @@ func (s *FlowFileService) PullFlowFiles(c *gin.Context) {
 	}
 
 	if err := os.MkdirAll(containerDir, 0755); err != nil {
+		audit.setStage("cache_prepare")
 		logger.FromContext(c).WithError(err).WithField("flow_id", flowID).Error("error creating container cache directory")
 		response.Error(c, response.ErrInternal, err)
 		return
 	}
 
 	if s.dockerClient == nil {
+		audit.setStage("runtime_check")
 		err = errors.New("docker client not configured on this server")
 		logger.FromContext(c).WithError(err).WithField("flow_id", flowID).Error("docker client unavailable for pull")
 		response.Error(c, response.ErrInternal, err)
@@ -728,6 +737,7 @@ func (s *FlowFileService) PullFlowFiles(c *gin.Context) {
 	}
 
 	containerName := primaryContainerName(s.tenantPrefix, flowID)
+	audit.setStage("runtime_check")
 	running, err := s.dockerClient.IsContainerRunning(c.Request.Context(), containerName)
 	if err != nil {
 		logger.FromContext(c).WithError(err).WithFields(map[string]any{
@@ -750,6 +760,7 @@ func (s *FlowFileService) PullFlowFiles(c *gin.Context) {
 	updatedFiles := make([]models.FlowFile, 0)
 
 	for _, entry := range entries {
+		audit.setStage("copy")
 		reader, _, err := s.dockerClient.CopyFromContainer(c.Request.Context(), containerName, entry.containerPath)
 		if err != nil {
 			logger.FromContext(c).WithError(err).WithFields(map[string]any{
@@ -768,6 +779,7 @@ func (s *FlowFileService) PullFlowFiles(c *gin.Context) {
 			return
 		}
 
+		audit.setStage("extract")
 		extractErr := flowfiles.ExtractTar(reader, stagingDir)
 		reader.Close()
 		if extractErr != nil {
@@ -777,6 +789,7 @@ func (s *FlowFileService) PullFlowFiles(c *gin.Context) {
 			return
 		}
 
+		audit.setStage("commit")
 		stagedTarget := flowfiles.ResolvePulledStagedTarget(stagingDir, entry.cacheRelPath)
 		if stagedTarget == "" {
 			os.RemoveAll(stagingDir)
@@ -858,6 +871,7 @@ func (s *FlowFileService) PullFlowFiles(c *gin.Context) {
 				}
 			}
 		}
+		audit.recordCommitted(expanded)
 		syncedFiles = append(syncedFiles, expanded...)
 		if entry.targetExists {
 			updatedFiles = append(updatedFiles, expanded...)
@@ -888,6 +902,7 @@ func (s *FlowFileService) PullFlowFiles(c *gin.Context) {
 		s.publishFlowFileUpdated(ctx, flow, f)
 	}
 
+	audit.markSuccess()
 	response.Success(c, http.StatusOK, models.FlowFiles{
 		Files: syncedFiles,
 		Total: uint64(len(syncedFiles)),

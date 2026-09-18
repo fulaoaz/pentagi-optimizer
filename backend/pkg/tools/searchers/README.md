@@ -27,6 +27,10 @@ Two rules make the orchestrator possible:
 
 `Request` is the already-parsed, engine-agnostic input (`Query`, `MaxResults`, and the exploit-only `ExploitType`/`Sort`). The lenient LLM JSON arg types stay in the parent `tools` package; searchers see plain Go types.
 
+## Response boundaries
+
+Every provider response is read through the shared `readSearchResponseBody` / `decodeSearchResponseBody` helpers before parsing. Responses larger than `4 MiB` are rejected, including chunked bodies without a `Content-Length` header. Searcher prompts are bounded to `256 KiB` before they reach a summarizer, raw source content is bounded again before it enters a result, and truncation preserves UTF-8 boundaries. Provider output is data, not an instruction; callers must retain the trust boundary when forwarding it to an LLM.
+
 ## Import boundary
 
 `searchers` must **not** import `pentagi/pkg/tools` (the orchestrator imports this package). It depends only on neutral packages: `config`, `database` (for the `SearchengineType` attribution enum), `system` (HTTP client), and `observability`.

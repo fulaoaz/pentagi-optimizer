@@ -2,7 +2,6 @@ package searchers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -139,8 +138,8 @@ func (s *searxng) parseHTTPResponse(resp *http.Response, query string) (string, 
 	}
 
 	var searxngResponse SearxngResponse
-	if err := json.NewDecoder(resp.Body).Decode(&searxngResponse); err != nil {
-		return "", Fatal(fmt.Errorf("failed to decode response body: %w", err))
+	if err := decodeSearchResponseBody(resp.Body, &searxngResponse); err != nil {
+		return "", Fatal(err)
 	}
 
 	return s.formatResults(searxngResponse.Results, query), nil

@@ -481,9 +481,14 @@ func (fte *flowToolsExecutor) SetGraphitiClient(client *graphiti.Client) {
 }
 
 func (fte *flowToolsExecutor) Prepare(ctx context.Context) error {
+	ctx = docker.WithContainerAuditContext(ctx, fte.flowID, database.ContainerTypePrimary)
+	var recoveryReason string
+	var recoveryStartedAt time.Time
+
 	if cnt, err := fte.db.GetFlowPrimaryContainer(ctx, fte.flowID); err == nil {
 		switch cnt.Status {
 		case database.ContainerStatusRunning:
+			recoveryStartedAt = time.Now()
 			running, runtimeErr := fte.docker.IsContainerRunning(ctx, cnt.LocalID.String)
 			if runtimeErr == nil && running {
 				fte.primaryID = cnt.ID
@@ -496,22 +501,27 @@ func (fte *flowToolsExecutor) Prepare(ctx context.Context) error {
 
 			// Docker may be restarted independently of PentAGI. Do not trust a
 			// persisted "running" status when its runtime container is gone.
-			logger := logrus.WithFields(logrus.Fields{
-				"flow_id":      fte.flowID,
-				"container":    cnt.Name,
-				"container_id": cnt.LocalID.String,
-			})
 			if runtimeErr != nil {
-				logger.WithError(runtimeErr).Warn("persisted primary container is unavailable; recreating it")
+				recoveryReason = "runtime_unavailable"
 			} else {
-				logger.Warn("persisted primary container is stopped; recreating it")
+				recoveryReason = "runtime_stopped"
 			}
-			if err := fte.docker.RemoveContainer(ctx, cnt.LocalID.String, cnt.ID); err != nil {
-				return fmt.Errorf("failed to remove unavailable primary container '%s': %w", PrimaryTerminalName(fte.cfg.TenantPrefix(), fte.flowID), err)
+			removeStartedAt := time.Now()
+			removeErr := fte.docker.RemoveContainer(ctx, cnt.LocalID.String, cnt.ID)
+			fte.logMCPContainerLifecycle(ctx, "remove", removeStartedAt, removeErr)
+			if removeErr != nil {
+				fte.logContainerRecovery(ctx, recoveryReason, recoveryStartedAt, removeErr)
+				return fmt.Errorf("failed to remove unavailable primary container '%s': %w", PrimaryTerminalName(fte.cfg.TenantPrefix(), fte.flowID), removeErr)
 			}
 		default:
-			if err := fte.docker.RemoveContainer(ctx, cnt.LocalID.String, cnt.ID); err != nil {
-				return fmt.Errorf("failed to remove primary container '%s': %w", PrimaryTerminalName(fte.cfg.TenantPrefix(), fte.flowID), err)
+			recoveryReason = "stale_status"
+			recoveryStartedAt = time.Now()
+			removeStartedAt := time.Now()
+			removeErr := fte.docker.RemoveContainer(ctx, cnt.LocalID.String, cnt.ID)
+			fte.logMCPContainerLifecycle(ctx, "remove", removeStartedAt, removeErr)
+			if removeErr != nil {
+				fte.logContainerRecovery(ctx, recoveryReason, recoveryStartedAt, removeErr)
+				return fmt.Errorf("failed to remove primary container '%s': %w", PrimaryTerminalName(fte.cfg.TenantPrefix(), fte.flowID), removeErr)
 			}
 		}
 	}
@@ -531,6 +541,7 @@ func (fte *flowToolsExecutor) Prepare(ctx context.Context) error {
 	}
 
 	containerName := PrimaryTerminalName(fte.cfg.TenantPrefix(), fte.flowID)
+	provisionStartedAt := time.Now()
 	cnt, err := fte.docker.RunContainer(
 		ctx,
 		containerName,
@@ -545,8 +556,15 @@ func (fte *flowToolsExecutor) Prepare(ctx context.Context) error {
 			CapAdd:  capAdd,
 		},
 	)
+	fte.logMCPContainerLifecycle(ctx, "provision", provisionStartedAt, err)
 	if err != nil {
+		if recoveryReason != "" {
+			fte.logContainerRecovery(ctx, recoveryReason, recoveryStartedAt, err)
+		}
 		return fmt.Errorf("failed to launch container '%s': %w", containerName, err)
+	}
+	if recoveryReason != "" {
+		fte.logContainerRecovery(ctx, recoveryReason, recoveryStartedAt, nil)
 	}
 
 	fte.primaryID = cnt.ID
@@ -759,6 +777,7 @@ func (fte *flowToolsExecutor) cachedResourcesDir() (string, error) {
 }
 
 func (fte *flowToolsExecutor) Release(ctx context.Context) error {
+	ctx = docker.WithContainerAuditContext(ctx, fte.flowID, database.ContainerTypePrimary)
 	if fte.store != nil {
 		// Do NOT close the store when it is backed by the shared pgxpool — the pool
 		// outlives individual flows and is shared by all executors. Only close when
@@ -770,7 +789,10 @@ func (fte *flowToolsExecutor) Release(ctx context.Context) error {
 	}
 
 	// TODO: here better to get flow containers list and purge all of them
-	if err := fte.docker.RemoveContainer(ctx, fte.primaryLID, fte.primaryID); err != nil {
+	removeStartedAt := time.Now()
+	err := fte.docker.RemoveContainer(ctx, fte.primaryLID, fte.primaryID)
+	fte.logMCPContainerLifecycle(ctx, "remove", removeStartedAt, err)
+	if err != nil {
 		containerName := PrimaryTerminalName(fte.cfg.TenantPrefix(), fte.flowID)
 		return fmt.Errorf("failed to purge container '%s': %w", containerName, err)
 	}

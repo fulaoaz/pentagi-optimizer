@@ -94,6 +94,58 @@ func (t *terminal) normalizeExecTimeout(timeout time.Duration) time.Duration {
 	}
 }
 
+func mcpSandboxActionAuditFields(
+	ctx context.Context,
+	flowID int64,
+	taskID, subtaskID *int64,
+	tool, operation, outcome string,
+	duration time.Duration,
+) (logrus.Fields, bool) {
+	correlation := obs.AuditCorrelationFromContext(ctx)
+	if correlation.Source != obs.AuditSourceMCP {
+		return nil, false
+	}
+
+	fields := enrichLogrusFields(flowID, taskID, subtaskID, logrus.Fields{
+		"action":      "mcp_sandbox_action",
+		"tool":        tool,
+		"operation":   operation,
+		"outcome":     outcome,
+		"duration_ms": duration.Milliseconds(),
+	})
+	for key, value := range correlation.Fields() {
+		fields[key] = value
+	}
+	return fields, true
+}
+
+func (t *terminal) logMCPSandboxAction(
+	ctx context.Context,
+	tool, operation string,
+	startedAt time.Time,
+	executionErr error,
+) {
+	outcome := "success"
+	if executionErr != nil {
+		outcome = "error"
+	}
+
+	fields, ok := mcpSandboxActionAuditFields(
+		ctx,
+		t.flowID,
+		t.taskID,
+		t.subtaskID,
+		tool,
+		operation,
+		outcome,
+		time.Since(startedAt),
+	)
+	if !ok {
+		return
+	}
+	logrus.WithContext(ctx).WithFields(fields).Info("MCP sandbox action completed")
+}
+
 func (t *terminal) wrapCommandResult(ctx context.Context, args json.RawMessage, name, result string, err error) (string, error) {
 	ctx, observation := obs.Observer.NewObservation(ctx)
 	if err != nil {
@@ -108,10 +160,11 @@ func (t *terminal) wrapCommandResult(ctx context.Context, args json.RawMessage, 
 			}),
 		)
 
-		logrus.WithContext(ctx).WithError(err).WithFields(logrus.Fields{
-			"tool":   name,
-			"result": result[:min(len(result), 1000)],
-		}).Error("terminal tool failed")
+		logrus.WithContext(ctx).WithFields(enrichLogrusFields(t.flowID, t.taskID, t.subtaskID, logrus.Fields{
+			"tool":         name,
+			"outcome":      "error",
+			"result_bytes": len(result),
+		})).Error("terminal tool failed")
 		return fmt.Sprintf("terminal tool '%s' handled with error: %v", name, err), nil
 	}
 	return result, nil
@@ -123,8 +176,8 @@ func (t *terminal) Handle(ctx context.Context, name string, args json.RawMessage
 	}
 
 	logger := logrus.WithContext(ctx).WithFields(enrichLogrusFields(t.flowID, t.taskID, t.subtaskID, logrus.Fields{
-		"tool": name,
-		"args": string(args),
+		"tool":       name,
+		"args_bytes": len(args),
 	}))
 
 	switch name {
@@ -138,7 +191,9 @@ func (t *terminal) Handle(ctx context.Context, name string, args json.RawMessage
 		if timeout > 0 {
 			timeout += defaultExtraExecTimeout
 		}
+		startedAt := time.Now()
 		result, err := t.ExecCommand(ctx, action.Cwd, action.Input, action.Detach.Bool(), timeout)
+		t.logMCPSandboxAction(ctx, name, "command", startedAt, err)
 		return t.wrapCommandResult(ctx, args, name, result, err)
 	case FileToolName:
 		var action FileAction
@@ -163,20 +218,21 @@ func (t *terminal) Handle(ctx context.Context, name string, args json.RawMessage
 			}
 		}
 
-		logger = logger.WithFields(logrus.Fields{
-			"action": action.Action,
-			"path":   action.Path,
-		})
-
 		switch action.Action {
 		case ReadFile:
+			startedAt := time.Now()
 			result, err := t.ReadFile(ctx, t.flowID, action.Path.String())
+			t.logMCPSandboxAction(ctx, name, action.Action.String(), startedAt, err)
 			return t.wrapCommandResult(ctx, args, name, result, err)
 		case WriteFile:
+			startedAt := time.Now()
 			result, err := t.WriteFile(ctx, t.flowID, action.Content, action.Path.String())
+			t.logMCPSandboxAction(ctx, name, action.Action.String(), startedAt, err)
 			return t.wrapCommandResult(ctx, args, name, result, err)
 		case EditFile:
+			startedAt := time.Now()
 			result, err := t.EditFile(ctx, t.flowID, action.Path.String(), action.Diff.String())
+			t.logMCPSandboxAction(ctx, name, action.Action.String(), startedAt, err)
 			return t.wrapCommandResult(ctx, args, name, result, err)
 		default:
 			logger.Error("unknown file action")

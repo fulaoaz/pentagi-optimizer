@@ -240,6 +240,7 @@ func (dc *dockerClient) RunContainer(
 		"work_dir": workDir,
 		"host_dir": hostDir,
 	})
+	containerAuditCtx := WithContainerAuditContext(ctx, flowID, containerType)
 	logger.Info("running container")
 
 	dbContainer, err := dc.db.CreateContainer(ctx, database.CreateContainerParams{
@@ -485,9 +486,11 @@ func (dc *dockerClient) RunContainer(
 		Condition: container.WaitConditionNextExit,
 	})
 
+	startupStartedAt := time.Now()
 	_, err = dc.client.ContainerStart(ctx, containerID, client.ContainerStartOptions{})
 	if err != nil {
 		defer updateContainerInfo(database.ContainerStatusFailed, containerID)
+		dc.logContainerExitAudit(containerAuditCtx, "startup", "runtime_error", startupStartedAt, err)
 		dc.discardContainer(ctx, containerID, logger)
 		return database.Container{}, fmt.Errorf("failed to start container: %w", err)
 	}
@@ -498,6 +501,7 @@ func (dc *dockerClient) RunContainer(
 	// failures against a container that never ran.
 	if err := dc.ensureContainerStarted(ctx, containerName, containerID, exitWatch); err != nil {
 		defer updateContainerInfo(database.ContainerStatusFailed, containerID)
+		dc.logContainerExitAudit(containerAuditCtx, "startup", "startup_failure", startupStartedAt, err)
 		logger.WithError(err).Error("container did not stay running after start")
 		dc.discardContainer(ctx, containerID, logger)
 		return database.Container{}, err
@@ -722,16 +726,19 @@ func (dc *dockerClient) discardContainer(ctx context.Context, containerID string
 	}
 }
 
-func (dc *dockerClient) StopContainer(ctx context.Context, containerID string, dbID int64) error {
+func (dc *dockerClient) stopContainer(ctx context.Context, containerID string, dbID int64) (error, string) {
 	logger := dc.logger.WithContext(ctx).WithField("local_id", containerID)
 	logger.Info("initiating container shutdown sequence")
+	reason := "requested"
 
 	_, stopErr := dc.client.ContainerStop(ctx, containerID, client.ContainerStopOptions{})
 	if stopErr != nil {
 		if cerrdefs.IsNotFound(stopErr) {
+			reason = "not_found"
 			logger.Warn("target container already removed or never existed")
 		} else {
-			return fmt.Errorf("container shutdown failed: %w", stopErr)
+			reason = "runtime_error"
+			return fmt.Errorf("container shutdown failed: %w", stopErr), reason
 		}
 	}
 
@@ -740,20 +747,36 @@ func (dc *dockerClient) StopContainer(ctx context.Context, containerID string, d
 		ID:     dbID,
 	})
 	if err != nil {
-		return fmt.Errorf("database status update failed during container stop: %w", err)
+		return fmt.Errorf("database status update failed during container stop: %w", err), "database_error"
 	}
 
 	logger.Info("container shutdown completed successfully")
 
-	return nil
+	return nil, reason
 }
 
-func (dc *dockerClient) RemoveContainer(ctx context.Context, containerID string, dbID int64) error {
+func (dc *dockerClient) StopContainer(ctx context.Context, containerID string, dbID int64) (err error) {
+	startedAt := time.Now()
+	err, reason := dc.stopContainer(ctx, containerID, dbID)
+	dc.logContainerExitAudit(ctx, "stop", reason, startedAt, err)
+	return err
+}
+
+func (dc *dockerClient) RemoveContainer(ctx context.Context, containerID string, dbID int64) (err error) {
+	startedAt := time.Now()
+	reason := "removed"
 	logger := dc.logger.WithContext(ctx).WithField("local_id", containerID)
 	logger.Info("removing container and associated resources")
 
-	if err := dc.StopContainer(ctx, containerID, dbID); err != nil {
-		return fmt.Errorf("failed to stop container: %w", err)
+	if stopErr, stopReason := dc.stopContainer(ctx, containerID, dbID); stopErr != nil {
+		if stopReason == "database_error" {
+			reason = "database_error"
+		} else {
+			reason = "stop_failed"
+		}
+		err = fmt.Errorf("failed to stop container: %w", stopErr)
+		dc.logContainerExitAudit(ctx, "remove", reason, startedAt, err)
+		return err
 	}
 
 	options := client.ContainerRemoveOptions{
@@ -762,27 +785,50 @@ func (dc *dockerClient) RemoveContainer(ctx context.Context, containerID string,
 	}
 	if _, err := dc.client.ContainerRemove(ctx, containerID, options); err != nil {
 		if !cerrdefs.IsNotFound(err) {
-			return fmt.Errorf("failed to remove container: %w", err)
+			reason = "remove_error"
+			wrappedErr := fmt.Errorf("failed to remove container: %w", err)
+			dc.logContainerExitAudit(ctx, "remove", reason, startedAt, wrappedErr)
+			return wrappedErr
 		}
+		reason = "not_found"
 		// already gone (removed manually, or a prior call already succeeded);
 		// still mark it deleted below so the database row does not go stale.
 		logger.WithError(err).Warn("container not found")
 	}
 
-	_, err := dc.db.UpdateContainerStatus(ctx, database.UpdateContainerStatusParams{
+	_, err = dc.db.UpdateContainerStatus(ctx, database.UpdateContainerStatusParams{
 		Status: database.ContainerStatusDeleted,
 		ID:     dbID,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to update container status to deleted: %w", err)
+		reason = "database_error"
+		wrappedErr := fmt.Errorf("failed to update container status to deleted: %w", err)
+		dc.logContainerExitAudit(ctx, "remove", reason, startedAt, wrappedErr)
+		return wrappedErr
 	}
 
 	logger.Info("container removed")
 
+	dc.logContainerExitAudit(ctx, "remove", reason, startedAt, nil)
 	return nil
 }
 
-func (dc *dockerClient) Cleanup(ctx context.Context) error {
+func (dc *dockerClient) Cleanup(ctx context.Context) (err error) {
+	startedAt := time.Now()
+	flowCount := 0
+	var statsMu sync.Mutex
+	attemptedCount := 0
+	succeededCount := 0
+	failedCount := 0
+	defer func() {
+		statsMu.Lock()
+		if err != nil && failedCount == 0 {
+			failedCount++
+		}
+		cleanupAttempted, cleanupSucceeded, cleanupFailed := attemptedCount, succeededCount, failedCount
+		statsMu.Unlock()
+		dc.logContainerCleanupAudit(ctx, startedAt, flowCount, cleanupAttempted, cleanupSucceeded, cleanupFailed)
+	}()
 	logger := dc.logger.WithContext(ctx).WithField("docker", "cleanup")
 	logger.Info("cleaning up containers and making all flows finished...")
 
@@ -790,6 +836,7 @@ func (dc *dockerClient) Cleanup(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to get all flows: %w", err)
 	}
+	flowCount = len(flows)
 
 	containers, err := dc.db.GetContainers(ctx)
 	if err != nil {
@@ -806,21 +853,20 @@ func (dc *dockerClient) Cleanup(ctx context.Context) error {
 	}
 
 	var wg sync.WaitGroup
-	removeContainer := func(containerID string, dbID int64) {
+	removeContainer := func(containerCtx context.Context, containerID string, dbID int64) {
 		defer wg.Done()
 		logger := logger.WithField("local_id", containerID)
 
-		if err := dc.RemoveContainer(ctx, containerID, dbID); err != nil {
+		if err := dc.RemoveContainer(containerCtx, containerID, dbID); err != nil {
+			statsMu.Lock()
+			failedCount++
+			statsMu.Unlock()
 			logger.WithError(err).Errorf("failed to remove container")
+			return
 		}
-
-		_, err := dc.db.UpdateContainerStatus(ctx, database.UpdateContainerStatusParams{
-			Status: database.ContainerStatusDeleted,
-			ID:     dbID,
-		})
-		if err != nil {
-			logger.WithError(err).Errorf("failed to update container status to deleted")
-		}
+		statsMu.Lock()
+		succeededCount++
+		statsMu.Unlock()
 	}
 	isAllContainersRunning := func(flowID int64) bool {
 		containers, ok := flowContainersMap[flowID]
@@ -860,8 +906,12 @@ func (dc *dockerClient) Cleanup(ctx context.Context) error {
 			for _, container := range flowContainersMap[flow.ID] {
 				switch container.Status {
 				case database.ContainerStatusStarting, database.ContainerStatusRunning:
+					statsMu.Lock()
+					attemptedCount++
+					statsMu.Unlock()
 					wg.Add(1)
-					go removeContainer(container.LocalID.String, container.ID)
+					containerCtx := WithContainerAuditContext(ctx, container.FlowID, container.Type)
+					go removeContainer(containerCtx, container.LocalID.String, container.ID)
 				}
 			}
 		}
