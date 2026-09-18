@@ -20,7 +20,8 @@
         "ssl:generate": "tsx --eval 'import { generateCertificates } from \"./scripts/generate-ssl.ts\"; generateCertificates();'",
         "test": "vitest run",
         "test:coverage": "vitest run --coverage",
-        "test:watch": "vitest"
+        "test:watch": "vitest",
+        "typescript": "tsc --noEmit"
     },
     "dependencies": {
         "@apollo/client": "^4.1.9",
