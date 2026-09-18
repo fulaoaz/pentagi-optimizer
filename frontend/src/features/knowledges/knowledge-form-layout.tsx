@@ -88,8 +88,8 @@ export function KnowledgeFormLayoutMobile({ control, isNew, isSaving, knowledge 
                     />
                     <KnowledgeContentField
                         control={control}
-                        isSaving={isSaving}
                         hasLabel
+                        isSaving={isSaving}
                     />
                 </CardContent>
             </Card>

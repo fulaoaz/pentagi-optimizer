@@ -1,8 +1,8 @@
 import type { FetchResult, Operation, Reference, StoreObject } from '@apollo/client';
 
 import { ApolloClient, ApolloLink, createHttpLink, InMemoryCache, Observable, split } from '@apollo/client';
-import { SetContextLink } from '@apollo/client/link/context';
 import { CombinedGraphQLErrors, ServerError, ServerParseError } from '@apollo/client/errors';
+import { SetContextLink } from '@apollo/client/link/context';
 import { ErrorLink } from '@apollo/client/link/error';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { getMainDefinition } from '@apollo/client/utilities';

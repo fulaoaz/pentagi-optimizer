@@ -20,13 +20,14 @@ import { z } from 'zod';
 import type { Translate } from '@/lib/i18n';
 
 import ConfirmationDialog from '@/components/shared/confirmation-dialog';
-import { ErrorState } from '@/components/shared/error-state';
 import {
     DetailNavigationButtons,
     DetailNavigationSheet,
     DetailNavigationToolbar,
 } from '@/components/shared/detail-navigation';
+import { ErrorState } from '@/components/shared/error-state';
 import { InlineEditInput, useInlineEdit } from '@/components/shared/inline-edit';
+import { type EditorViewMode, EditorViewModeToggle, MarkdownEditorField } from '@/components/shared/markdown-editor';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
@@ -41,7 +42,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { type EditorViewMode, EditorViewModeToggle, MarkdownEditorField } from '@/components/shared/markdown-editor';
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -53,8 +53,8 @@ import { FlowTemplateDocument } from '@/graphql/types';
 import { useAppForm } from '@/hooks/use-app-form';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { useLocale } from '@/hooks/use-locale';
-import { cn } from '@/lib/utils';
 import { isNotFoundError } from '@/lib/errors';
+import { cn } from '@/lib/utils';
 import { type Template, useTemplates } from '@/providers/templates-provider';
 
 const createFormSchema = (t: Translate) =>
@@ -773,9 +773,9 @@ function Template() {
                                             <FormItem>
                                                 <FormControl>
                                                     <Input
+                                                        aria-label={t('templates.title')}
                                                         autoFocus={isNew}
                                                         disabled={isSaving}
-                                                        aria-label={t('templates.title')}
                                                         placeholder={t('templates.title')}
                                                         {...field}
                                                     />

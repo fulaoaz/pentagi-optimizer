@@ -28,31 +28,17 @@ export function DashboardOverview() {
         error: usageTotalDataError,
         loading: usageTotalLoading,
     } = useQuery(UsageStatsTotalDocument);
-    const {
-        data: usageByProviderData,
-        error: usageByProviderDataError,
-        loading: usageByProviderLoading,
-    } = useQuery(UsageStatsByProviderDocument);
-    const {
-        data: usageByModelData,
-        error: usageByModelDataError,
-        loading: usageByModelLoading,
-    } = useQuery(UsageStatsByModelDocument);
-    const {
-        data: usageByAgentTypeData,
-        error: usageByAgentTypeDataError,
-        loading: usageByAgentTypeLoading,
-    } = useQuery(UsageStatsByAgentTypeDocument);
+    const { data: usageByProviderData, loading: usageByProviderLoading } = useQuery(UsageStatsByProviderDocument);
+    const { data: usageByModelData, loading: usageByModelLoading } = useQuery(UsageStatsByModelDocument);
+    const { data: usageByAgentTypeData, loading: usageByAgentTypeLoading } = useQuery(UsageStatsByAgentTypeDocument);
     const {
         data: toolcallsTotalData,
         error: toolcallsTotalDataError,
         loading: toolcallsTotalLoading,
     } = useQuery(ToolcallsStatsTotalDocument);
-    const {
-        data: toolcallsByFunctionData,
-        error: toolcallsByFunctionDataError,
-        loading: toolcallsByFunctionLoading,
-    } = useQuery(ToolcallsStatsByFunctionDocument);
+    const { data: toolcallsByFunctionData, loading: toolcallsByFunctionLoading } = useQuery(
+        ToolcallsStatsByFunctionDocument,
+    );
     const {
         data: flowsTotalData,
         error: flowsTotalDataError,
@@ -96,8 +82,8 @@ export function DashboardOverview() {
                         subtasks: flowsTotal?.totalSubtasksCount ?? 0,
                         tasks: flowsTotal?.totalTasksCount ?? 0,
                     })}
-                    icon={<GitFork className="text-muted-foreground size-4" />}
                     error={!!flowsTotalDataError}
+                    icon={<GitFork className="text-muted-foreground size-4" />}
                     loading={flowsTotalLoading}
                     title={t('dashboard.totalFlows')}
                     value={flowsTotal ? formatNumber(flowsTotal.totalFlowsCount) : '0'}
@@ -106,25 +92,25 @@ export function DashboardOverview() {
                     description={t('dashboard.totalDurationValue', {
                         duration: toolcallsTotal ? formatDuration(toolcallsTotal.totalDurationSeconds, locale) : '—',
                     })}
-                    icon={<Activity className="text-muted-foreground size-4" />}
                     error={!!toolcallsTotalDataError}
+                    icon={<Activity className="text-muted-foreground size-4" />}
                     loading={toolcallsTotalLoading}
                     title={t('flow.dashboard.toolCalls')}
                     value={toolcallsTotal ? formatNumber(toolcallsTotal.totalCount) : '0'}
                 />
                 <MetricCard
                     description={t('dashboard.totalTokensDescription')}
-                    icon={<Cpu className="text-muted-foreground size-4" />}
                     error={!!usageTotalDataError}
+                    icon={<Cpu className="text-muted-foreground size-4" />}
                     loading={usageTotalLoading}
                     title={t('dashboard.totalTokens')}
                     value={formatTokenCount(totalTokens)}
                 />
                 <MetricCard
                     description={t('dashboard.totalCostDescription')}
+                    error={!!usageTotalDataError}
                     icon={<CircleDollarSign className="text-muted-foreground size-4" />}
                     loading={usageTotalLoading}
-                    error={!!usageTotalDataError}
                     title={t('flow.dashboard.totalCost')}
                     value={formatCost(totalCost)}
                 />

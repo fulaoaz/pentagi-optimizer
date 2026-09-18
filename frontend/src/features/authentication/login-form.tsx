@@ -14,9 +14,9 @@ import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormSubmitButton } from '@/components/ui/form-submit-button';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
 import { useLocale } from '@/hooks/use-locale';
 import { localeNames, locales } from '@/lib/i18n';
+import { cn } from '@/lib/utils';
 import { useUser } from '@/providers/user-provider';
 
 import { PasswordChangeForm } from './password-change-form';

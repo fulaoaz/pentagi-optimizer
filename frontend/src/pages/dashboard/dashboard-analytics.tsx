@@ -160,8 +160,8 @@ export function DashboardAnalytics({ period }: { period: UsageStatsPeriod }) {
             <ChartCard
                 description={t('dashboard.flowsChartDescription')}
                 empty={!flowsByPeriodLoading && flowsChartData.length === 0}
-                height={320}
                 error={!!flowsByPeriodDataError}
+                height={320}
                 loading={flowsByPeriodLoading}
                 title={t('dashboard.flowsChartTitle')}
             >
@@ -324,8 +324,8 @@ export function DashboardAnalytics({ period }: { period: UsageStatsPeriod }) {
             <ChartCard
                 description={t('dashboard.costChartDescription')}
                 empty={!usageByPeriodLoading && usageChartData.length === 0}
-                height={240}
                 error={!!usageByPeriodDataError}
+                height={240}
                 loading={usageByPeriodLoading}
                 title={t('dashboard.costChartTitle')}
             >

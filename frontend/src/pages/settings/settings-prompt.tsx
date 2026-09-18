@@ -24,6 +24,12 @@ import type { AgentPrompt, AgentPrompts, DefaultPrompt, PromptType, ValidateProm
 import type { Translate } from '@/lib/i18n';
 
 import ConfirmationDialog from '@/components/shared/confirmation-dialog';
+import {
+    type EditorViewMode,
+    EditorViewModeToggle,
+    MarkdownEditorField,
+    type MarkdownEditorFieldHandle,
+} from '@/components/shared/markdown-editor';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -34,17 +40,10 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Form, FormControl, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormItem, FormMessage } from '@/components/ui/form';
 import { FormSubmitButton } from '@/components/ui/form-submit-button';
 import { StatusCard } from '@/components/ui/status-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-    type EditorViewMode,
-    EditorViewModeToggle,
-    MarkdownEditorField,
-    type MarkdownEditorFieldHandle,
-} from '@/components/shared/markdown-editor';
-import { composeRefs } from '@/lib/compose-refs';
 import {
     CreatePromptDocument,
     DeletePromptDocument,
@@ -53,8 +52,8 @@ import {
     ValidatePromptDocument,
 } from '@/graphql/types';
 import { useLocale } from '@/hooks/use-locale';
+import { composeRefs } from '@/lib/compose-refs';
 import { formatPromptId } from '@/lib/route-titles/format-prompt-id';
-import { cn } from '@/lib/utils';
 
 import { getPromptValidationCopy } from './prompt-validation-i18n';
 
@@ -78,16 +77,16 @@ interface ControllerProps {
     name: string;
 }
 
-type HumanFormData = z.infer<ReturnType<typeof buildHumanFormSchema>>;
-
-type SystemFormData = z.infer<ReturnType<typeof buildSystemFormSchema>>;
-
 interface FormMarkdownItemProps extends BaseFieldProps {
     'aria-label'?: string;
     editorRef?: Ref<MarkdownEditorFieldHandle>;
     mode: EditorViewMode;
     placeholder?: string;
 }
+
+type HumanFormData = z.infer<ReturnType<typeof buildHumanFormSchema>>;
+
+type SystemFormData = z.infer<ReturnType<typeof buildSystemFormSchema>>;
 
 function FormMarkdownItem({
     'aria-label': ariaLabel,
@@ -127,6 +126,7 @@ function FormMarkdownItem({
         </FormItem>
     );
 }
+
 const getUsedVariables = (template: string | undefined): Set<string> => {
     const usedVariables = new Set<string>();
 
@@ -189,6 +189,7 @@ function SettingsPrompt() {
             editorRef.current?.insertAtCursor(`{{.${variable}}}`);
         }
     }, []);
+
     const handleReset = () => {
         setResetDialogOpen(true);
     };

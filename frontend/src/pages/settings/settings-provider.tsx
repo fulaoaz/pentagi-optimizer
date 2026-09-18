@@ -5,9 +5,9 @@ import {
     Check,
     CheckCircle,
     ChevronsUpDown,
-    Ellipsis,
     Clock,
     Cpu,
+    Ellipsis,
     Lightbulb,
     Loader2,
     Play,
@@ -536,15 +536,11 @@ const buildAgentConfigSchema = (t: Translate) =>
                 .string()
                 .optional()
                 .refine(isOptionalJsonObject, { message: t('settings.provider.extraBodyInvalid') }),
-            json: z.boolean().nullable().optional(),
-            n: z.preprocess(
-                (value) => (value === '' || value === undefined ? null : value),
-                z.number().nullable().optional(),
-            ),
             frequencyPenalty: z.preprocess(
                 (value) => (value === '' || value === undefined ? null : value),
                 z.number().nullable().optional(),
             ),
+            json: z.boolean().nullable().optional(),
             maxLength: z.preprocess(
                 (value) => (value === '' || value === undefined ? null : value),
                 z.number().nullable().optional(),
@@ -558,6 +554,10 @@ const buildAgentConfigSchema = (t: Translate) =>
                 z.number().nullable().optional(),
             ),
             model: z.preprocess((value) => value || '', z.string().min(1, t('settings.provider.modelRequired'))),
+            n: z.preprocess(
+                (value) => (value === '' || value === undefined ? null : value),
+                z.number().nullable().optional(),
+            ),
             presencePenalty: z.preprocess(
                 (value) => (value === '' || value === undefined ? null : value),
                 z.number().nullable().optional(),
@@ -665,13 +665,13 @@ export const transformFormToGraphQL = (
         .reduce((configs, [key, data]) => {
             const config: AgentConfigInput = {
                 extraBody: data?.extraBody?.trim() ? (JSON.parse(data.extraBody) as Record<string, unknown>) : null,
-                json: data?.json ?? null,
-                n: data?.n ?? null,
                 frequencyPenalty: data?.frequencyPenalty ?? null,
+                json: data?.json ?? null,
                 maxLength: data?.maxLength ?? null,
                 maxTokens: data?.maxTokens ?? null,
                 minLength: data?.minLength ?? null,
                 model: data!.model,
+                n: data?.n ?? null,
                 presencePenalty: data?.presencePenalty ?? null,
                 price:
                     data?.price &&
