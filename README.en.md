@@ -1,8 +1,18 @@
-# PentAGI
+# PentAGI Optimizer
 
 [简体中文（默认）](README.md) | **English**
 
-> The maintained `main` branch is Chinese-first, while preserving the upstream English UI and documentation. The web app starts in Simplified Chinese; select **English** on the login page or in the signed-in sidebar user menu at any time. For the Chinese-maintenance notes, GHCR image, and deployment differences, see [README.md](README.md).
+> PentAGI Optimizer is the only maintained line. Its `main` branch is Chinese-first while preserving the upstream English UI and documentation; the separate `fulaoaz/pentagi` translation repository is archived. The web app starts in Simplified Chinese; select **English** on the login page or in the signed-in sidebar user menu at any time. For Chinese-maintenance notes, the GHCR image, and deployment differences, see [README.md](README.md).
+
+The native MCP bridge supports strict schemas, separate read/write credentials, browser-origin controls, per-tool rate limits, approval gates, and an optional exact tool allowlist via `MCP_ALLOWED_TOOLS`. An empty allowlist preserves all otherwise-enabled tools; a non-empty list limits both `tools/list` and callable tools. The installer’s **Server Settings** screen exposes the same MCP parameters for reading, saving, and resetting; secrets are masked, and origin/tool lists are normalized and validated before saving. Dynamic flow data returned by `get_flow_status` is capped at 64 KiB and labelled as untrusted data; audit records distinguish allowed calls from rate, approval, and write-scope denials and correlate the request, principal, session, validated origin, and client address with short hashes, without logging arguments, result bodies, credentials, raw origins, or raw client addresses.
+
+Whenever an MCP `submit_flow_input` call creates or resumes an asynchronous task, PentAGI emits a separate `action=mcp_task_trigger` audit event with `flow_id`, `task_id`, `trigger`, and the same sanitized correlation fields. The queue copies only that compact correlation object rather than the incoming HTTP request context; background worker logs keep only `input_bytes`, never the input body or an input fingerprint.
+
+Correlated MCP `terminal` and `file` sandbox actions additionally emit `action=mcp_sandbox_action` with flow, task, and subtask IDs, tool, operation, outcome, duration, and the same correlation fields. This event and terminal failure runtime logs exclude commands, file paths, arguments, and output bodies; the latter retains only `result_bytes`.
+
+When the flow executor provisions or removes its primary container under an MCP-correlated context, it also emits `action=mcp_container_lifecycle` with the flow ID, container type, operation, outcome, duration, and the same correlation fields. The event excludes container IDs, names, images, work directories, host paths, and Docker API details.
+
+When a persisted primary-container status disagrees with the Docker runtime, the flow executor emits a general `action=container_recovery` event with the flow ID, container type, recovery reason (`runtime_unavailable`, `runtime_stopped`, or `stale_status`), outcome, and duration. MCP-correlated contexts add the same short-hash fields. Removal and reprovision failures are recorded as `outcome=error`; container IDs, names, images, paths, Docker error bodies, and other runtime details are excluded.
 
 <div align="center" style="font-size: 1.5em; margin: 20px 0;">
     <strong>P</strong>enetration testing <strong>A</strong>rtificial <strong>G</strong>eneral <strong>I</strong>ntelligence
@@ -79,6 +89,13 @@ You can watch the video **PentAGI overview**:
 - Flexible Authentication. Support for 10+ LLM providers ([OpenAI](https://platform.openai.com/), [Anthropic](https://www.anthropic.com/), [Google AI/Gemini](https://ai.google.dev/), [AWS Bedrock](https://aws.amazon.com/bedrock/), [Ollama](https://ollama.com/), [DeepSeek](https://www.deepseek.com/en/), [GLM](https://z.ai/), [Kimi](https://platform.moonshot.ai/), [Qwen](https://www.alibabacloud.com/en/), Custom) plus aggregators ([OpenRouter](https://openrouter.ai/), [DeepInfra](https://deepinfra.com/)). For production local deployments, see our [vLLM + Qwen3.5-27B-FP8 guide](examples/guides/vllm-qwen35-27b-fp8.md).
 - API Token Authentication. Secure Bearer token system for programmatic access to REST and GraphQL APIs.
 - Quick Deployment. Easy setup through [Docker Compose](https://docs.docker.com/compose/) with comprehensive environment configuration.
+
+### External Content and Network Boundaries
+
+- Browser targets accept only `http` and `https`, require a valid host, reject URL user information and invalid ports, and are limited to `8 KiB`; diagnostic URLs are redacted before logging.
+- IPv4, IPv6, and every address returned by DNS are classified together. Loopback, private, link-local, unspecified, shared, reserved/documentation, and multicast ranges—and explicit local hostnames—use the private scraper path instead of the public path.
+- Scraper response bodies are capped at `16 MiB` and response headers at `64 KiB`; every search-provider response body is capped at `4 MiB`, and EPSS/CVE/KEV intelligence feeds at `8 MiB`, including chunked responses without `Content-Length`.
+- Browser and search output is marked as untrusted external data before summarization, logging, or long-term memory; searcher summarization input is additionally capped at `256 KiB`, and bounded text truncation preserves UTF-8 boundaries.
 
 ### Current Capability Boundaries
 
@@ -653,7 +670,7 @@ The following configuration areas still need to be set on the server through env
 - **LLM credentials and connection details**: API keys, endpoints, auth modes, and provider-specific connection settings for OpenAI, Anthropic, Bedrock, Ollama, custom providers, and similar backends; config-path settings apply only where supported, such as `OLLAMA_SERVER_CONFIG_PATH` and `LLM_SERVER_CONFIG_PATH`.
 - **Search provider credentials and options**: Settings such as `DUCKDUCKGO_*`, `GOOGLE_*`, `TAVILY_API_KEY`, `TRAVERSAAL_API_KEY`, `PERPLEXITY_*`, `SEARXNG_*`, and `SPLOITUS_ENABLED`.
 - **Third-party integrations**: Langfuse, Graphiti, and similar external services remain server-side configuration.
-- **MCP server management**: MCP settings pages are not currently exposed as a live web-console feature.
+- MCP tool arguments use strict schemas and typed positive integer flow IDs, with bounded text input. Tool metadata exposes read-only and destructive hints so MCP clients can apply approval flows. CORS preflight is handled only for allowlisted origins while actual messages remain bearer-protected, and token comparison uses fixed-length digests.
 
 **For Production & Enhanced Security:**
 
