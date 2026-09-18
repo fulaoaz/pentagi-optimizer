@@ -1,7 +1,11 @@
 package terminal
 
 import (
+	"bufio"
 	"context"
+	"fmt"
+	"io"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -14,6 +18,80 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
 )
+
+const terminalHelperProcessEnv = "GO_WANT_TERMINAL_HELPER_PROCESS"
+
+func terminalTestCommand(mode string, args ...string) *exec.Cmd {
+	commandArgs := append([]string{"-test.run=^TestTerminalCommandHelper$", "--"}, args...)
+	cmd := exec.Command(os.Args[0], commandArgs...)
+	cmd.Env = append(os.Environ(), terminalHelperProcessEnv+"=1", "TERMINAL_HELPER_MODE="+mode)
+	return cmd
+}
+
+func terminalHelperArgs() []string {
+	for index, arg := range os.Args {
+		if arg == "--" {
+			return os.Args[index+1:]
+		}
+	}
+
+	return nil
+}
+
+func TestTerminalCommandHelper(t *testing.T) {
+	if os.Getenv(terminalHelperProcessEnv) != "1" {
+		return
+	}
+
+	args := terminalHelperArgs()
+	switch os.Getenv("TERMINAL_HELPER_MODE") {
+	case "echo":
+		_, _ = fmt.Fprintln(os.Stdout, strings.Join(args, " "))
+	case "delayed-echo":
+		time.Sleep(200 * time.Millisecond)
+		_, _ = fmt.Fprintln(os.Stdout, strings.Join(args, " "))
+	case "cat":
+		if len(args) == 0 {
+			if _, err := io.Copy(os.Stdout, os.Stdin); err != nil {
+				t.Fatalf("copying stdin: %v", err)
+			}
+			return
+		}
+
+		content, err := os.ReadFile(args[0])
+		if err != nil {
+			t.Fatalf("reading fixture: %v", err)
+		}
+		_, _ = os.Stdout.Write(content)
+	case "grep":
+		if len(args) != 2 {
+			t.Fatalf("grep helper expects pattern and filename, got %d arguments", len(args))
+		}
+		content, err := os.ReadFile(args[1])
+		if err != nil {
+			t.Fatalf("reading fixture: %v", err)
+		}
+		scanner := bufio.NewScanner(strings.NewReader(string(content)))
+		for scanner.Scan() {
+			if strings.Contains(scanner.Text(), args[0]) {
+				_, _ = fmt.Fprintln(os.Stdout, scanner.Text())
+			}
+		}
+		if err := scanner.Err(); err != nil {
+			t.Fatalf("scanning fixture: %v", err)
+		}
+	case "stdin-echo":
+		input, err := bufio.NewReader(os.Stdin).ReadString('\n')
+		if err != nil && len(input) == 0 {
+			t.Fatalf("reading stdin: %v", err)
+		}
+		_, _ = fmt.Fprint(os.Stdout, input)
+	case "stderr":
+		_, _ = fmt.Fprintln(os.Stderr, strings.Join(args, " "))
+	default:
+		t.Fatalf("unknown terminal helper mode %q", os.Getenv("TERMINAL_HELPER_MODE"))
+	}
+}
 
 func TestNewTerminal(t *testing.T) {
 	term := NewTerminal(80, 24)
@@ -62,7 +140,7 @@ func TestTerminalClear(t *testing.T) {
 
 func TestExecuteEcho(t *testing.T) {
 	term := NewTerminal(80, 24)
-	cmd := exec.Command("echo", "hello world")
+	cmd := terminalTestCommand("echo", "hello world")
 
 	err := term.Execute(cmd)
 	if err != nil {
@@ -101,7 +179,7 @@ func TestExecuteCat(t *testing.T) {
 		t.Fatalf("failed to create temp file: %v", err)
 	}
 
-	cmd := exec.Command("cat", tmpFile)
+	cmd := terminalTestCommand("cat", tmpFile)
 	err := term.Execute(cmd)
 	if err != nil {
 		t.Fatalf("Execute failed: %v", err)
@@ -138,7 +216,7 @@ func TestExecuteGrep(t *testing.T) {
 		t.Fatalf("failed to create temp file: %v", err)
 	}
 
-	cmd := exec.Command("grep", "ap", tmpFile)
+	cmd := terminalTestCommand("grep", "ap", tmpFile)
 	err := term.Execute(cmd)
 	if err != nil {
 		t.Fatalf("Execute failed: %v", err)
@@ -167,8 +245,7 @@ func TestExecuteGrep(t *testing.T) {
 func TestExecuteInteractiveInput(t *testing.T) {
 	term := NewTerminal(80, 24)
 
-	// use 'cat' without arguments to read from stdin
-	cmd := exec.Command("cat")
+	cmd := terminalTestCommand("stdin-echo")
 	err := term.Execute(cmd)
 	if err != nil {
 		t.Fatalf("Execute failed: %v", err)
@@ -220,12 +297,12 @@ func TestExecuteMultipleCommands(t *testing.T) {
 
 	// test sequential execution
 	commands := []struct {
-		cmd    []string
+		args   []string
 		expect string
 	}{
-		{[]string{"echo", "first"}, "first"},
-		{[]string{"echo", "second"}, "second"},
-		{[]string{"echo", "third"}, "third"},
+		{[]string{"first"}, "first"},
+		{[]string{"second"}, "second"},
+		{[]string{"third"}, "third"},
 	}
 
 	for i, cmdTest := range commands {
@@ -234,7 +311,7 @@ func TestExecuteMultipleCommands(t *testing.T) {
 			time.Sleep(200 * time.Millisecond)
 		}
 
-		cmd := exec.Command(cmdTest.cmd[0], cmdTest.cmd[1:]...)
+		cmd := terminalTestCommand("echo", cmdTest.args...)
 		err := term.Execute(cmd)
 		if err != nil {
 			t.Fatalf("Execute command %d failed: %v", i, err)
@@ -377,14 +454,14 @@ func TestExecuteConcurrency(t *testing.T) {
 	term := NewTerminal(80, 24)
 
 	// try to execute two commands simultaneously
-	cmd1 := exec.Command("echo", "first")
+	cmd1 := terminalTestCommand("delayed-echo", "first")
 	err1 := term.Execute(cmd1)
 	if err1 != nil {
 		t.Fatalf("first Execute failed: %v", err1)
 	}
 
 	// second command should fail because terminal is busy
-	cmd2 := exec.Command("echo", "second")
+	cmd2 := terminalTestCommand("echo", "second")
 	err2 := term.Execute(cmd2)
 	if err2 == nil {
 		t.Error("second Execute should have failed while first is running")
@@ -475,11 +552,8 @@ func TestWaitBeforeNextExecute_Pty(t *testing.T) {
 	}
 }
 
-// helper function to write file content
 func writeFile(filename, content string) error {
-	cmd := exec.Command("sh", "-c", "cat > "+filename)
-	cmd.Stdin = strings.NewReader(content)
-	return cmd.Run()
+	return os.WriteFile(filename, []byte(content), 0o600)
 }
 
 // benchmark basic terminal operations
@@ -560,7 +634,7 @@ func TestTerminalFinalizer(t *testing.T) {
 	}
 
 	// execute a command to create some resources
-	cmd := exec.Command("echo", "test")
+	cmd := terminalTestCommand("echo", "test")
 	err := term.Execute(cmd)
 	if err != nil {
 		t.Fatalf("Execute failed: %v", err)
@@ -605,7 +679,7 @@ func TestResourceCleanup(t *testing.T) {
 	term := NewTerminal(80, 24)
 
 	// execute a command
-	cmd := exec.Command("echo", "test")
+	cmd := terminalTestCommand("echo", "test")
 	err := term.Execute(cmd)
 	if err != nil {
 		t.Fatalf("Execute failed: %v", err)
@@ -647,7 +721,7 @@ func TestResourceRelease(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		time.Sleep(200 * time.Millisecond)
-		term.Execute(exec.Command("echo", "test"))
+		_ = term.Execute(terminalTestCommand("echo", "test"))
 	}()
 
 	cmd := term.Init()
@@ -704,7 +778,7 @@ func TestStartCmdBasic(t *testing.T) {
 	}()
 
 	// Force use of startCmd instead of startPty
-	cmd := exec.Command("echo", "Hello from startCmd!")
+	cmd := terminalTestCommand("echo", "Hello from startCmd!")
 	err := term.startCmd(cmd)
 	if err != nil {
 		t.Fatalf("startCmd failed: %v", err)
@@ -836,13 +910,7 @@ func TestStartCmdStderrHandling(t *testing.T) {
 		term.mx.Unlock()
 	}()
 
-	// Command that writes to stderr
-	var cmd *exec.Cmd
-	if runtime.GOOS == "windows" {
-		cmd = exec.Command("cmd", "/c", "echo Error output 1>&2")
-	} else {
-		cmd = exec.Command("sh", "-c", "echo 'Error output' >&2")
-	}
+	cmd := terminalTestCommand("stderr", "Error output")
 
 	err := term.startCmd(cmd)
 	if err != nil {
@@ -881,13 +949,7 @@ func TestStartCmdPlainTextOutput(t *testing.T) {
 		term.mx.Unlock()
 	}()
 
-	// Command that outputs plain text (no ANSI processing in cmd mode)
-	var cmd *exec.Cmd
-	if runtime.GOOS == "windows" {
-		cmd = exec.Command("echo", "Simple text output")
-	} else {
-		cmd = exec.Command("echo", "Simple text output")
-	}
+	cmd := terminalTestCommand("echo", "Simple text output")
 
 	err := term.startCmd(cmd)
 	if err != nil {

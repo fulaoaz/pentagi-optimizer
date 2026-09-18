@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"net"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -23,6 +24,11 @@ import (
 // unquoted-identifier rules and 63-byte limit, so a typo surfaces here rather
 // than as a failed CREATE EXTENSION on first boot.
 var schemaNameRegex = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]{0,62}$`)
+
+const mcpMaxRequestBytesLimit = 64 * 1024 * 1024
+const mcpToolRateLimitLimit = 100000
+
+var mcpToolNameRegex = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_.-]{0,127}$`)
 
 // ServerSettingsFormModel represents the PentAGI server settings configuration form
 type ServerSettingsFormModel struct {
@@ -94,6 +100,94 @@ func (m *ServerSettingsFormModel) BuildForm() tea.Cmd {
 		locale.ServerSettingsCORSOriginsDesc,
 		config.CorsOrigins,
 		false,
+	))
+
+	fields = append(fields, m.createBooleanField("mcp_enabled",
+		locale.ServerSettingsMCPEnabled,
+		locale.ServerSettingsMCPEnabledDesc,
+		config.MCPEnabled,
+	))
+
+	fields = append(fields, m.createTextField("mcp_server_name",
+		locale.ServerSettingsMCPServerName,
+		locale.ServerSettingsMCPServerNameDesc,
+		config.MCPServerName,
+		false,
+	))
+
+	fields = append(fields, m.createTextField("mcp_server_version",
+		locale.ServerSettingsMCPServerVersion,
+		locale.ServerSettingsMCPServerVersionDesc,
+		config.MCPServerVersion,
+		false,
+	))
+
+	fields = append(fields, m.createTextField("mcp_api_key",
+		locale.ServerSettingsMCPAPIKey,
+		locale.ServerSettingsMCPAPIKeyDesc,
+		config.MCPAPIKey,
+		true,
+	))
+
+	fields = append(fields, m.createTextField("mcp_write_api_key",
+		locale.ServerSettingsMCPWriteAPIKey,
+		locale.ServerSettingsMCPWriteAPIKeyDesc,
+		config.MCPWriteAPIKey,
+		true,
+	))
+
+	fields = append(fields, m.createBooleanField("mcp_allow_anonymous",
+		locale.ServerSettingsMCPAllowAnonymous,
+		locale.ServerSettingsMCPAllowAnonymousDesc,
+		config.MCPAllowAnonymous,
+	))
+
+	fields = append(fields, m.createTextField("mcp_allowed_origins",
+		locale.ServerSettingsMCPAllowedOrigins,
+		locale.ServerSettingsMCPAllowedOriginsDesc,
+		config.MCPAllowedOrigins,
+		false,
+	))
+
+	fields = append(fields, m.createTextField("mcp_allowed_tools",
+		locale.ServerSettingsMCPAllowedTools,
+		locale.ServerSettingsMCPAllowedToolsDesc,
+		config.MCPAllowedTools,
+		false,
+	))
+
+	fields = append(fields, m.createTextField("mcp_max_request_bytes",
+		locale.ServerSettingsMCPMaxRequestBytes,
+		locale.ServerSettingsMCPMaxRequestBytesDesc,
+		config.MCPMaxRequestBytes,
+		false,
+	))
+
+	fields = append(fields, m.createTextField("mcp_read_tool_rate_limit",
+		locale.ServerSettingsMCPReadToolRateLimit,
+		locale.ServerSettingsMCPReadToolRateLimitDesc,
+		config.MCPReadToolRateLimit,
+		false,
+	))
+
+	fields = append(fields, m.createTextField("mcp_write_tool_rate_limit",
+		locale.ServerSettingsMCPWriteToolRateLimit,
+		locale.ServerSettingsMCPWriteToolRateLimitDesc,
+		config.MCPWriteToolRateLimit,
+		false,
+	))
+
+	fields = append(fields, m.createTextField("mcp_approval_mode",
+		locale.ServerSettingsMCPApprovalMode,
+		locale.ServerSettingsMCPApprovalModeDesc,
+		config.MCPApprovalMode,
+		false,
+	))
+
+	fields = append(fields, m.createBooleanField("mcp_enable_write_tools",
+		locale.ServerSettingsMCPEnableWriteTools,
+		locale.ServerSettingsMCPEnableWriteToolsDesc,
+		config.MCPEnableWriteTools,
 	))
 
 	// proxy: url, username, password
@@ -198,6 +292,20 @@ func (m *ServerSettingsFormModel) createTextField(key, title, description string
 		Masked:      masked,
 		Input:       input,
 		Value:       input.Value(),
+	}
+}
+
+func (m *ServerSettingsFormModel) createBooleanField(key, title, description string, envVar loader.EnvVar) FormField {
+	input := NewBooleanInput(m.GetStyles(), m.GetWindow(), envVar)
+	return FormField{
+		Key:         key,
+		Title:       title,
+		Description: description,
+		Required:    false,
+		Masked:      false,
+		Input:       input,
+		Value:       input.Value(),
+		Suggestions: input.AvailableSuggestions(),
 	}
 }
 
@@ -334,6 +442,104 @@ func (m *ServerSettingsFormModel) GetCurrentConfiguration() string {
 		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ServerSettingsCORSOriginsHint, cors))
 	}
 
+	mcpEnabled := cfg.MCPEnabled.Value
+	if mcpEnabled == "" {
+		mcpEnabled = cfg.MCPEnabled.Default
+	}
+	mcpEnabledStatus := locale.StatusDisabled
+	mcpEnabledStyle := m.GetStyles().Muted
+	if mcpEnabled == "true" {
+		mcpEnabledStatus = locale.StatusEnabled
+		mcpEnabledStyle = m.GetStyles().Success
+	}
+	sections = append(sections, fmt.Sprintf("• %s: %s", locale.ServerSettingsMCPEnabledHint, mcpEnabledStyle.Render(mcpEnabledStatus)))
+
+	mcpServerName := cfg.MCPServerName.Value
+	if mcpServerName == "" {
+		mcpServerName = cfg.MCPServerName.Default
+	}
+	if mcpServerName != "" {
+		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ServerSettingsMCPServerNameHint, m.GetStyles().Info.Render(mcpServerName)))
+	}
+
+	mcpServerVersion := cfg.MCPServerVersion.Value
+	if mcpServerVersion == "" {
+		mcpServerVersion = cfg.MCPServerVersion.Default
+	}
+	if mcpServerVersion != "" {
+		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ServerSettingsMCPServerVersionHint, m.GetStyles().Info.Render(mcpServerVersion)))
+	}
+
+	appendMCPConfigured := func(title, value string) {
+		status := locale.StatusNotConfigured
+		style := m.GetStyles().Muted
+		if strings.TrimSpace(value) != "" {
+			status = locale.StatusConfigured
+			style = m.GetStyles().Info
+		}
+		sections = append(sections, fmt.Sprintf("• %s: %s", title, style.Render(status)))
+	}
+	appendMCPConfigured(locale.ServerSettingsMCPAPIKeyHint, cfg.MCPAPIKey.Value)
+	appendMCPConfigured(locale.ServerSettingsMCPWriteAPIKeyHint, cfg.MCPWriteAPIKey.Value)
+
+	mcpAnonymous := cfg.MCPAllowAnonymous.Value
+	if mcpAnonymous == "" {
+		mcpAnonymous = cfg.MCPAllowAnonymous.Default
+	}
+	mcpAnonymousStatus := locale.StatusDisabled
+	mcpAnonymousStyle := m.GetStyles().Muted
+	if mcpAnonymous == "true" {
+		mcpAnonymousStatus = locale.StatusEnabled
+		mcpAnonymousStyle = m.GetStyles().Warning
+	}
+	sections = append(sections, fmt.Sprintf("• %s: %s", locale.ServerSettingsMCPAllowAnonymousHint, mcpAnonymousStyle.Render(mcpAnonymousStatus)))
+	appendMCPConfigured(locale.ServerSettingsMCPAllowedOriginsHint, cfg.MCPAllowedOrigins.Value)
+	appendMCPConfigured(locale.ServerSettingsMCPAllowedToolsHint, cfg.MCPAllowedTools.Value)
+
+	mcpMaxRequestBytes := cfg.MCPMaxRequestBytes.Value
+	if mcpMaxRequestBytes == "" {
+		mcpMaxRequestBytes = cfg.MCPMaxRequestBytes.Default
+	}
+	if mcpMaxRequestBytes != "" {
+		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ServerSettingsMCPMaxRequestBytesHint, m.GetStyles().Info.Render(mcpMaxRequestBytes+" B")))
+	}
+
+	mcpReadRate := cfg.MCPReadToolRateLimit.Value
+	if mcpReadRate == "" {
+		mcpReadRate = cfg.MCPReadToolRateLimit.Default
+	}
+	if mcpReadRate != "" {
+		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ServerSettingsMCPReadToolRateLimitHint, m.GetStyles().Info.Render(mcpReadRate+locale.ServerSettingsMCPRateLimitUnit)))
+	}
+
+	mcpWriteRate := cfg.MCPWriteToolRateLimit.Value
+	if mcpWriteRate == "" {
+		mcpWriteRate = cfg.MCPWriteToolRateLimit.Default
+	}
+	if mcpWriteRate != "" {
+		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ServerSettingsMCPWriteToolRateLimitHint, m.GetStyles().Warning.Render(mcpWriteRate+locale.ServerSettingsMCPRateLimitUnit)))
+	}
+
+	mcpApprovalMode := cfg.MCPApprovalMode.Value
+	if mcpApprovalMode == "" {
+		mcpApprovalMode = cfg.MCPApprovalMode.Default
+	}
+	if mcpApprovalMode != "" {
+		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ServerSettingsMCPApprovalModeHint, m.GetStyles().Info.Render(mcpApprovalMode)))
+	}
+
+	mcpWriteTools := cfg.MCPEnableWriteTools.Value
+	if mcpWriteTools == "" {
+		mcpWriteTools = cfg.MCPEnableWriteTools.Default
+	}
+	mcpWriteToolsStatus := locale.StatusDisabled
+	mcpWriteToolsStyle := m.GetStyles().Muted
+	if mcpWriteTools == "true" {
+		mcpWriteToolsStatus = locale.StatusEnabled
+		mcpWriteToolsStyle = m.GetStyles().Warning
+	}
+	sections = append(sections, fmt.Sprintf("• %s: %s", locale.ServerSettingsMCPEnableWriteToolsHint, mcpWriteToolsStyle.Render(mcpWriteToolsStatus)))
+
 	if proxyURL := cfg.ProxyURL.Value; proxyURL != "" {
 		proxyURL = m.GetStyles().Info.Render(proxyURL)
 		sections = append(sections, fmt.Sprintf("• %s: %s", locale.ServerSettingsProxyURLHint, proxyURL))
@@ -440,6 +646,32 @@ func (m *ServerSettingsFormModel) GetHelpContent() string {
 			sections = append(sections, locale.ServerSettingsPublicURLHelp)
 		case "pentagi_cors_origins":
 			sections = append(sections, locale.ServerSettingsCORSOriginsHelp)
+		case "mcp_enabled":
+			sections = append(sections, locale.ServerSettingsMCPEnabledHelp)
+		case "mcp_server_name":
+			sections = append(sections, locale.ServerSettingsMCPServerNameHelp)
+		case "mcp_server_version":
+			sections = append(sections, locale.ServerSettingsMCPServerVersionHelp)
+		case "mcp_api_key":
+			sections = append(sections, locale.ServerSettingsMCPAPIKeyHelp)
+		case "mcp_write_api_key":
+			sections = append(sections, locale.ServerSettingsMCPWriteAPIKeyHelp)
+		case "mcp_allow_anonymous":
+			sections = append(sections, locale.ServerSettingsMCPAllowAnonymousHelp)
+		case "mcp_allowed_origins":
+			sections = append(sections, locale.ServerSettingsMCPAllowedOriginsHelp)
+		case "mcp_allowed_tools":
+			sections = append(sections, locale.ServerSettingsMCPAllowedToolsHelp)
+		case "mcp_max_request_bytes":
+			sections = append(sections, locale.ServerSettingsMCPMaxRequestBytesHelp)
+		case "mcp_read_tool_rate_limit":
+			sections = append(sections, locale.ServerSettingsMCPReadToolRateLimitHelp)
+		case "mcp_write_tool_rate_limit":
+			sections = append(sections, locale.ServerSettingsMCPWriteToolRateLimitHelp)
+		case "mcp_approval_mode":
+			sections = append(sections, locale.ServerSettingsMCPApprovalModeHelp)
+		case "mcp_enable_write_tools":
+			sections = append(sections, locale.ServerSettingsMCPEnableWriteToolsHelp)
 		case "proxy_url":
 			sections = append(sections, locale.ServerSettingsProxyURLHelp)
 		case "http_client_timeout":
@@ -490,6 +722,19 @@ func (m *ServerSettingsFormModel) HandleSave() error {
 		PublicURL:                cfg.PublicURL,
 		DatabaseExtensionsSchema: cfg.DatabaseExtensionsSchema,
 		DatabaseSearchPathViaOpt: cfg.DatabaseSearchPathViaOpt,
+		MCPEnabled:               cfg.MCPEnabled,
+		MCPServerName:            cfg.MCPServerName,
+		MCPServerVersion:         cfg.MCPServerVersion,
+		MCPAPIKey:                cfg.MCPAPIKey,
+		MCPWriteAPIKey:           cfg.MCPWriteAPIKey,
+		MCPAllowAnonymous:        cfg.MCPAllowAnonymous,
+		MCPAllowedOrigins:        cfg.MCPAllowedOrigins,
+		MCPAllowedTools:          cfg.MCPAllowedTools,
+		MCPMaxRequestBytes:       cfg.MCPMaxRequestBytes,
+		MCPEnableWriteTools:      cfg.MCPEnableWriteTools,
+		MCPReadToolRateLimit:     cfg.MCPReadToolRateLimit,
+		MCPWriteToolRateLimit:    cfg.MCPWriteToolRateLimit,
+		MCPApprovalMode:          cfg.MCPApprovalMode,
 	}
 
 	for _, field := range fields {
@@ -530,6 +775,104 @@ func (m *ServerSettingsFormModel) HandleSave() error {
 			newCfg.PublicURL.Value = value
 		case "pentagi_cors_origins":
 			newCfg.CorsOrigins.Value = value
+		case "mcp_enabled":
+			if value == "" {
+				value = newCfg.MCPEnabled.Default
+			}
+			if err := validateMCPBoolean(value, locale.ServerSettingsMCPEnabled); err != nil {
+				return err
+			}
+			newCfg.MCPEnabled.Value = value
+		case "mcp_server_name":
+			if value == "" {
+				value = newCfg.MCPServerName.Default
+			}
+			if err := validateMCPText(value, locale.ServerSettingsMCPServerName, 128); err != nil {
+				return err
+			}
+			newCfg.MCPServerName.Value = value
+		case "mcp_server_version":
+			if value == "" {
+				value = newCfg.MCPServerVersion.Default
+			}
+			if err := validateMCPText(value, locale.ServerSettingsMCPServerVersion, 128); err != nil {
+				return err
+			}
+			newCfg.MCPServerVersion.Value = value
+		case "mcp_api_key":
+			if err := validateMCPText(value, locale.ServerSettingsMCPAPIKey, 4096); err != nil {
+				return err
+			}
+			newCfg.MCPAPIKey.Value = value
+		case "mcp_write_api_key":
+			if err := validateMCPText(value, locale.ServerSettingsMCPWriteAPIKey, 4096); err != nil {
+				return err
+			}
+			newCfg.MCPWriteAPIKey.Value = value
+		case "mcp_allow_anonymous":
+			if value == "" {
+				value = newCfg.MCPAllowAnonymous.Default
+			}
+			if err := validateMCPBoolean(value, locale.ServerSettingsMCPAllowAnonymous); err != nil {
+				return err
+			}
+			newCfg.MCPAllowAnonymous.Value = value
+		case "mcp_allowed_origins":
+			normalized, err := normalizeMCPOriginList(value)
+			if err != nil {
+				return err
+			}
+			newCfg.MCPAllowedOrigins.Value = normalized
+		case "mcp_allowed_tools":
+			normalized, err := normalizeMCPToolList(value)
+			if err != nil {
+				return err
+			}
+			newCfg.MCPAllowedTools.Value = normalized
+		case "mcp_max_request_bytes":
+			if value == "" {
+				value = newCfg.MCPMaxRequestBytes.Default
+			}
+			maxBytes, err := strconv.Atoi(value)
+			if err != nil || maxBytes < 0 || maxBytes > mcpMaxRequestBytesLimit {
+				return fmt.Errorf("%s 必须是 0 至 %d 之间的整数", locale.ServerSettingsMCPMaxRequestBytes, mcpMaxRequestBytesLimit)
+			}
+			newCfg.MCPMaxRequestBytes.Value = strconv.Itoa(maxBytes)
+		case "mcp_read_tool_rate_limit":
+			if value == "" {
+				value = newCfg.MCPReadToolRateLimit.Default
+			}
+			rateLimit, err := parseMCPRateLimit(value)
+			if err != nil {
+				return fmt.Errorf("%s 必须是 0 至 %d 之间的整数", locale.ServerSettingsMCPReadToolRateLimit, mcpToolRateLimitLimit)
+			}
+			newCfg.MCPReadToolRateLimit.Value = strconv.Itoa(rateLimit)
+		case "mcp_write_tool_rate_limit":
+			if value == "" {
+				value = newCfg.MCPWriteToolRateLimit.Default
+			}
+			rateLimit, err := parseMCPRateLimit(value)
+			if err != nil {
+				return fmt.Errorf("%s 必须是 0 至 %d 之间的整数", locale.ServerSettingsMCPWriteToolRateLimit, mcpToolRateLimitLimit)
+			}
+			newCfg.MCPWriteToolRateLimit.Value = strconv.Itoa(rateLimit)
+		case "mcp_approval_mode":
+			if value == "" {
+				value = newCfg.MCPApprovalMode.Default
+			}
+			approvalMode, err := parseMCPApprovalMode(value)
+			if err != nil {
+				return fmt.Errorf("%s 必须是 scope、destructive 或 write", locale.ServerSettingsMCPApprovalMode)
+			}
+			newCfg.MCPApprovalMode.Value = approvalMode
+		case "mcp_enable_write_tools":
+			if value == "" {
+				value = newCfg.MCPEnableWriteTools.Default
+			}
+			if err := validateMCPBoolean(value, locale.ServerSettingsMCPEnableWriteTools); err != nil {
+				return err
+			}
+			newCfg.MCPEnableWriteTools.Value = value
 		case "proxy_url":
 			newCfg.ProxyURL.Value = value
 		case "proxy_username":
@@ -580,6 +923,10 @@ func (m *ServerSettingsFormModel) HandleSave() error {
 		}
 	}
 
+	if newCfg.MCPEnableWriteTools.Value == "true" && strings.TrimSpace(newCfg.MCPAPIKey.Value) == "" {
+		return fmt.Errorf("启用 %s 前必须配置 %s", locale.ServerSettingsMCPEnableWriteTools, locale.ServerSettingsMCPAPIKey)
+	}
+
 	if err := m.GetController().UpdateServerSettingsConfig(newCfg); err != nil {
 		logger.Errorf("[ServerSettingsFormModel] SAVE: error updating server settings: %v", err)
 		return err
@@ -587,6 +934,112 @@ func (m *ServerSettingsFormModel) HandleSave() error {
 
 	logger.Log("[ServerSettingsFormModel] SAVE: success")
 	return nil
+}
+
+func validateMCPBoolean(value, fieldName string) error {
+	if value != "true" && value != "false" {
+		return fmt.Errorf("%s 必须为 true 或 false", fieldName)
+	}
+	return nil
+}
+
+func validateMCPText(value, fieldName string, maxBytes int) error {
+	if strings.ContainsAny(value, "\r\n") {
+		return fmt.Errorf("%s 不能包含换行符", fieldName)
+	}
+	if len(value) > maxBytes {
+		return fmt.Errorf("%s 长度不能超过 %d 字节", fieldName, maxBytes)
+	}
+	return nil
+}
+
+func parseMCPRateLimit(value string) (int, error) {
+	rateLimit, err := strconv.Atoi(strings.TrimSpace(value))
+	if err != nil || rateLimit < 0 || rateLimit > mcpToolRateLimitLimit {
+		return 0, fmt.Errorf("rate limit out of range")
+	}
+	return rateLimit, nil
+}
+
+func parseMCPApprovalMode(value string) (string, error) {
+	value = strings.ToLower(strings.TrimSpace(value))
+	switch value {
+	case "scope", "destructive", "write":
+		return value, nil
+	default:
+		return "", fmt.Errorf("unknown approval mode")
+	}
+}
+
+func normalizeMCPOriginList(value string) (string, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return "", nil
+	}
+
+	result := make([]string, 0)
+	seen := make(map[string]struct{})
+	hasWildcard := false
+	for _, rawOrigin := range strings.Split(value, ",") {
+		origin := strings.TrimSpace(rawOrigin)
+		if origin == "" {
+			continue
+		}
+		if origin == "*" {
+			if len(result) > 0 {
+				return "", fmt.Errorf("MCP 来源白名单不能把 * 与具体来源混用")
+			}
+			hasWildcard = true
+			continue
+		}
+		if hasWildcard {
+			return "", fmt.Errorf("MCP 来源白名单不能把 * 与具体来源混用")
+		}
+
+		parsed, err := url.ParseRequestURI(origin)
+		if err != nil || parsed.Scheme == "" || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || (parsed.Path != "" && parsed.Path != "/") {
+			return "", fmt.Errorf("MCP 来源 %q 必须是没有路径和参数的 http/https 来源", origin)
+		}
+		if !strings.EqualFold(parsed.Scheme, "http") && !strings.EqualFold(parsed.Scheme, "https") {
+			return "", fmt.Errorf("MCP 来源 %q 只支持 http 或 https", origin)
+		}
+
+		normalized := strings.ToLower(parsed.Scheme) + "://" + strings.ToLower(parsed.Host)
+		if _, exists := seen[normalized]; exists {
+			continue
+		}
+		seen[normalized] = struct{}{}
+		result = append(result, normalized)
+	}
+	if hasWildcard {
+		return "*", nil
+	}
+	return strings.Join(result, ","), nil
+}
+
+func normalizeMCPToolList(value string) (string, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return "", nil
+	}
+
+	result := make([]string, 0)
+	seen := make(map[string]struct{})
+	for _, rawName := range strings.Split(value, ",") {
+		name := strings.TrimSpace(rawName)
+		if name == "" {
+			continue
+		}
+		if !mcpToolNameRegex.MatchString(name) {
+			return "", fmt.Errorf("MCP 工具名 %q 只能包含字母、数字、点、下划线和连字符，且必须以字母开头", name)
+		}
+		if _, exists := seen[name]; exists {
+			continue
+		}
+		seen[name] = struct{}{}
+		result = append(result, name)
+	}
+	return strings.Join(result, ","), nil
 }
 
 func (m *ServerSettingsFormModel) HandleReset() {

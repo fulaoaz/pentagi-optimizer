@@ -2131,6 +2131,19 @@ type ServerSettingsConfig struct {
 	DataDir                  loader.EnvVar // PENTAGI_DATA_DIR
 	DatabaseExtensionsSchema loader.EnvVar // DATABASE_EXTENSIONS_SCHEMA
 	DatabaseSearchPathViaOpt loader.EnvVar // DATABASE_SEARCH_PATH_VIA_OPTIONS
+	MCPEnabled               loader.EnvVar // MCP_ENABLED
+	MCPServerName            loader.EnvVar // MCP_SERVER_NAME
+	MCPServerVersion         loader.EnvVar // MCP_SERVER_VERSION
+	MCPAPIKey                loader.EnvVar // MCP_API_KEY
+	MCPWriteAPIKey           loader.EnvVar // MCP_WRITE_API_KEY
+	MCPAllowAnonymous        loader.EnvVar // MCP_ALLOW_ANONYMOUS
+	MCPAllowedOrigins        loader.EnvVar // MCP_ALLOWED_ORIGINS
+	MCPAllowedTools          loader.EnvVar // MCP_ALLOWED_TOOLS
+	MCPMaxRequestBytes       loader.EnvVar // MCP_MAX_REQUEST_BYTES
+	MCPEnableWriteTools      loader.EnvVar // MCP_ENABLE_WRITE_TOOLS
+	MCPReadToolRateLimit     loader.EnvVar // MCP_READ_TOOL_RATE_LIMIT
+	MCPWriteToolRateLimit    loader.EnvVar // MCP_WRITE_TOOL_RATE_LIMIT
+	MCPApprovalMode          loader.EnvVar // MCP_APPROVAL_MODE
 
 	// parsed credentials for proxy server (extracted from URLs)
 	ProxyUsername string
@@ -2157,6 +2170,19 @@ func (c *controller) GetServerSettingsConfig() *ServerSettingsConfig {
 		"PENTAGI_DATA_DIR",
 		"DATABASE_EXTENSIONS_SCHEMA",
 		"DATABASE_SEARCH_PATH_VIA_OPTIONS",
+		"MCP_ENABLED",
+		"MCP_SERVER_NAME",
+		"MCP_SERVER_VERSION",
+		"MCP_API_KEY",
+		"MCP_WRITE_API_KEY",
+		"MCP_ALLOW_ANONYMOUS",
+		"MCP_ALLOWED_ORIGINS",
+		"MCP_ALLOWED_TOOLS",
+		"MCP_MAX_REQUEST_BYTES",
+		"MCP_ENABLE_WRITE_TOOLS",
+		"MCP_READ_TOOL_RATE_LIMIT",
+		"MCP_WRITE_TOOL_RATE_LIMIT",
+		"MCP_APPROVAL_MODE",
 	})
 
 	defaults := map[string]string{
@@ -2173,6 +2199,15 @@ func (c *controller) GetServerSettingsConfig() *ServerSettingsConfig {
 		"EXTERNAL_SSL_INSECURE":            "false",
 		"DATABASE_EXTENSIONS_SCHEMA":       "public",
 		"DATABASE_SEARCH_PATH_VIA_OPTIONS": "false",
+		"MCP_ENABLED":                      "true",
+		"MCP_SERVER_NAME":                  "PentAGI",
+		"MCP_SERVER_VERSION":               "1.0.0",
+		"MCP_ALLOW_ANONYMOUS":              "false",
+		"MCP_MAX_REQUEST_BYTES":            "1048576",
+		"MCP_ENABLE_WRITE_TOOLS":           "false",
+		"MCP_READ_TOOL_RATE_LIMIT":         "60",
+		"MCP_WRITE_TOOL_RATE_LIMIT":        "10",
+		"MCP_APPROVAL_MODE":                "scope",
 	}
 
 	for varName, defaultValue := range defaults {
@@ -2200,6 +2235,19 @@ func (c *controller) GetServerSettingsConfig() *ServerSettingsConfig {
 		DataDir:                  vars["PENTAGI_DATA_DIR"],
 		DatabaseExtensionsSchema: vars["DATABASE_EXTENSIONS_SCHEMA"],
 		DatabaseSearchPathViaOpt: vars["DATABASE_SEARCH_PATH_VIA_OPTIONS"],
+		MCPEnabled:               vars["MCP_ENABLED"],
+		MCPServerName:            vars["MCP_SERVER_NAME"],
+		MCPServerVersion:         vars["MCP_SERVER_VERSION"],
+		MCPAPIKey:                vars["MCP_API_KEY"],
+		MCPWriteAPIKey:           vars["MCP_WRITE_API_KEY"],
+		MCPAllowAnonymous:        vars["MCP_ALLOW_ANONYMOUS"],
+		MCPAllowedOrigins:        vars["MCP_ALLOWED_ORIGINS"],
+		MCPAllowedTools:          vars["MCP_ALLOWED_TOOLS"],
+		MCPMaxRequestBytes:       vars["MCP_MAX_REQUEST_BYTES"],
+		MCPEnableWriteTools:      vars["MCP_ENABLE_WRITE_TOOLS"],
+		MCPReadToolRateLimit:     vars["MCP_READ_TOOL_RATE_LIMIT"],
+		MCPWriteToolRateLimit:    vars["MCP_WRITE_TOOL_RATE_LIMIT"],
+		MCPApprovalMode:          vars["MCP_APPROVAL_MODE"],
 	}
 
 	// split proxy URL into credentials + naked URL for UI
@@ -2244,6 +2292,19 @@ func (c *controller) UpdateServerSettingsConfig(config *ServerSettingsConfig) er
 		"PENTAGI_DATA_DIR":                 config.DataDir.Value,
 		"DATABASE_EXTENSIONS_SCHEMA":       config.DatabaseExtensionsSchema.Value,
 		"DATABASE_SEARCH_PATH_VIA_OPTIONS": config.DatabaseSearchPathViaOpt.Value,
+		"MCP_ENABLED":                      config.MCPEnabled.Value,
+		"MCP_SERVER_NAME":                  config.MCPServerName.Value,
+		"MCP_SERVER_VERSION":               config.MCPServerVersion.Value,
+		"MCP_API_KEY":                      config.MCPAPIKey.Value,
+		"MCP_WRITE_API_KEY":                config.MCPWriteAPIKey.Value,
+		"MCP_ALLOW_ANONYMOUS":              config.MCPAllowAnonymous.Value,
+		"MCP_ALLOWED_ORIGINS":              config.MCPAllowedOrigins.Value,
+		"MCP_ALLOWED_TOOLS":                config.MCPAllowedTools.Value,
+		"MCP_MAX_REQUEST_BYTES":            config.MCPMaxRequestBytes.Value,
+		"MCP_ENABLE_WRITE_TOOLS":           config.MCPEnableWriteTools.Value,
+		"MCP_READ_TOOL_RATE_LIMIT":         config.MCPReadToolRateLimit.Value,
+		"MCP_WRITE_TOOL_RATE_LIMIT":        config.MCPWriteToolRateLimit.Value,
+		"MCP_APPROVAL_MODE":                config.MCPApprovalMode.Value,
 	}
 
 	if err := c.SetVars(updates); err != nil {
@@ -2273,6 +2334,19 @@ func (c *controller) ResetServerSettingsConfig() *ServerSettingsConfig {
 		"PENTAGI_DATA_DIR",
 		"DATABASE_EXTENSIONS_SCHEMA",
 		"DATABASE_SEARCH_PATH_VIA_OPTIONS",
+		"MCP_ENABLED",
+		"MCP_SERVER_NAME",
+		"MCP_SERVER_VERSION",
+		"MCP_API_KEY",
+		"MCP_WRITE_API_KEY",
+		"MCP_ALLOW_ANONYMOUS",
+		"MCP_ALLOWED_ORIGINS",
+		"MCP_ALLOWED_TOOLS",
+		"MCP_MAX_REQUEST_BYTES",
+		"MCP_ENABLE_WRITE_TOOLS",
+		"MCP_READ_TOOL_RATE_LIMIT",
+		"MCP_WRITE_TOOL_RATE_LIMIT",
+		"MCP_APPROVAL_MODE",
 	}
 
 	if err := c.ResetVars(vars); err != nil {
@@ -2402,6 +2476,20 @@ func (c *controller) getVariableDescription(varName string) string {
 		"LLM_SERVER_LEGACY_REASONING":       locale.EnvDesc_LLM_SERVER_LEGACY_REASONING,
 		"LLM_SERVER_PRESERVE_REASONING":     locale.EnvDesc_LLM_SERVER_PRESERVE_REASONING,
 		"LLM_SERVER_PROVIDER":               locale.EnvDesc_LLM_SERVER_PROVIDER,
+
+		"MCP_ENABLED":               locale.EnvDesc_MCP_ENABLED,
+		"MCP_SERVER_NAME":           locale.EnvDesc_MCP_SERVER_NAME,
+		"MCP_SERVER_VERSION":        locale.EnvDesc_MCP_SERVER_VERSION,
+		"MCP_API_KEY":               locale.EnvDesc_MCP_API_KEY,
+		"MCP_WRITE_API_KEY":         locale.EnvDesc_MCP_WRITE_API_KEY,
+		"MCP_ALLOW_ANONYMOUS":       locale.EnvDesc_MCP_ALLOW_ANONYMOUS,
+		"MCP_ALLOWED_ORIGINS":       locale.EnvDesc_MCP_ALLOWED_ORIGINS,
+		"MCP_ALLOWED_TOOLS":         locale.EnvDesc_MCP_ALLOWED_TOOLS,
+		"MCP_MAX_REQUEST_BYTES":     locale.EnvDesc_MCP_MAX_REQUEST_BYTES,
+		"MCP_ENABLE_WRITE_TOOLS":    locale.EnvDesc_MCP_ENABLE_WRITE_TOOLS,
+		"MCP_READ_TOOL_RATE_LIMIT":  locale.EnvDesc_MCP_READ_TOOL_RATE_LIMIT,
+		"MCP_WRITE_TOOL_RATE_LIMIT": locale.EnvDesc_MCP_WRITE_TOOL_RATE_LIMIT,
+		"MCP_APPROVAL_MODE":         locale.EnvDesc_MCP_APPROVAL_MODE,
 
 		"LANGFUSE_LISTEN_IP":   locale.EnvDesc_LANGFUSE_LISTEN_IP,
 		"LANGFUSE_LISTEN_PORT": locale.EnvDesc_LANGFUSE_LISTEN_PORT,
@@ -2605,6 +2693,8 @@ var maskedVariables = map[string]bool{
 	"TRAVERSAAL_API_KEY":        true,
 	"GOOGLE_API_KEY":            true,
 	"GOOGLE_CX_KEY":             true,
+	"MCP_API_KEY":               true,
+	"MCP_WRITE_API_KEY":         true,
 
 	// oauth client secrets
 	"OAUTH_GOOGLE_CLIENT_SECRET": true,
@@ -2650,6 +2740,21 @@ func (c *controller) isVariableMasked(varName string) bool {
 
 // criticalVariables contains environment variable names that require service restart
 var criticalVariables = map[string]bool{
+	// MCP bridge changes
+	"MCP_ENABLED":               true,
+	"MCP_SERVER_NAME":           true,
+	"MCP_SERVER_VERSION":        true,
+	"MCP_API_KEY":               true,
+	"MCP_WRITE_API_KEY":         true,
+	"MCP_ALLOW_ANONYMOUS":       true,
+	"MCP_ALLOWED_ORIGINS":       true,
+	"MCP_ALLOWED_TOOLS":         true,
+	"MCP_MAX_REQUEST_BYTES":     true,
+	"MCP_ENABLE_WRITE_TOOLS":    true,
+	"MCP_READ_TOOL_RATE_LIMIT":  true,
+	"MCP_WRITE_TOOL_RATE_LIMIT": true,
+	"MCP_APPROVAL_MODE":         true,
+
 	// LLM Provider changes
 	"OPEN_AI_KEY":                       true,
 	"OPEN_AI_SERVER_URL":                true,

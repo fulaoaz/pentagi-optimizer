@@ -1233,6 +1233,7 @@ const (
 • 公开 URL - 用于重定向的外部地址及可选的基础路径
 • CORS - 允许通过浏览器访问的来源
 • 代理 - 访问 LLM/搜索服务商时使用的 HTTP/HTTPS 代理
+• MCP - 配置 AI 客户端的协议桥、认证和最小权限工具范围
 • SSL 目录 - 存放 server.crt 与 server.key（PEM 格式）的自定义证书目录
 • 数据目录 - 智能体产物与任务流工作区的持久化存储`
 
@@ -1251,6 +1252,33 @@ const (
 
 	ServerSettingsCORSOrigins     = "CORS 允许来源"
 	ServerSettingsCORSOriginsDesc = "以逗号分隔的允许来源列表（例如 https://localhost:8443,https://localhost）"
+
+	ServerSettingsMCPEnabled                = "启用 MCP 协议桥"
+	ServerSettingsMCPEnabledDesc            = "为 AI 客户端提供 MCP 接口；未配置读取密钥时，桥接端点默认不可用"
+	ServerSettingsMCPServerName             = "MCP 服务名称"
+	ServerSettingsMCPServerNameDesc         = "MCP 客户端看到的服务名称；留空使用 PentAGI"
+	ServerSettingsMCPServerVersion          = "MCP 服务版本"
+	ServerSettingsMCPServerVersionDesc      = "MCP 客户端看到的服务版本；留空使用 1.0.0"
+	ServerSettingsMCPAPIKey                 = "MCP 读取 API 密钥"
+	ServerSettingsMCPAPIKeyDesc             = "访问 MCP 端点的 Bearer 密钥；请使用随机长密钥并妥善保管"
+	ServerSettingsMCPWriteAPIKey            = "MCP 写入 API 密钥"
+	ServerSettingsMCPWriteAPIKeyDesc        = "可选的写工具专用 Bearer 密钥；设置后读取密钥不能调用写工具"
+	ServerSettingsMCPAllowAnonymous         = "允许 MCP 匿名只读访问"
+	ServerSettingsMCPAllowAnonymousDesc     = "仅在隔离的本机客户端场景启用；不会开放写工具"
+	ServerSettingsMCPAllowedOrigins         = "MCP 浏览器来源白名单"
+	ServerSettingsMCPAllowedOriginsDesc     = "以逗号分隔的 http/https 来源；留空时拒绝带 Origin 的浏览器请求"
+	ServerSettingsMCPAllowedTools           = "MCP 工具白名单"
+	ServerSettingsMCPAllowedToolsDesc       = "以逗号分隔的精确工具名；留空保留已启用工具，填写后只注册列出的工具"
+	ServerSettingsMCPMaxRequestBytes        = "MCP 请求体上限（字节）"
+	ServerSettingsMCPMaxRequestBytesDesc    = "限制 MCP HTTP 请求体大小；0 使用后端默认值 1 MiB，最大支持 64 MiB"
+	ServerSettingsMCPReadToolRateLimit      = "MCP 读取工具限流"
+	ServerSettingsMCPReadToolRateLimitDesc  = "每个身份对单个读取工具每分钟允许的调用次数；0 表示不限制"
+	ServerSettingsMCPWriteToolRateLimit     = "MCP 写入工具限流"
+	ServerSettingsMCPWriteToolRateLimitDesc = "每个身份对单个写入工具每分钟允许的调用次数；0 表示不限制"
+	ServerSettingsMCPApprovalMode           = "MCP 写操作审批模式"
+	ServerSettingsMCPApprovalModeDesc       = "scope 保持兼容；destructive 要求破坏性工具审批；write 要求所有写工具审批"
+	ServerSettingsMCPEnableWriteTools       = "启用 MCP 写入工具"
+	ServerSettingsMCPEnableWriteToolsDesc   = "显式开放提交输入和停止流任务的工具；必须同时配置读取密钥"
 
 	ServerSettingsProxyURL     = "HTTP/HTTPS 代理"
 	ServerSettingsProxyURLDesc = "访问 LLM 和外部工具时使用的代理（不用于 Docker API 访问）"
@@ -1293,20 +1321,34 @@ const (
 	ServerSettingsDatabaseSearchPathViaOptionsDesc = "在 options 启动参数内传递租户 search_path（部分连接池需要）"
 
 	// Hints for fields overview
-	ServerSettingsLicenseKeyHint          = "许可证密钥"
-	ServerSettingsHostHint                = "监听 IP"
-	ServerSettingsPortHint                = "监听端口"
-	ServerSettingsPublicURLHint           = "公开 URL"
-	ServerSettingsCORSOriginsHint         = "CORS 来源"
-	ServerSettingsProxyURLHint            = "代理地址"
-	ServerSettingsProxyUsernameHint       = "代理用户名"
-	ServerSettingsProxyPasswordHint       = "代理密码"
-	ServerSettingsHTTPClientTimeoutHint   = "HTTP 超时"
-	ServerSettingsTerminalToolTimeoutHint = "终端超时"
-	ServerSettingsExternalSSLCAPathHint   = "自定义 CA 路径"
-	ServerSettingsExternalSSLInsecureHint = "跳过 SSL 校验"
-	ServerSettingsSSLDirHint              = "SSL 目录"
-	ServerSettingsDataDirHint             = "数据目录"
+	ServerSettingsLicenseKeyHint            = "许可证密钥"
+	ServerSettingsHostHint                  = "监听 IP"
+	ServerSettingsPortHint                  = "监听端口"
+	ServerSettingsPublicURLHint             = "公开 URL"
+	ServerSettingsCORSOriginsHint           = "CORS 来源"
+	ServerSettingsMCPEnabledHint            = "MCP 协议桥"
+	ServerSettingsMCPServerNameHint         = "MCP 服务名称"
+	ServerSettingsMCPServerVersionHint      = "MCP 服务版本"
+	ServerSettingsMCPAPIKeyHint             = "MCP 读取密钥"
+	ServerSettingsMCPWriteAPIKeyHint        = "MCP 写入密钥"
+	ServerSettingsMCPAllowAnonymousHint     = "MCP 匿名访问"
+	ServerSettingsMCPAllowedOriginsHint     = "MCP 来源白名单"
+	ServerSettingsMCPAllowedToolsHint       = "MCP 工具白名单"
+	ServerSettingsMCPMaxRequestBytesHint    = "MCP 请求体上限"
+	ServerSettingsMCPReadToolRateLimitHint  = "MCP 读取限流"
+	ServerSettingsMCPWriteToolRateLimitHint = "MCP 写入限流"
+	ServerSettingsMCPApprovalModeHint       = "MCP 审批模式"
+	ServerSettingsMCPEnableWriteToolsHint   = "MCP 写入工具"
+	ServerSettingsMCPRateLimitUnit          = "次/分钟"
+	ServerSettingsProxyURLHint              = "代理地址"
+	ServerSettingsProxyUsernameHint         = "代理用户名"
+	ServerSettingsProxyPasswordHint         = "代理密码"
+	ServerSettingsHTTPClientTimeoutHint     = "HTTP 超时"
+	ServerSettingsTerminalToolTimeoutHint   = "终端超时"
+	ServerSettingsExternalSSLCAPathHint     = "自定义 CA 路径"
+	ServerSettingsExternalSSLInsecureHint   = "跳过 SSL 校验"
+	ServerSettingsSSLDirHint                = "SSL 目录"
+	ServerSettingsDataDirHint               = "数据目录"
 
 	ServerSettingsTenantIDHint                     = "租户 ID"
 	ServerSettingsDatabaseExtensionsSchemaHint     = "扩展模式"
@@ -1317,6 +1359,8 @@ const (
 	ServerSettingsGeneralHelp = `PentAGI 通过 Docker 对外提供网页界面，主机地址与端口均可配置。
 
 公开 URL 必须与用户实际访问服务器的方式一致。如果使用子路径（例如 /pentagi/），请一并填入。CORS 控制来自指定来源的浏览器访问。代理会影响发往 LLM/搜索提供商以及工具所用其他外部服务的出站流量。
+
+MCP 默认采用最小权限：读取密钥、浏览器来源和工具范围均可独立限制；写入工具必须显式开启并使用写入范围认证。
 
 SSL 目录用于提供自定义证书。设置后，服务器将使用该目录下的 server.crt 和 server.key。数据目录用于存放任务流的产物与工作文件。`
 
@@ -1338,6 +1382,63 @@ SSL 目录用于提供自定义证书。设置后，服务器将使用该目录�
 • https://example.com/pentagi/（带子路径）`
 
 	ServerSettingsCORSOriginsHelp = `允许浏览器访问的来源列表，以逗号分隔。`
+
+	ServerSettingsMCPEnabledHelp = `控制原生 MCP 协议桥是否注册 HTTP 端点。
+
+启用并不等于允许匿名访问：默认仍需配置 MCP_API_KEY。关闭后，/mcp、/mcp/sse 和 /mcp/message 均不会注册。`
+
+	ServerSettingsMCPServerNameHelp = `MCP 客户端看到的服务名称。留空使用 PentAGI。建议保持稳定，便于客户端识别连接。`
+
+	ServerSettingsMCPServerVersionHelp = `MCP 客户端看到的服务版本。留空使用 1.0.0。该值用于初始化握手信息，不代表 PentAGI 应用版本。`
+
+	ServerSettingsMCPAPIKeyHelp = `MCP 读取范围的 Bearer 密钥。
+
+未配置时，除非显式允许匿名只读访问，否则 MCP 请求会保持不可用。请使用随机生成的长密钥，不要把密钥提交到代码仓库。`
+
+	ServerSettingsMCPWriteAPIKeyHelp = `可选的写入范围 Bearer 密钥。
+
+设置后，MCP_API_KEY 只拥有读取范围；只有此密钥才能调用写工具。留空时保持兼容的单密钥模式。`
+
+	ServerSettingsMCPAllowAnonymousHelp = `允许在没有 MCP_API_KEY 时进行匿名只读访问。
+
+仅适用于隔离的本机客户端。匿名模式不会授予提交输入或停止流任务的权限。`
+
+	ServerSettingsMCPAllowedOriginsHelp = `浏览器 Origin 白名单，以逗号分隔，例如：
+• https://console.example.com
+• http://localhost:3000
+
+只接受 http/https 来源，不接受路径、查询参数或片段。留空仍兼容没有 Origin 请求头的桌面客户端，但拒绝浏览器来源。`
+
+	ServerSettingsMCPAllowedToolsHelp = `精确限制 MCP 客户端可以看到的工具，以逗号分隔。常用名称包括：
+• get_flow_status
+• list_assistants
+• submit_flow_input
+• stop_flow
+
+留空保留其他开关允许的工具；填写后，未列出的工具不会注册。`
+
+	ServerSettingsMCPMaxRequestBytesHelp = `限制 MCP HTTP 请求体大小，防止异常大消息占用过多内存。
+
+默认值为 1048576（1 MiB）。填写 0 使用后端默认值；允许范围为 0 至 67108864（64 MiB）。`
+
+	ServerSettingsMCPReadToolRateLimitHelp = `限制每个身份对同一个读取工具的调用频率。
+
+默认值为 60 次/分钟。填写 0 表示不限制。限流按 Bearer 身份、客户端 IP 或 MCP 会话与工具名称分别计算，并使用令牌桶平滑补充。`
+
+	ServerSettingsMCPWriteToolRateLimitHelp = `限制每个身份对同一个写入工具的调用频率。
+
+默认值为 10 次/分钟。填写 0 表示不限制。建议保持低于读取限流，避免自动化客户端重复提交或频繁停止任务。`
+
+	ServerSettingsMCPApprovalModeHelp = `控制写工具是否需要在请求中携带显式审批头：
+• scope —— 不额外要求审批（仍受写范围认证保护）
+• destructive —— 仅 stop_flow 等破坏性工具需要审批
+• write —— 所有写工具都需要审批
+
+需要审批时，请在请求中加入 X-MCP-Approval: confirm。`
+
+	ServerSettingsMCPEnableWriteToolsHelp = `显式注册 submit_flow_input 和 stop_flow。
+
+这两个工具会改变或停止任务流，默认关闭。启用前必须配置 MCP_API_KEY；若设置了 MCP_WRITE_API_KEY，应使用写入密钥调用它们。`
 
 	ServerSettingsProxyURLHelp = `用于发往 LLM 提供商和外部工具的出站请求的 HTTP 或 HTTPS 代理。不用于 Docker API 通信。`
 
@@ -2399,6 +2500,20 @@ const (
 	EnvDesc_LLM_SERVER_LEGACY_REASONING       = "自定义 LLM 旧版推理模式"
 	EnvDesc_LLM_SERVER_PRESERVE_REASONING     = "自定义 LLM 保留推理内容"
 	EnvDesc_LLM_SERVER_PROVIDER               = "自定义 LLM 提供商名称"
+
+	EnvDesc_MCP_ENABLED               = "启用 MCP 协议桥"
+	EnvDesc_MCP_SERVER_NAME           = "MCP 服务名称"
+	EnvDesc_MCP_SERVER_VERSION        = "MCP 服务版本"
+	EnvDesc_MCP_API_KEY               = "MCP 读取 API 密钥"
+	EnvDesc_MCP_WRITE_API_KEY         = "MCP 写入 API 密钥"
+	EnvDesc_MCP_ALLOW_ANONYMOUS       = "允许 MCP 匿名只读访问"
+	EnvDesc_MCP_ALLOWED_ORIGINS       = "MCP 浏览器来源白名单"
+	EnvDesc_MCP_ALLOWED_TOOLS         = "MCP 工具白名单"
+	EnvDesc_MCP_MAX_REQUEST_BYTES     = "MCP 请求体字节上限"
+	EnvDesc_MCP_READ_TOOL_RATE_LIMIT  = "MCP 读取工具每分钟限流"
+	EnvDesc_MCP_WRITE_TOOL_RATE_LIMIT = "MCP 写入工具每分钟限流"
+	EnvDesc_MCP_APPROVAL_MODE         = "MCP 写操作审批模式"
+	EnvDesc_MCP_ENABLE_WRITE_TOOLS    = "启用 MCP 写入工具"
 
 	EnvDesc_LANGFUSE_LISTEN_IP   = "Langfuse 监听 IP"
 	EnvDesc_LANGFUSE_LISTEN_PORT = "Langfuse 监听端口"
