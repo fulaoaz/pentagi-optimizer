@@ -214,15 +214,15 @@ func (t *terminal) startCmd(cmd *exec.Cmd) error {
 
 	stderrPipe, err := cmd.StderrPipe()
 	if err != nil {
-		stdoutPipe.Close()
+		_ = stdoutPipe.Close()
 		return fmt.Errorf("failed to create stderr pipe: %w", err)
 	}
 
 	// set up stdin pipe for interactive commands
 	stdinPipe, err := cmd.StdinPipe()
 	if err != nil {
-		stdoutPipe.Close()
-		stderrPipe.Close()
+		_ = stdoutPipe.Close()
+		_ = stderrPipe.Close()
 		return fmt.Errorf("failed to create stdin pipe: %w", err)
 	}
 
@@ -231,8 +231,8 @@ func (t *terminal) startCmd(cmd *exec.Cmd) error {
 
 	// start the command
 	if err := cmd.Start(); err != nil {
-		stdoutPipe.Close()
-		stderrPipe.Close()
+		_ = stdoutPipe.Close()
+		_ = stderrPipe.Close()
 		stdinPipe.Close()
 		return fmt.Errorf("failed to start command: %w", err)
 	}
@@ -253,8 +253,8 @@ func (t *terminal) manageCmd(stdoutPipe, stderrPipe io.ReadCloser, stdinPipe io.
 		defer t.mx.Unlock()
 
 		// close pipes
-		stdoutPipe.Close()
-		stderrPipe.Close()
+		_ = stdoutPipe.Close()
+		_ = stderrPipe.Close()
 		stdinPipe.Close()
 
 		t.cleanup()
