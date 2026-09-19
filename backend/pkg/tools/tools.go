@@ -1491,6 +1491,24 @@ func (fte *flowToolsExecutor) GetPentesterExecutor(cfg PentesterExecutorConfig) 
 		ce.handlers[CveToolName] = cveTool.Handle
 	}
 
+	threatModelTool := NewThreatModelTool(
+		fte.flowID,
+		fte.slp,
+	)
+	if threatModelTool.IsAvailable() {
+		ce.definitions = append(ce.definitions, registryDefinitions[ThreatModelToolName])
+		ce.handlers[ThreatModelToolName] = threatModelTool.Handle
+	}
+
+	coverageTool := NewCoverageTool(
+		fte.flowID,
+		fte.slp,
+	)
+	if coverageTool.IsAvailable() {
+		ce.definitions = append(ce.definitions, registryDefinitions[CoverageToolName])
+		ce.handlers[CoverageToolName] = coverageTool.Handle
+	}
+
 	kevTool := NewKEVTool(
 		fte.cfg,
 		fte.flowID,
@@ -1593,6 +1611,24 @@ func (fte *flowToolsExecutor) GetSearcherExecutor(cfg SearcherExecutorConfig) (C
 	if cveTool.IsAvailable() {
 		ce.definitions = append(ce.definitions, registryDefinitions[CveToolName])
 		ce.handlers[CveToolName] = cveTool.Handle
+	}
+
+	threatModelTool := NewThreatModelTool(
+		fte.flowID,
+		fte.slp,
+	)
+	if threatModelTool.IsAvailable() {
+		ce.definitions = append(ce.definitions, registryDefinitions[ThreatModelToolName])
+		ce.handlers[ThreatModelToolName] = threatModelTool.Handle
+	}
+
+	coverageTool := NewCoverageTool(
+		fte.flowID,
+		fte.slp,
+	)
+	if coverageTool.IsAvailable() {
+		ce.definitions = append(ce.definitions, registryDefinitions[CoverageToolName])
+		ce.handlers[CoverageToolName] = coverageTool.Handle
 	}
 
 	kevTool := NewKEVTool(

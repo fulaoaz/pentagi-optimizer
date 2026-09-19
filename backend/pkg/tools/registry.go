@@ -31,6 +31,8 @@ const (
 	SploitusToolName           = "sploitus"
 	EppssToolName              = "eppss"
 	CvssToolName               = "cvss"
+	ThreatModelToolName        = "threat_model"
+	CoverageToolName           = "security_coverage"
 	CveToolName                = "cve"
 	KevToolName                = "kev"
 	WebSearchToolName          = "web_search"
@@ -122,6 +124,8 @@ var toolsTypeMapping = map[string]ToolType{
 	SploitusToolName:           SearchNetworkToolType,
 	EppssToolName:              SearchNetworkToolType,
 	CvssToolName:               SearchNetworkToolType,
+	ThreatModelToolName:        SearchNetworkToolType,
+	CoverageToolName:           SearchNetworkToolType,
 	CveToolName:                SearchNetworkToolType,
 	KevToolName:                SearchNetworkToolType,
 	WebSearchToolName:          SearchNetworkToolType,
@@ -172,6 +176,8 @@ var allowedStoringInMemoryTools = []string{
 	SploitusToolName,
 	EppssToolName,
 	CvssToolName,
+	ThreatModelToolName,
+	CoverageToolName,
 	CveToolName,
 	KevToolName,
 	WebSearchToolName,
@@ -314,6 +320,24 @@ var registryDefinitions = map[string]llms.FunctionDefinition{
 			"exploitation likelihood use the 'eppss' tool instead; the two are complementary.",
 		Parameters: reflector.Reflect(&CvssAction{}),
 	},
+
+	ThreatModelToolName: {
+		Name: ThreatModelToolName,
+		Description: "Shared, run-scoped threat model for this flow. " +
+			"action=derive stores one model (overview, trust_boundaries, attack_surface, severity_criteria) that every agent on the flow reads back instead of re-deriving trust boundaries. " +
+			"action=amend appends a correction without rewriting the whole model. " +
+			"action=get returns the current model. Derive it once early, then amend as understanding evolves.",
+		Parameters: reflector.Reflect(&ThreatModelAction{}),
+	},
+	CoverageToolName: {
+		Name: CoverageToolName,
+		Description: "Per-flow coverage ledger for security testing. " +
+			"action=record stores one reviewed surface with an outcome: reported, no_issue_found, ruled_out, not_applicable or needs_follow_up. " +
+			"ruled_out, not_applicable and needs_follow_up require evidence. " +
+			"action=list returns the ledger with per-outcome counts, so the final report can honestly state what was reviewed and what was not.",
+		Parameters: reflector.Reflect(&CoverageAction{}),
+	},
+
 	WebSearchToolName: {
 		Name: WebSearchToolName,
 		Description: "Search the web through a unified engine. Provide a `query` and a `mode`: " +
