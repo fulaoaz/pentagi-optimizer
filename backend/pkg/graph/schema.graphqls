@@ -1053,6 +1053,7 @@ type Query {
   knowledgeDocuments(filter: KnowledgeFilter, withContent: Boolean!): [KnowledgeDocument!]!
   knowledgeDocument(id: String!): KnowledgeDocument!
   searchKnowledge(query: String!, filter: KnowledgeFilter, limit: Int): [KnowledgeDocumentWithScore!]!
+  searchEnginesStatus: [SearchEngineStatus!]!
 }
 
 type Mutation {
@@ -1163,4 +1164,14 @@ type Subscription {
   knowledgeDocumentCreated: KnowledgeDocument!
   knowledgeDocumentUpdated: KnowledgeDocument!
   knowledgeDocumentDeleted: KnowledgeDocument!
+}
+
+
+# Visual configuration overview: per-engine availability of the web_search tool.
+type SearchEngineStatus {
+  name: String!
+  engineType: String!
+  available: Boolean!
+  description: String!
+  missing: String
 }

@@ -72,7 +72,6 @@ export const routeTitles = {
             params.promptId ? formatPromptId(params.promptId, t) : t('title.prompt'),
     },
     prompts: { title: 'title.prompts' },
-
     provider: {
         title: apolloTitle({
             document: SettingsProvidersDocument,
@@ -94,6 +93,8 @@ export const routeTitles = {
     providers: { title: 'title.providers' },
 
     resources: { title: 'title.resources' },
+
+    searchEngines: { title: 'title.searchEngines' },
 
     template: {
         title: apolloTitle({

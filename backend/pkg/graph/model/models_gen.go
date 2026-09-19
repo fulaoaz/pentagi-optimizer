@@ -452,6 +452,14 @@ type Screenshot struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
+type SearchEngineStatus struct {
+	Name        string  `json:"name"`
+	EngineType  string  `json:"engineType"`
+	Available   bool    `json:"available"`
+	Description string  `json:"description"`
+	Missing     *string `json:"missing,omitempty"`
+}
+
 type SearchLog struct {
 	ID        int64     `json:"id"`
 	Initiator AgentType `json:"initiator"`

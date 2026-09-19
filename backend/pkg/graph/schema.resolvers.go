@@ -30,6 +30,7 @@ import (
 	"pentagi/pkg/server/auth"
 	"pentagi/pkg/templates"
 	"pentagi/pkg/templates/validator"
+	"pentagi/pkg/tools"
 	"pentagi/pkg/version"
 	"strings"
 	"time"
@@ -2568,6 +2569,26 @@ func (r *queryResolver) SearchKnowledge(ctx context.Context, query string, filte
 	return r.Knowledge.SearchUserDocuments(ctx, uid, query, filter, lim)
 }
 
+// SearchEnginesStatus is the resolver for the searchEnginesStatus field.
+func (r *queryResolver) SearchEnginesStatus(ctx context.Context) ([]*model.SearchEngineStatus, error) {
+	entries := tools.SearchEnginesStatus(r.Config)
+	result := make([]*model.SearchEngineStatus, 0, len(entries))
+	for _, e := range entries {
+		item := &model.SearchEngineStatus{
+			Name:        e.Name,
+			EngineType:  e.EngineType,
+			Available:   e.Available,
+			Description: e.Description,
+		}
+		if e.Missing != "" {
+			missing := e.Missing
+			item.Missing = &missing
+		}
+		result = append(result, item)
+	}
+	return result, nil
+}
+
 // FlowCreated is the resolver for the flowCreated field.
 func (r *subscriptionResolver) FlowCreated(ctx context.Context) (<-chan *model.Flow, error) {
 	uid, admin, err := validatePermission(ctx, "flows.subscribe")
@@ -3062,3 +3083,5 @@ func (r *Resolver) Subscription() SubscriptionResolver { return &subscriptionRes
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type subscriptionResolver struct{ *Resolver }
+
+//

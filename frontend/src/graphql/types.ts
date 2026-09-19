@@ -1413,6 +1413,18 @@ export type KnowledgeDocumentDeletedSubscriptionVariables = Exact<{ [key: string
 
 export type KnowledgeDocumentDeletedSubscription = { knowledgeDocumentDeleted: KnowledgeDocumentFragmentFragment };
 
+export type SearchEnginesStatusQueryVariables = Exact<{ [key: string]: never }>;
+
+export type SearchEnginesStatusQuery = {
+    searchEnginesStatus: Array<{
+        name: string;
+        engineType: string;
+        available: boolean;
+        description: string;
+        missing: string | null;
+    }>;
+};
+
 export const SettingsFragmentFragmentDoc = {
     kind: 'Document',
     definitions: [
@@ -12568,3 +12580,32 @@ export const KnowledgeDocumentDeletedDocument = {
         },
     ],
 } as unknown as DocumentNode<KnowledgeDocumentDeletedSubscription, KnowledgeDocumentDeletedSubscriptionVariables>;
+export const SearchEnginesStatusDocument = {
+    kind: 'Document',
+    definitions: [
+        {
+            kind: 'OperationDefinition',
+            operation: 'query',
+            name: { kind: 'Name', value: 'searchEnginesStatus' },
+            selectionSet: {
+                kind: 'SelectionSet',
+                selections: [
+                    {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'searchEnginesStatus' },
+                        selectionSet: {
+                            kind: 'SelectionSet',
+                            selections: [
+                                { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'engineType' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'available' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'description' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'missing' } },
+                            ],
+                        },
+                    },
+                ],
+            },
+        },
+    ],
+} as unknown as DocumentNode<SearchEnginesStatusQuery, SearchEnginesStatusQueryVariables>;

@@ -832,6 +832,7 @@ export const en: Dictionary = {
     'nav.providers': 'Providers',
     'nav.recentFlows': 'Recent Flows',
     'nav.resources': 'Resources',
+    'nav.searchEngines': 'Search Engines',
     'nav.settings': 'Settings',
     'nav.systemTheme': 'System theme',
     'nav.templates': 'Templates',
@@ -986,11 +987,11 @@ export const en: Dictionary = {
     'settings.apiTokens.loadingError': 'Error loading tokens',
     'settings.apiTokens.loadingTitle': 'Loading tokens...',
     'settings.apiTokens.manage': 'Manage API tokens for programmatic access',
-    'settings.apiTokens.openPlayground': 'GraphQL Playground',
-    'settings.apiTokens.openSwagger': 'Swagger UI',
     'settings.apiTokens.name': 'Name',
     'settings.apiTokens.nameMax': 'Token name must be 100 characters or less',
     'settings.apiTokens.namePlaceholder': 'Token name (optional)',
+    'settings.apiTokens.openPlayground': 'GraphQL Playground',
+    'settings.apiTokens.openSwagger': 'Swagger UI',
     'settings.apiTokens.pickDate': 'Pick date',
     'settings.apiTokens.revoked': 'revoked',
     'settings.apiTokens.secretDescription':
@@ -1091,7 +1092,6 @@ export const en: Dictionary = {
     'settings.prompts.validationError': 'Validation Error',
     'settings.prompts.validationResults': 'Validation Results',
     'settings.prompts.validTemplate': 'Valid Template',
-
     'settings.provider.actions': 'Provider actions',
     'settings.provider.agentConfigurations': 'Agent Configurations',
     'settings.provider.agentConfigurationsDescription': 'Configure settings for each agent type',
@@ -1099,6 +1099,7 @@ export const en: Dictionary = {
     'settings.provider.cacheReadPriceDescription': 'Price per 1M cached read tokens',
     'settings.provider.cacheWritePrice': 'Cache Write Price',
     'settings.provider.cacheWritePriceDescription': 'Price per 1M cache write tokens',
+
     'settings.provider.configureNew': 'Configure a new language model provider',
     'settings.provider.copyName': '{name} (Copy)',
     'settings.provider.createButton': 'Create',
@@ -1116,7 +1117,6 @@ export const en: Dictionary = {
     'settings.provider.free': 'free',
     'settings.provider.frequencyPenalty': 'Frequency Penalty',
     'settings.provider.inputPrice': 'Input Price',
-
     'settings.provider.inputPriceDescription': 'Price per 1M input tokens',
     'settings.provider.latency': 'Latency:',
     'settings.provider.latencyValue': '{value} ms',
@@ -1124,6 +1124,7 @@ export const en: Dictionary = {
     'settings.provider.loadingError': 'Error loading provider data',
     'settings.provider.loadingTitle': 'Loading provider data...',
     'settings.provider.maxCharacters': 'Maximum 50 characters allowed',
+
     'settings.provider.maxLength': 'Max Length',
     'settings.provider.maxTokens': 'Max Tokens',
     'settings.provider.minLength': 'Min Length',
@@ -1151,7 +1152,6 @@ export const en: Dictionary = {
     'settings.provider.saveButton': 'Save',
     'settings.provider.saveError': 'An error occurred while saving',
     'settings.provider.searchField': 'Search {field}...',
-
     'settings.provider.selectEffort': 'Select effort level (optional)',
     'settings.provider.selectType': 'Select provider',
     'settings.provider.settingsTitle': 'Provider Settings',
@@ -1159,6 +1159,7 @@ export const en: Dictionary = {
     'settings.provider.temperature': 'Temperature',
     'settings.provider.testError': 'An error occurred while testing',
     'settings.provider.testName.adaptiveThinkingProducesReasoning': 'Adaptive Thinking Produces Reasoning',
+
     'settings.provider.testName.askAdviceFunction': 'Ask Advice Function',
     'settings.provider.testName.basicContextMemory': 'Basic Context Memory Test',
     'settings.provider.testName.basicEchoFunction': 'Basic Echo Function',
@@ -1176,7 +1177,6 @@ export const en: Dictionary = {
     'settings.provider.testName.pentestFramework': 'Penetration Testing Framework',
     'settings.provider.testName.pentestMemoryWithToolCall': 'Penetration Testing Memory with Tool Call',
     'settings.provider.testName.pentestMethodology': 'Penetration Testing Methodology',
-
     'settings.provider.testName.pentestToolSelection': 'Penetration Testing Tool Selection',
     'settings.provider.testName.personInformationJson': 'Person Information JSON',
     'settings.provider.testName.personInformationJsonStreaming': 'Person Information JSON Streaming',
@@ -1184,6 +1184,7 @@ export const en: Dictionary = {
     'settings.provider.testName.searchQueryFunction': 'Search Query Function',
     'settings.provider.testName.searchQueryFunctionStreaming': 'Search Query Function Streaming',
     'settings.provider.testName.simpleMath': 'Simple Math',
+
     'settings.provider.testName.simpleMathStreaming': 'Simple Math Streaming',
     'settings.provider.testName.sqlInjectionAttackType': 'SQL Injection Attack Type',
     'settings.provider.testName.structuredOutputWithJsonSchema': 'Structured Output With JSON Schema',
@@ -1226,6 +1227,15 @@ export const en: Dictionary = {
     'settings.providers.noConfiguration': 'No configuration available',
     'settings.providers.type': 'Type',
     'settings.providers.updated': 'Updated',
+    'settings.searchEngines.description':
+        'These engines power the unified web_search tool. Enable an engine by configuring its API credentials in the deployment environment (.env). The pentest agents automatically fall back between the engines that are available.',
+    'settings.searchEngines.disabled': 'Not configured',
+    'settings.searchEngines.empty': 'No search engines found.',
+    'settings.searchEngines.enabled': 'Enabled',
+    'settings.searchEngines.loadError': 'Failed to load search engine status',
+    'settings.searchEngines.restartHint':
+        'Configuration changes take effect after restarting the containers (docker compose up -d).',
+    'settings.searchEngines.title': 'Search engines',
     'settings.unsavedDescription': 'You have unsaved changes. Are you sure you want to leave without saving?',
     'settings.unsavedTitle': 'Discard changes?',
     'settings.updateProvider': 'Update Provider',
@@ -1283,6 +1293,7 @@ export const en: Dictionary = {
     'title.provider': 'Provider',
     'title.providers': 'Providers',
     'title.resources': 'Resources',
+    'title.searchEngines': 'Search Engines',
     'title.template': 'Template',
     'title.templates': 'Templates',
     'unsaved.cancel': 'Cancel',

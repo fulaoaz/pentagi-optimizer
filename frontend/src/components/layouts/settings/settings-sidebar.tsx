@@ -1,4 +1,4 @@
-import { ArrowLeft, FileText, Key, Plug, Settings as SettingsIcon } from 'lucide-react';
+import { ArrowLeft, FileText, Globe, Key, Plug, Settings as SettingsIcon } from 'lucide-react';
 import { useMemo } from 'react';
 import { NavLink, Outlet, useLocation, useParams } from 'react-router-dom';
 
@@ -50,6 +50,12 @@ const menuItems: readonly MenuItem[] = [
         id: 'api-tokens',
         path: '/settings/api-tokens',
         titleKey: 'nav.apiTokens',
+    },
+    {
+        icon: <Globe className="size-4" />,
+        id: 'search-engines',
+        path: '/settings/search-engines',
+        titleKey: 'nav.searchEngines',
     },
 ] as const;
 

@@ -823,6 +823,7 @@ export const zhCN: Dictionary = {
     'nav.providers': '模型提供商',
     'nav.recentFlows': '最近的任务流',
     'nav.resources': '资源',
+    'nav.searchEngines': '搜索源',
     'nav.settings': '设置',
     'nav.systemTheme': '跟随系统',
     'nav.templates': '模板',
@@ -972,11 +973,11 @@ export const zhCN: Dictionary = {
     'settings.apiTokens.loadingError': 'API 令牌加载失败',
     'settings.apiTokens.loadingTitle': '正在加载令牌...',
     'settings.apiTokens.manage': '管理供程序调用的 API 令牌',
-    'settings.apiTokens.openPlayground': 'GraphQL 调试台',
-    'settings.apiTokens.openSwagger': 'Swagger 接口文档',
     'settings.apiTokens.name': '名称',
     'settings.apiTokens.nameMax': '令牌名称不能超过 100 个字符',
     'settings.apiTokens.namePlaceholder': '令牌名称（可选）',
+    'settings.apiTokens.openPlayground': 'GraphQL 调试台',
+    'settings.apiTokens.openSwagger': 'Swagger 接口文档',
     'settings.apiTokens.pickDate': '选择日期',
     'settings.apiTokens.revoked': '已吊销',
     'settings.apiTokens.secretDescription': '请立即复制此令牌。出于安全考虑，关闭后将无法再次查看。',
@@ -1069,7 +1070,6 @@ export const zhCN: Dictionary = {
     'settings.prompts.validationError': '验证错误',
     'settings.prompts.validationResults': '验证结果',
     'settings.prompts.validTemplate': '模板有效',
-
     'settings.provider.actions': '提供商操作',
     'settings.provider.agentConfigurations': '智能体配置',
     'settings.provider.agentConfigurationsDescription': '分别配置各类智能体',
@@ -1077,6 +1077,7 @@ export const zhCN: Dictionary = {
     'settings.provider.cacheReadPriceDescription': '每 100 万个缓存读取令牌的价格',
     'settings.provider.cacheWritePrice': '缓存写入价格',
     'settings.provider.cacheWritePriceDescription': '每 100 万个缓存写入令牌的价格',
+
     'settings.provider.configureNew': '配置新的语言模型提供商',
     'settings.provider.copyName': '{name}（副本）',
     'settings.provider.createButton': '创建',
@@ -1095,7 +1096,6 @@ export const zhCN: Dictionary = {
     'settings.provider.inputPrice': '输入价格',
     'settings.provider.inputPriceDescription': '每 100 万个输入令牌的价格',
     'settings.provider.latency': '延迟：',
-
     'settings.provider.latencyValue': '{value} 毫秒',
     'settings.provider.loadingDescription': '正在获取提供商配置，请稍候',
     'settings.provider.loadingError': '提供商数据加载失败',
@@ -1103,6 +1103,7 @@ export const zhCN: Dictionary = {
     'settings.provider.maxCharacters': '最多可输入 50 个字符',
     'settings.provider.maxLength': '最大长度',
     'settings.provider.maxTokens': '最大令牌数',
+
     'settings.provider.minLength': '最小长度',
     'settings.provider.model': '模型',
     'settings.provider.modelPlaceholder': '选择或输入模型名称',
@@ -1128,7 +1129,6 @@ export const zhCN: Dictionary = {
     'settings.provider.saveButton': '保存',
     'settings.provider.saveError': '保存时发生错误',
     'settings.provider.searchField': '搜索{field}...',
-
     'settings.provider.selectEffort': '选择推理强度（可选）',
     'settings.provider.selectType': '选择提供商类型',
     'settings.provider.settingsTitle': '提供商设置',
@@ -1136,6 +1136,7 @@ export const zhCN: Dictionary = {
     'settings.provider.temperature': '温度',
     'settings.provider.testError': '测试时发生错误',
     'settings.provider.testName.adaptiveThinkingProducesReasoning': '自适应推理会产生推理内容',
+
     'settings.provider.testName.askAdviceFunction': '咨询建议函数',
     'settings.provider.testName.basicContextMemory': '基础上下文记忆测试',
     'settings.provider.testName.basicEchoFunction': '基础回显函数',
@@ -1153,7 +1154,6 @@ export const zhCN: Dictionary = {
     'settings.provider.testName.pentestFramework': '渗透测试框架',
     'settings.provider.testName.pentestMemoryWithToolCall': '带工具调用的渗透测试记忆',
     'settings.provider.testName.pentestMethodology': '渗透测试方法',
-
     'settings.provider.testName.pentestToolSelection': '渗透测试工具选择',
     'settings.provider.testName.personInformationJson': '人员信息 JSON',
     'settings.provider.testName.personInformationJsonStreaming': '人员信息 JSON（流式）',
@@ -1161,6 +1161,7 @@ export const zhCN: Dictionary = {
     'settings.provider.testName.searchQueryFunction': '搜索查询函数',
     'settings.provider.testName.searchQueryFunctionStreaming': '搜索查询函数（流式）',
     'settings.provider.testName.simpleMath': '简单数学运算',
+
     'settings.provider.testName.simpleMathStreaming': '简单数学运算（流式）',
     'settings.provider.testName.sqlInjectionAttackType': 'SQL 注入攻击类型',
     'settings.provider.testName.structuredOutputWithJsonSchema': '使用 JSON Schema 的结构化输出',
@@ -1202,6 +1203,14 @@ export const zhCN: Dictionary = {
     'settings.providers.noConfiguration': '没有可用的配置',
     'settings.providers.type': '类型',
     'settings.providers.updated': '更新时间',
+    'settings.searchEngines.description':
+        '这些搜索引擎为统一的 web_search 工具提供支持。在部署环境(.env)中配置对应 API 凭据即可启用,渗透测试代理会在可用引擎之间自动回退。',
+    'settings.searchEngines.disabled': '未配置',
+    'settings.searchEngines.empty': '未找到搜索引擎。',
+    'settings.searchEngines.enabled': '已启用',
+    'settings.searchEngines.loadError': '搜索源状态加载失败',
+    'settings.searchEngines.restartHint': '配置修改需重启容器后生效(docker compose up -d)。',
+    'settings.searchEngines.title': '搜索源',
     'settings.unsavedDescription': '当前更改尚未保存。确定要离开吗？',
     'settings.unsavedTitle': '放弃未保存的更改？',
     'settings.updateProvider': '更新提供商',
@@ -1259,6 +1268,7 @@ export const zhCN: Dictionary = {
     'title.provider': '提供商',
     'title.providers': '模型提供商',
     'title.resources': '资源',
+    'title.searchEngines': '搜索源',
     'title.template': '模板',
     'title.templates': '模板',
     'unsaved.cancel': '取消',

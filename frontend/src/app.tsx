@@ -53,6 +53,7 @@ const SettingsPrompt = lazy(() => import('@/pages/settings/settings-prompt'));
 const SettingsPrompts = lazy(() => import('@/pages/settings/settings-prompts'));
 const SettingsProvider = lazy(() => import('@/pages/settings/settings-provider'));
 const SettingsProviders = lazy(() => import('@/pages/settings/settings-providers'));
+const SettingsSearchEngines = lazy(() => import('@/pages/settings/settings-search-engines'));
 
 function FlowWithProvider() {
     return (
@@ -231,6 +232,11 @@ const router = createBrowserRouter(
                         element={<SettingsAPITokens />}
                         handle={routeTitles.apiTokens}
                         path="api-tokens"
+                    />
+                    <Route
+                        element={<SettingsSearchEngines />}
+                        handle={routeTitles.searchEngines}
+                        path="search-engines"
                     />
                     <Route
                         element={

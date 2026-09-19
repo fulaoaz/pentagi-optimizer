@@ -1428,3 +1428,13 @@ subscription knowledgeDocumentDeleted {
         ...knowledgeDocumentFragment
     }
 }
+
+query searchEnginesStatus {
+    searchEnginesStatus {
+        name
+        engineType
+        available
+        description
+        missing
+    }
+}
