@@ -24,7 +24,7 @@ func SearchEnginesStatus(cfg *config.Config) []SearchEngineStatus {
 	}
 	return []SearchEngineStatus{
 		{Name: "Tavily", EngineType: "tavily", Available: cfg.TavilyAPIKey != "",
-			Description: "Analytic search with content extraction; first choice for answers and research.",
+			Description: "Analytic search with content extraction; first choice for answers and research. A Tavily-compatible gateway can be used via TAVILY_BASE_URL (PentAGI appends /search) plus TAVILY_USE_BEARER_AUTH=true for Bearer-token auth.",
 			Missing:     missingCfg(cfg.TavilyAPIKey == "", "TAVILY_API_KEY")},
 		{Name: "DuckDuckGo", EngineType: "duckduckgo", Available: cfg.DuckDuckGoEnabled,
 			Description: "Free link discovery, no API key required; can be disabled via DUCKDUCKGO_ENABLED=false.",
