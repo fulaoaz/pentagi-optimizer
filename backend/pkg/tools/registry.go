@@ -334,7 +334,8 @@ var registryDefinitions = map[string]llms.FunctionDefinition{
 		Description: "Per-flow coverage ledger for security testing. " +
 			"action=record stores one reviewed surface with an outcome: reported, no_issue_found, ruled_out, not_applicable or needs_follow_up. " +
 			"ruled_out, not_applicable and needs_follow_up require evidence. " +
-			"action=list returns the ledger with per-outcome counts, so the final report can honestly state what was reviewed and what was not.",
+			"action=list returns the ledger with per-outcome counts, so the final report can honestly state what was reviewed and what was not. " +
+			"For outcome=reported also pass structured finding fields: title (short name), location (endpoint/file), cvss_vector (score it with the cvss tool first), snippet (minimal evidence) and remediation (concrete fix); action=list returns them with the entry so the report can cite each finding precisely.",
 		Parameters: reflector.Reflect(&CoverageAction{}),
 	},
 

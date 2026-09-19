@@ -52,6 +52,11 @@ type CoverageAction struct {
 	Outcome  string `json:"outcome,omitempty"`
 	Summary  string `json:"summary,omitempty"`
 	Evidence string `json:"evidence,omitempty"`
+	Title    string `json:"title,omitempty"`
+	Location string `json:"location,omitempty"`
+	Snippet  string `json:"snippet,omitempty"`
+	CVSS     string `json:"cvss_vector,omitempty"`
+	Fix      string `json:"remediation,omitempty"`
 }
 
 type flowThreatModel struct {
@@ -68,6 +73,11 @@ type flowCoverageEntry struct {
 	Outcome  string `json:"outcome"`
 	Summary  string `json:"summary"`
 	Evidence string `json:"evidence,omitempty"`
+	Title    string `json:"title,omitempty"`
+	Location string `json:"location,omitempty"`
+	Snippet  string `json:"snippet,omitempty"`
+	CVSS     string `json:"cvss_vector,omitempty"`
+	Fix      string `json:"remediation,omitempty"`
 }
 
 // flowSecurityState is run-scoped security state shared by every agent on one
@@ -232,6 +242,9 @@ func (t *coverageTool) record(ctx context.Context, logger *logrus.Entry, action 
 	if (action.Outcome == "ruled_out" || action.Outcome == "not_applicable" || action.Outcome == "needs_follow_up") && strings.TrimSpace(action.Evidence) == "" {
 		return "", fmt.Errorf("outcome %s requires evidence", action.Outcome)
 	}
+	if action.Outcome == "reported" && strings.TrimSpace(action.Title) == "" {
+		return "", fmt.Errorf("outcome reported requires a title describing the finding")
+	}
 	st := flowSecurityStateFor(t.flowID)
 	st.mu.Lock()
 	if len(st.log) >= maxCoverageEntries {
@@ -244,6 +257,11 @@ func (t *coverageTool) record(ctx context.Context, logger *logrus.Entry, action 
 		Outcome:  action.Outcome,
 		Summary:  truncateText(action.Summary, 1000),
 		Evidence: truncateText(action.Evidence, maxCoverageEvidenceLen),
+		Title:    truncateText(action.Title, 300),
+		Location: truncateText(action.Location, 300),
+		Snippet:  truncateText(action.Snippet, maxCoverageEvidenceLen),
+		CVSS:     truncateText(action.CVSS, 100),
+		Fix:      truncateText(action.Fix, maxCoverageEvidenceLen),
 	})
 	st.mu.Unlock()
 	logger.WithField("outcome", action.Outcome).Info("coverage entry recorded")
@@ -276,6 +294,21 @@ func (t *coverageTool) list(ctx context.Context, logger *logrus.Entry) (string, 
 		fmt.Fprintf(&b, "- [%s] %s (%s)\n", e.Outcome, e.Surface, e.ID)
 		if e.Summary != "" {
 			fmt.Fprintf(&b, "  %s\n", e.Summary)
+		}
+		if e.Outcome == "reported" && e.Title != "" {
+			fmt.Fprintf(&b, "  finding: %s\n", e.Title)
+			if e.Location != "" {
+				fmt.Fprintf(&b, "  location: %s\n", e.Location)
+			}
+			if e.CVSS != "" {
+				fmt.Fprintf(&b, "  cvss: %s\n", e.CVSS)
+			}
+			if e.Snippet != "" {
+				fmt.Fprintf(&b, "  snippet: %s\n", e.Snippet)
+			}
+			if e.Fix != "" {
+				fmt.Fprintf(&b, "  remediation: %s\n", e.Fix)
+			}
 		}
 	}
 	return b.String(), nil

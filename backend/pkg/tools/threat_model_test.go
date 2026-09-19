@@ -108,7 +108,7 @@ func TestCoverageRecordAndListCounts(t *testing.T) {
 	}
 
 	records := []map[string]string{
-		{"surface": "GET /api/v1/users (IDOR)", "outcome": "reported", "summary": "Cross-tenant read confirmed."},
+		{"surface": "GET /api/v1/users (IDOR)", "outcome": "reported", "summary": "Cross-tenant read confirmed.", "title": "IDOR in user list endpoint", "location": "GET /api/v1/users?id=2 (user_id param)", "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N"},
 		{"surface": "GET /api/v1/orders", "outcome": "no_issue_found"},
 		{"surface": "GraphQL introspection", "outcome": "ruled_out", "evidence": "Introspection returns schema=false on prod."},
 		{"surface": "SAML SSO", "outcome": "not_applicable", "evidence": "Deployment uses local auth only."},
@@ -136,6 +136,26 @@ func TestCoverageRecordAndListCounts(t *testing.T) {
 	} {
 		if !strings.Contains(res, want) {
 			t.Fatalf("ledger response missing %q", want)
+		}
+	}
+
+	if _, err := tool.Handle(ctx, CoverageToolName, threatModelArgs(t, "record", map[string]string{
+		"surface": "z", "outcome": "reported",
+	})); err == nil {
+		t.Fatal("reported without title must fail")
+	}
+
+	res3, err3 := tool.Handle(ctx, CoverageToolName, threatModelArgs(t, "list", nil))
+	if err3 != nil {
+		t.Fatalf("list with findings: %v", err3)
+	}
+	for _, want := range []string{
+		"finding: IDOR in user list endpoint",
+		"location: GET /api/v1/users?id=2",
+		"cvss: CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N",
+	} {
+		if !strings.Contains(res3, want) {
+			t.Fatalf("findings output missing %q", want)
 		}
 	}
 
@@ -173,8 +193,9 @@ func TestCoverageRecordValidation(t *testing.T) {
 	if _, err := tool.Handle(ctx, CoverageToolName, threatModelArgs(t, "record", map[string]string{
 		"surface": "y",
 		"outcome": "reported",
+		"title":   "Open redirect on login",
 	})); err != nil {
-		t.Fatalf("reported without evidence must succeed: %v", err)
+		t.Fatalf("reported with title but no evidence must succeed: %v", err)
 	}
 }
 
