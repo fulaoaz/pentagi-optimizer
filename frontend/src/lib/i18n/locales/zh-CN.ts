@@ -972,6 +972,8 @@ export const zhCN: Dictionary = {
     'settings.apiTokens.loadingError': 'API 令牌加载失败',
     'settings.apiTokens.loadingTitle': '正在加载令牌...',
     'settings.apiTokens.manage': '管理供程序调用的 API 令牌',
+    'settings.apiTokens.openPlayground': 'GraphQL 调试台',
+    'settings.apiTokens.openSwagger': 'Swagger 接口文档',
     'settings.apiTokens.name': '名称',
     'settings.apiTokens.nameMax': '令牌名称不能超过 100 个字符',
     'settings.apiTokens.namePlaceholder': '令牌名称（可选）',

@@ -162,7 +162,7 @@ function SettingsAPITokensHeader({ onCreateClick }: { onCreateClick: () => void 
                         rel="noopener noreferrer"
                         target="_blank"
                     >
-                        GraphQL Playground
+                        {t('settings.apiTokens.openPlayground')}
                         <ExternalLink className="size-3" />
                     </a>
                     <a
@@ -171,7 +171,7 @@ function SettingsAPITokensHeader({ onCreateClick }: { onCreateClick: () => void 
                         rel="noopener noreferrer"
                         target="_blank"
                     >
-                        Swagger UI
+                        {t('settings.apiTokens.openSwagger')}
                         <ExternalLink className="size-3" />
                     </a>
                 </div>

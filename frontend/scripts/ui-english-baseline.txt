@@ -51,8 +51,6 @@ src/lib/i18n/locales/zh-CN.ts	dictionary-value	Top K
 src/lib/i18n/locales/zh-CN.ts	dictionary-value	Top P
 src/lib/i18n/locales/zh-CN.ts	dictionary-value	{ "chat_template_kwargs": { "enable_thinking": false } }
 src/lib/i18n/locales/zh-CN.ts	dictionary-value	{title}（ID：{id}）
-src/pages/settings/settings-api-tokens.tsx	jsx-text	GraphQL Playground
-src/pages/settings/settings-api-tokens.tsx	jsx-text	Swagger UI
 src/pages/settings/settings-providers.tsx	property:label	Anthropic
 src/pages/settings/settings-providers.tsx	property:label	Bedrock
 src/pages/settings/settings-providers.tsx	property:label	Custom

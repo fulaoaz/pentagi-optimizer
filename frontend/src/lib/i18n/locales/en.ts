@@ -986,6 +986,8 @@ export const en: Dictionary = {
     'settings.apiTokens.loadingError': 'Error loading tokens',
     'settings.apiTokens.loadingTitle': 'Loading tokens...',
     'settings.apiTokens.manage': 'Manage API tokens for programmatic access',
+    'settings.apiTokens.openPlayground': 'GraphQL Playground',
+    'settings.apiTokens.openSwagger': 'Swagger UI',
     'settings.apiTokens.name': 'Name',
     'settings.apiTokens.nameMax': 'Token name must be 100 characters or less',
     'settings.apiTokens.namePlaceholder': 'Token name (optional)',
