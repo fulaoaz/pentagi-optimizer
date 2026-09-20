@@ -54,6 +54,7 @@ const SettingsPrompts = lazy(() => import('@/pages/settings/settings-prompts'));
 const SettingsProvider = lazy(() => import('@/pages/settings/settings-provider'));
 const SettingsProviders = lazy(() => import('@/pages/settings/settings-providers'));
 const SettingsSearchEngines = lazy(() => import('@/pages/settings/settings-search-engines'));
+const SettingsRuntimeConfig = lazy(() => import('@/pages/settings/settings-runtime-config'));
 
 function FlowWithProvider() {
     return (
@@ -237,6 +238,11 @@ const router = createBrowserRouter(
                         element={<SettingsSearchEngines />}
                         handle={routeTitles.searchEngines}
                         path="search-engines"
+                    />
+                    <Route
+                        element={<SettingsRuntimeConfig />}
+                        handle={routeTitles.runtimeConfig}
+                        path="runtime-config"
                     />
                     <Route
                         element={

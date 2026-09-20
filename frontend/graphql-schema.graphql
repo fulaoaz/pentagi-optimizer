@@ -1438,3 +1438,16 @@ query searchEnginesStatus {
         missing
     }
 }
+
+query runtimeConfig {
+    runtimeConfig {
+        key
+        category
+        value
+        defaultValue
+        configured
+        sensitive
+        restartRequired
+        description
+    }
+}

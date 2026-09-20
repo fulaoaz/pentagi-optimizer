@@ -272,7 +272,7 @@ func NewRouter(
 		{
 			developerGroup.GET("/graphql/playground", graphqlService.ServeGraphqlPlaygroundCN)
 			developerGroup.GET("/swagger/*any", func(c *gin.Context) {
-				if c.Request.URL.Path == "/swagger" || c.Request.URL.Path == "/swagger/" || c.Request.URL.Path == "/swagger/index.html" {
+				if strings.HasSuffix(c.Request.URL.Path, "/swagger") || strings.HasSuffix(c.Request.URL.Path, "/swagger/") || strings.HasSuffix(c.Request.URL.Path, "/swagger/index.html") {
 					graphqlService.ServeSwaggerCN(c)
 					return
 				}

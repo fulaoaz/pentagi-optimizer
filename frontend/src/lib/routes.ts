@@ -44,6 +44,7 @@ export const routes = {
         provider: (id: string) => `/settings/providers/${id}`,
         providers: '/settings/providers',
         root: '/settings',
+        runtimeConfig: '/settings/runtime-config',
         searchEngines: '/settings/search-engines',
     },
 

@@ -2571,6 +2571,9 @@ func (r *queryResolver) SearchKnowledge(ctx context.Context, query string, filte
 
 // SearchEnginesStatus is the resolver for the searchEnginesStatus field.
 func (r *queryResolver) SearchEnginesStatus(ctx context.Context) ([]*model.SearchEngineStatus, error) {
+	if _, _, err := validatePermission(ctx, "settings.view"); err != nil {
+		return nil, err
+	}
 	entries := tools.SearchEnginesStatus(r.Config)
 	result := make([]*model.SearchEngineStatus, 0, len(entries))
 	for _, e := range entries {
@@ -2585,6 +2588,28 @@ func (r *queryResolver) SearchEnginesStatus(ctx context.Context) ([]*model.Searc
 			item.Missing = &missing
 		}
 		result = append(result, item)
+	}
+	return result, nil
+}
+
+// RuntimeConfig is the resolver for the runtimeConfig field.
+func (r *queryResolver) RuntimeConfig(ctx context.Context) ([]*model.RuntimeConfigEntry, error) {
+	if _, _, err := validatePermission(ctx, "settings.view"); err != nil {
+		return nil, err
+	}
+	entries := tools.RuntimeConfigCatalog(r.Config)
+	result := make([]*model.RuntimeConfigEntry, 0, len(entries))
+	for _, entry := range entries {
+		result = append(result, &model.RuntimeConfigEntry{
+			Key:             entry.Key,
+			Category:        entry.Category,
+			Value:           entry.Value,
+			DefaultValue:    entry.DefaultValue,
+			Configured:      entry.Configured,
+			Sensitive:       entry.Sensitive,
+			RestartRequired: entry.RestartRequired,
+			Description:     entry.Description,
+		})
 	}
 	return result, nil
 }
@@ -3083,5 +3108,3 @@ func (r *Resolver) Subscription() SubscriptionResolver { return &subscriptionRes
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type subscriptionResolver struct{ *Resolver }
-
-//

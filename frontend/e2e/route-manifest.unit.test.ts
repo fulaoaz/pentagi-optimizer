@@ -26,6 +26,8 @@ const EXCLUDED: Record<string, string> = {
     '/settings': 'redirects to /settings/account',
     '/settings/account': 'needs an account cassette + visual baseline before joining the sweep',
     '/settings/search-engines': 'needs a config cassette + visual baseline before joining the sweep',
+    '/settings/runtime-config': 'needs a config cassette + visual baseline before joining the sweep',
+    '/settings/runtime-config': 'needs a config cassette + visual baseline before joining the sweep',
     '/templates/new': 'create-mode variant of the template detail page',
 };
 

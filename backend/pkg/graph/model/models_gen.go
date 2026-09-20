@@ -442,6 +442,17 @@ type ReasoningConfig struct {
 	MaxTokens *int             `json:"maxTokens,omitempty"`
 }
 
+type RuntimeConfigEntry struct {
+	Key             string `json:"key"`
+	Category        string `json:"category"`
+	Value           string `json:"value"`
+	DefaultValue    string `json:"defaultValue"`
+	Configured      bool   `json:"configured"`
+	Sensitive       bool   `json:"sensitive"`
+	RestartRequired bool   `json:"restartRequired"`
+	Description     string `json:"description"`
+}
+
 type Screenshot struct {
 	ID        int64     `json:"id"`
 	FlowID    int64     `json:"flowId"`

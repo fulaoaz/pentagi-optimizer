@@ -94,6 +94,7 @@ export const routeTitles = {
 
     resources: { title: 'title.resources' },
 
+    runtimeConfig: { title: 'title.runtimeConfig' },
     searchEngines: { title: 'title.searchEngines' },
 
     template: {

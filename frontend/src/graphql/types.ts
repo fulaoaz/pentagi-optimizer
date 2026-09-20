@@ -1425,6 +1425,21 @@ export type SearchEnginesStatusQuery = {
     }>;
 };
 
+export type RuntimeConfigQueryVariables = Exact<{ [key: string]: never }>;
+
+export type RuntimeConfigQuery = {
+    runtimeConfig: Array<{
+        key: string;
+        category: string;
+        value: string;
+        defaultValue: string;
+        configured: boolean;
+        sensitive: boolean;
+        restartRequired: boolean;
+        description: string;
+    }>;
+};
+
 export const SettingsFragmentFragmentDoc = {
     kind: 'Document',
     definitions: [
@@ -12609,3 +12624,35 @@ export const SearchEnginesStatusDocument = {
         },
     ],
 } as unknown as DocumentNode<SearchEnginesStatusQuery, SearchEnginesStatusQueryVariables>;
+export const RuntimeConfigDocument = {
+    kind: 'Document',
+    definitions: [
+        {
+            kind: 'OperationDefinition',
+            operation: 'query',
+            name: { kind: 'Name', value: 'runtimeConfig' },
+            selectionSet: {
+                kind: 'SelectionSet',
+                selections: [
+                    {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'runtimeConfig' },
+                        selectionSet: {
+                            kind: 'SelectionSet',
+                            selections: [
+                                { kind: 'Field', name: { kind: 'Name', value: 'key' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'category' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'value' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'defaultValue' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'configured' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'sensitive' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'restartRequired' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'description' } },
+                            ],
+                        },
+                    },
+                ],
+            },
+        },
+    ],
+} as unknown as DocumentNode<RuntimeConfigQuery, RuntimeConfigQueryVariables>;

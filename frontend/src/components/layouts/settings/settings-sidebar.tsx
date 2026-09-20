@@ -1,4 +1,4 @@
-import { ArrowLeft, FileText, Globe, Key, Plug, Settings as SettingsIcon } from 'lucide-react';
+import { ArrowLeft, FileText, Globe, Key, Plug, Settings as SettingsIcon, SlidersHorizontal } from 'lucide-react';
 import { useMemo } from 'react';
 import { NavLink, Outlet, useLocation, useParams } from 'react-router-dom';
 
@@ -56,6 +56,12 @@ const menuItems: readonly MenuItem[] = [
         id: 'search-engines',
         path: '/settings/search-engines',
         titleKey: 'nav.searchEngines',
+    },
+    {
+        icon: <SlidersHorizontal className="size-4" />,
+        id: 'runtime-config',
+        path: '/settings/runtime-config',
+        titleKey: 'nav.runtimeConfig',
     },
 ] as const;
 
