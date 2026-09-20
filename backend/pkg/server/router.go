@@ -270,8 +270,10 @@ func NewRouter(
 
 		developerGroup := publicGroup.Group("/")
 		{
-			developerGroup.GET("/graphql/playground", graphqlService.ServeGraphqlPlayground)
-			developerGroup.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+			developerGroup.GET("/graphql/playground", graphqlService.ServeGraphqlPlaygroundCN)
+			developerGroup.GET("/swagger/index.html", graphqlService.ServeSwaggerCN)
+developerGroup.GET("/swagger", graphqlService.ServeSwaggerCN)
+developerGroup.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 		}
 
 		authGroup := publicGroup.Group("/auth")
