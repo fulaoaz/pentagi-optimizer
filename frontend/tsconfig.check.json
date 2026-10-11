@@ -1,0 +1,11 @@
+// Local-only helper: `pnpm build` runs bare `tsc`, and the root tsconfig has
+// `"files": []` with project references only, so bare `tsc` checks nothing and
+// always exits 0. This extends the real app config so we get an actual
+// typecheck of src/ without touching upstream's build wiring.
+{
+    "extends": "./tsconfig.app.json",
+    "compilerOptions": {
+        "ignoreDeprecations": "6.0",
+        "noEmit": true
+    }
+}
