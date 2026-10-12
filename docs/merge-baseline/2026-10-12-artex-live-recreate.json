@@ -1,0 +1,64 @@
+{
+  "observedAt": "2026-10-12T15:17:31.367Z",
+  "sourceCommit": "bf7f414477832b77d2152539c0723dc691086522",
+  "mode": "verify-restart",
+  "realComponents": [
+    "ARTEX backend",
+    "PostgreSQL 16"
+  ],
+  "simulatedComponents": [
+    "OpenAI protocol model fixture"
+  ],
+  "checks": [
+    {
+      "name": "owned_isolated_lab",
+      "passed": true
+    },
+    {
+      "name": "no_external_container_egress",
+      "passed": true
+    },
+    {
+      "name": "real_artex_health",
+      "passed": true
+    },
+    {
+      "name": "tasks_require_authentication",
+      "passed": true
+    },
+    {
+      "name": "login_token_issued",
+      "passed": true
+    },
+    {
+      "name": "paused_task_survives_restart",
+      "passed": true
+    },
+    {
+      "name": "profile_mapping_survives_restart",
+      "passed": true
+    },
+    {
+      "name": "explicit_task_binding_survives_restart",
+      "passed": true
+    },
+    {
+      "name": "restored_task_calls_model_with_rotated_key",
+      "passed": true
+    },
+    {
+      "name": "restored_task_can_pause",
+      "passed": true
+    },
+    {
+      "name": "retest_history_survives_restart",
+      "passed": true
+    },
+    {
+      "name": "existing_control_token_survives_container_recreation",
+      "passed": true
+    }
+  ],
+  "outcome": "passed",
+  "binarySHA256": "211f4251cfdca3156180b414dc6bf7212004e933907a030d93013ae0a663d68d"
+}

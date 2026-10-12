@@ -1,0 +1,99 @@
+{
+  "observedAt": "2026-10-12T15:16:34.167Z",
+  "sourceCommit": "bf7f414477832b77d2152539c0723dc691086522",
+  "mode": "bootstrap",
+  "realComponents": [
+    "ARTEX backend",
+    "PostgreSQL 16"
+  ],
+  "simulatedComponents": [
+    "OpenAI protocol model fixture"
+  ],
+  "checks": [
+    {
+      "name": "owned_isolated_lab",
+      "passed": true
+    },
+    {
+      "name": "no_external_container_egress",
+      "passed": true
+    },
+    {
+      "name": "real_artex_health",
+      "passed": true
+    },
+    {
+      "name": "tasks_require_authentication",
+      "passed": true
+    },
+    {
+      "name": "login_token_issued",
+      "passed": true
+    },
+    {
+      "name": "profile_read_does_not_expose_keys",
+      "passed": true
+    },
+    {
+      "name": "task_binds_selected_profile",
+      "passed": true,
+      "taskID": "10",
+      "profileID": 2
+    },
+    {
+      "name": "task_calls_selected_model_instead_of_global_default",
+      "passed": true
+    },
+    {
+      "name": "worker_uses_explicit_task_profile",
+      "passed": true
+    },
+    {
+      "name": "pause_persists_state",
+      "passed": true
+    },
+    {
+      "name": "pause_cancels_inflight_model_request",
+      "passed": true
+    },
+    {
+      "name": "resume_uses_rotated_key",
+      "passed": true
+    },
+    {
+      "name": "pause_after_resume",
+      "passed": true
+    },
+    {
+      "name": "task_selection_does_not_switch_global_default",
+      "passed": true
+    },
+    {
+      "name": "profile_update_reuses_remote_id",
+      "passed": true
+    },
+    {
+      "name": "planner_uses_explicit_task_profile",
+      "passed": true,
+      "taskID": "11"
+    },
+    {
+      "name": "planner_task_can_pause",
+      "passed": true
+    },
+    {
+      "name": "retester_uses_explicit_agent_model_binding",
+      "passed": true
+    },
+    {
+      "name": "retest_preserves_original_evidence",
+      "passed": true
+    },
+    {
+      "name": "inconclusive_retest_does_not_mark_fixed",
+      "passed": true
+    }
+  ],
+  "outcome": "passed",
+  "binarySHA256": "211f4251cfdca3156180b414dc6bf7212004e933907a030d93013ae0a663d68d"
+}
