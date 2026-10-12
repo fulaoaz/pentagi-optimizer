@@ -163,12 +163,12 @@ export const artexApi = {
         unwrapApiResponse(
             await api.post('/artex/tasks/' + encodeURIComponent(task) + '/control', { action }, { timeout: 130_000 }),
         ),
-    create: async (description: string, goal: string, timeoutSeconds: number, bindingId: string) => {
+    create: async (description: string, goal: string, timeoutSeconds: number, bindingId: string, idempotencyKey = crypto.randomUUID()) => {
         const result = unwrapApiResponse(
             await api.post(
                 '/artex/tasks',
                 { bindingId, description, goal, timeout_seconds: timeoutSeconds },
-                { timeout: 130_000 },
+                { headers: { 'Idempotency-Key': idempotencyKey }, timeout: 130_000 },
             ),
         );
 

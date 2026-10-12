@@ -192,6 +192,26 @@ func (s *SQLRunStore) FindByRemote(ctx context.Context, remoteTaskID string) (*R
 	return &r, nil
 }
 
+func (s *SQLRunStore) FindByCorrelation(ctx context.Context, uid int64, correlation string) (*Run, error) {
+	if s == nil || s.db == nil || uid <= 0 || strings.TrimSpace(correlation) == "" {
+		return nil, ErrStoreUnavailable
+	}
+	var r Run
+	var raw []byte
+	err := s.db.QueryRowContext(ctx, `SELECT id,user_id,engine_task_id,name,binding_id,binding_revision,submit_state,raw_status,normalized_status,request,created_at,updated_at,last_sync_at FROM engine_runs WHERE engine_key='artex' AND user_id=$1 AND request->>'correlation_id'=$2 ORDER BY updated_at DESC LIMIT 1`, uid, correlation).Scan(&r.ID, &r.UserID, &r.EngineTaskID, &r.Name, &r.BindingID, &r.BindingRevision, &r.SubmitState, &r.RawStatus, &r.Status, &raw, &r.CreatedAt, &r.UpdatedAt, &r.LastSyncAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrRunNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(raw, &r.Request); err != nil {
+		return nil, errors.New("invalid engine run request")
+	}
+	r.Engine = "artex"
+	return &r, nil
+}
+
 func (s *SQLRunStore) FindByRecord(ctx context.Context, remoteRecordID, kind string) (*Run, error) {
 	if s == nil || s.db == nil {
 		return nil, ErrStoreUnavailable

@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -224,6 +225,41 @@ func (s *ArtexService) CreateTask(c *gin.Context) {
 	if !bindArtexRequest(c, &input) {
 		return
 	}
+	idempotencyKey := strings.TrimSpace(c.GetHeader("Idempotency-Key"))
+	if utf8.RuneCountInString(idempotencyKey) > 128 {
+		s.writeResult(c, nil, artex.ErrInvalidRequest)
+		return
+	}
+	replayExisting := func(run *artex.Run) bool {
+		c.Header("X-PentAGI-Run-ID", run.ID)
+		switch run.SubmitState {
+		case "created":
+			if run.EngineTaskID == "" {
+				s.writeResult(c, nil, artex.ErrSyncUncertain)
+				return true
+			}
+			body, err := s.client.GetTask(c.Request.Context(), run.EngineTaskID)
+			s.writeMutation(c, "replay_create_task", body, err)
+			return true
+		case "pending", "uncertain":
+			s.writeResult(c, nil, artex.ErrSyncUncertain)
+			return true
+		default:
+			s.writeResult(c, nil, artex.ErrRunUnresolved)
+			return true
+		}
+	}
+	if idempotencyKey != "" && s.runs != nil {
+		run, findErr := s.runs.FindByCorrelation(c.Request.Context(), int64(c.GetUint64("uid")), idempotencyKey)
+		if findErr == nil {
+			replayExisting(run)
+			return
+		}
+		if !errors.Is(findErr, artex.ErrRunNotFound) {
+			s.writeResult(c, nil, findErr)
+			return
+		}
+	}
 	if input.BindingID == "" {
 		s.writeResult(c, nil, artex.ErrBindingMissing)
 		return
@@ -235,8 +271,14 @@ func (s *ArtexService) CreateTask(c *gin.Context) {
 	}
 	var run *artex.Run
 	if s.runs != nil {
-		run, err = s.runs.CreatePending(c.Request.Context(), int64(c.GetUint64("uid")), artex.RunRequest{Name: input.Name, Description: input.Description, Goal: input.Goal, TimeoutSeconds: input.TimeoutSeconds, BindingID: binding.ID, BindingRevision: binding.Revision})
+		run, err = s.runs.CreatePending(c.Request.Context(), int64(c.GetUint64("uid")), artex.RunRequest{Name: input.Name, Description: input.Description, Goal: input.Goal, TimeoutSeconds: input.TimeoutSeconds, BindingID: binding.ID, BindingRevision: binding.Revision, CorrelationID: idempotencyKey})
 		if err != nil {
+			if idempotencyKey != "" {
+				if existing, findErr := s.runs.FindByCorrelation(c.Request.Context(), int64(c.GetUint64("uid")), idempotencyKey); findErr == nil {
+					replayExisting(existing)
+					return
+				}
+			}
 			s.writeResult(c, nil, err)
 			return
 		}
