@@ -1,4 +1,4 @@
-import { Download, RefreshCw } from 'lucide-react';
+import { Download, FileJson, RefreshCw } from 'lucide-react';
 import { useCallback, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useLocale } from '@/hooks/use-locale';
 
-import { artexApi } from './artex-api';
+import { artexApi, type ArtexEvidenceSnapshot } from './artex-api';
 import { artexErrorText, useArtexRequest } from './use-artex-request';
 
 interface TaskProps {
@@ -83,6 +83,125 @@ function Activity({ revision, taskID }: TaskProps) {
     );
 }
 
+function EvidenceHistory({ revision, taskID }: TaskProps) {
+    const { t } = useLocale();
+    const [cursors, setCursors] = useState(['']);
+    const [selectedID, setSelectedID] = useState('');
+    const [detail, setDetail] = useState<ArtexEvidenceSnapshot | null>(null);
+    const [detailError, setDetailError] = useState<unknown>();
+    const [detailLoading, setDetailLoading] = useState(false);
+    const before = cursors[cursors.length - 1] ?? '';
+    const request = useCallback(
+        (signal: AbortSignal) => {
+            void revision;
+
+            return artexApi.snapshots(taskID, before, signal);
+        },
+        [before, revision, taskID],
+    );
+    const { data, error, loading } = useArtexRequest(request);
+
+    const openSnapshot = async (snapshotID: string) => {
+        setSelectedID(snapshotID);
+        setDetail(null);
+        setDetailError(undefined);
+        setDetailLoading(true);
+        try {
+            setDetail(await artexApi.snapshot(taskID, snapshotID));
+        } catch (caught) {
+            setDetailError(caught);
+        } finally {
+            setDetailLoading(false);
+        }
+    };
+
+    return (
+        <div>
+            <p className="text-muted-foreground mb-4 text-xs">{t('integrations.artex.evidenceHistoryHint')}</p>
+            <RequestState
+                error={error}
+                loading={loading}
+            />
+            {data ? (
+                <>
+                    <div className="divide-y">
+                        {data.items.map((snapshot) => (
+                            <button
+                                className="hover:bg-muted/50 block w-full rounded p-3 text-left"
+                                key={snapshot.id}
+                                onClick={() => void openSnapshot(snapshot.id)}
+                                type="button"
+                            >
+                                <span className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                                    <span className="flex items-center gap-2">
+                                        <FileJson className="size-4" />
+                                        <strong>{snapshot.kind}</strong>
+                                        <span className="text-muted-foreground">v{snapshot.version} · {snapshot.representation}</span>
+                                    </span>
+                                    <span className="text-muted-foreground text-xs">
+                                        {new Date(snapshot.capturedAt).toLocaleString()}
+                                    </span>
+                                </span>
+                                <span className="text-muted-foreground mt-1 block truncate font-mono text-xs">
+                                    {snapshot.contentSha256}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                    {!data.items.length ? (
+                        <p className="text-muted-foreground">{t('integrations.artex.emptyEvidenceHistory')}</p>
+                    ) : null}
+                    <div className="mt-4 flex justify-end gap-2">
+                        <Button
+                            disabled={loading || cursors.length === 1}
+                            onClick={() => {
+                                setCursors((previous) => previous.slice(0, -1));
+                                setSelectedID('');
+                                setDetail(null);
+                            }}
+                            size="sm"
+                            variant="outline"
+                        >
+                            {t('integrations.artex.previous')}
+                        </Button>
+                        <Button
+                            disabled={loading || !data.hasMore || !data.nextCursor}
+                            onClick={() => {
+                                if (data.nextCursor) {
+                                    setCursors((previous) => [...previous, data.nextCursor!]);
+                                }
+                            }}
+                            size="sm"
+                            variant="outline"
+                        >
+                            {t('integrations.artex.next')}
+                        </Button>
+                    </div>
+                </>
+            ) : null}
+            {selectedID ? (
+                <div className="bg-muted mt-4 rounded-md border p-3">
+                    {detailLoading ? <p role="status">{t('integrations.artex.loading')}</p> : null}
+                    {detailError ? (
+                        <p className="text-destructive text-sm">{artexErrorText(detailError, t)}</p>
+                    ) : null}
+                    {detail ? (
+                        <>
+                            <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+                                <strong>{t('integrations.artex.snapshotContent')}</strong>
+                                {detail.redacted ? <span>{t('integrations.artex.snapshotRedacted')}</span> : null}
+                            </div>
+                            <pre className="max-h-96 overflow-auto text-xs whitespace-pre-wrap">
+                                {JSON.stringify(detail.content ?? {}, null, 2)}
+                            </pre>
+                        </>
+                    ) : null}
+                </div>
+            ) : null}
+        </div>
+    );
+}
+
 function ArtexTaskDetails(props: TaskProps & { canControl: boolean }) {
     const { t } = useLocale();
 
@@ -95,6 +214,7 @@ function ArtexTaskDetails(props: TaskProps & { canControl: boolean }) {
                 <TabsTrigger value="findings">{t('integrations.artex.findings')}</TabsTrigger>
                 <TabsTrigger value="assets">{t('integrations.artex.assets')}</TabsTrigger>
                 <TabsTrigger value="activity">{t('integrations.artex.activity')}</TabsTrigger>
+                <TabsTrigger value="evidenceHistory">{t('integrations.artex.evidenceHistory')}</TabsTrigger>
             </TabsList>
             <TabsContent value="findings">
                 <Findings {...props} />
@@ -104,6 +224,9 @@ function ArtexTaskDetails(props: TaskProps & { canControl: boolean }) {
             </TabsContent>
             <TabsContent value="activity">
                 <Activity {...props} />
+            </TabsContent>
+            <TabsContent value="evidenceHistory">
+                <EvidenceHistory {...props} />
             </TabsContent>
         </Tabs>
     );

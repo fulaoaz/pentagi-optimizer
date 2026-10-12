@@ -70,11 +70,62 @@ func (s *ArtexService) ListSnapshots(c *gin.Context) {
 	response.Success(c, http.StatusOK, page)
 }
 
+// ListTaskSnapshots resolves the remote ARTEX task to its locally owned run
+// record before exposing archived evidence. The UI only knows the remote task
+// ID; it must never be allowed to guess a local run ID.
+func (s *ArtexService) ListTaskSnapshots(c *gin.Context) {
+	if !s.canView(c) {
+		return
+	}
+	if s.runs == nil {
+		s.writeResult(c, nil, artex.ErrStoreUnavailable)
+		return
+	}
+	run, err := s.runs.FindByRemote(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		s.writeResult(c, nil, err)
+		return
+	}
+	limit, err := artex.EvidenceLimit(c.Query("limit"))
+	if err != nil {
+		s.writeResult(c, nil, err)
+		return
+	}
+	page, err := s.runs.SnapshotPage(c.Request.Context(), run.ID, c.Query("kind"), c.Query("before"), limit)
+	if err != nil {
+		s.writeResult(c, nil, err)
+		return
+	}
+	response.Success(c, http.StatusOK, page)
+}
+
 func (s *ArtexService) GetSnapshot(c *gin.Context) {
 	if !s.canView(c) {
 		return
 	}
 	item, err := s.runs.GetSnapshot(c.Request.Context(), c.Param("runID"), c.Param("snapshotID"))
+	if err != nil {
+		s.writeResult(c, nil, err)
+		return
+	}
+	c.Header("Cache-Control", "no-store")
+	response.Success(c, http.StatusOK, item)
+}
+
+func (s *ArtexService) GetTaskSnapshot(c *gin.Context) {
+	if !s.canView(c) {
+		return
+	}
+	if s.runs == nil {
+		s.writeResult(c, nil, artex.ErrStoreUnavailable)
+		return
+	}
+	run, err := s.runs.FindByRemote(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		s.writeResult(c, nil, err)
+		return
+	}
+	item, err := s.runs.GetSnapshot(c.Request.Context(), run.ID, c.Param("snapshotID"))
 	if err != nil {
 		s.writeResult(c, nil, err)
 		return

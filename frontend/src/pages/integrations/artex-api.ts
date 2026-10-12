@@ -78,6 +78,27 @@ const unifiedRunSchema = z.object({
     updatedAt: z.string(),
 });
 const unifiedRunsSchema = z.object({ items: z.array(unifiedRunSchema), total: z.number().nonnegative() });
+const evidenceSnapshotSchema = z.object({
+    capturedAt: z.string(),
+    content: z.unknown().optional(),
+    contentSha256: z.string(),
+    engine: z.string(),
+    id: z.string().uuid(),
+    kind: z.string(),
+    parentRecordId: z.string().optional(),
+    redacted: z.boolean(),
+    remoteRecordId: z.string(),
+    remoteTaskId: z.string(),
+    representation: z.string(),
+    runId: z.string().uuid(),
+    sequence: z.union([z.string(), z.number()]),
+    version: z.number().int().positive(),
+});
+const evidenceSnapshotPageSchema = z.object({
+    hasMore: z.boolean(),
+    items: z.array(evidenceSnapshotSchema),
+    nextCursor: z.string().optional(),
+});
 
 const providerChoiceSchema = z.object({
     compatible: z.boolean(),
@@ -106,6 +127,7 @@ export type ArtexAsset = z.infer<typeof assetSchema>;
 export type ArtexBinding = z.infer<typeof bindingSchema>;
 
 export type ArtexFinding = z.infer<typeof findingSchema>;
+export type ArtexEvidenceSnapshot = z.infer<typeof evidenceSnapshotSchema>;
 export interface ArtexModelSelection {
     maxTokens: number;
     model: string;
@@ -156,6 +178,13 @@ export const artexApi = {
         read('/findings/' + encodeURIComponent(finding), findingSchema, signal),
     findings: (task: string, page: number, signal?: AbortSignal) =>
         read('/findings', findingsSchema, signal, { page, task }),
+    snapshot: (task: string, snapshotID: string, signal?: AbortSignal) =>
+        read('/tasks/' + encodeURIComponent(task) + '/snapshots/' + encodeURIComponent(snapshotID), evidenceSnapshotSchema, signal),
+    snapshots: (task: string, before = '', signal?: AbortSignal) =>
+        read('/tasks/' + encodeURIComponent(task) + '/snapshots', evidenceSnapshotPageSchema, signal, {
+            before,
+            limit: 50,
+        }),
     modelBindings: (signal?: AbortSignal) => read('/model-bindings', z.array(bindingSchema), signal),
     modelProviders: (signal?: AbortSignal) => read('/model-providers', z.array(providerChoiceSchema), signal),
     retest: async (finding: string, notes: string) =>

@@ -728,6 +728,9 @@ export const en: Dictionary = {
     'integrations.artex.activity': 'Activity',
     'integrations.artex.activityHint': 'Events are ordered by time, 100 per page. Refresh reloads the current page.',
     'integrations.artex.emptyActivity': 'No activity recorded yet.',
+    'integrations.artex.emptyEvidenceHistory': 'No archived evidence snapshots are available yet.',
+    'integrations.artex.evidenceHistory': 'Evidence history',
+    'integrations.artex.evidenceHistoryHint': 'Archived snapshots preserve the source, version and content hash for traceability.',
     'integrations.artex.adminOnly':
         'This connection exposes the whole ARTEX instance. Flow administrator access is required.',
     'integrations.artex.setupHint':
@@ -745,6 +748,8 @@ export const en: Dictionary = {
     'integrations.artex.evidence': 'Finding evidence',
     'integrations.artex.noEvidence': 'No evidence attached.',
     'integrations.artex.report': 'View report source',
+    'integrations.artex.snapshotContent': 'Archived snapshot content',
+    'integrations.artex.snapshotRedacted': 'Sensitive fields redacted',
     'integrations.artex.retests': 'Retest history',
     'integrations.artex.noRetests': 'No retests yet.',
     'integrations.artex.retestNotes': 'Retest notes (optional)',

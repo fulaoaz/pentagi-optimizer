@@ -432,6 +432,8 @@ func setArtexGroup(parent *gin.RouterGroup, svc *services.ArtexService) {
 	artexGroup.GET("/runs/:runID/snapshots/:snapshotID", svc.GetSnapshot)
 	artexGroup.POST("/tasks", svc.CreateTask)
 	artexGroup.GET("/tasks/:id", svc.GetTask)
+	artexGroup.GET("/tasks/:id/snapshots", svc.ListTaskSnapshots)
+	artexGroup.GET("/tasks/:id/snapshots/:snapshotID", svc.GetTaskSnapshot)
 	artexGroup.POST("/tasks/:id/control", svc.ControlTask)
 	artexGroup.GET("/assets", svc.ListAssets)
 	artexGroup.GET("/findings", svc.ListFindings)
