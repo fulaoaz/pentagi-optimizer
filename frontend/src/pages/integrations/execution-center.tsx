@@ -1,16 +1,24 @@
 import { ListChecks, RefreshCw, SearchCheck } from 'lucide-react';
-import { useCallback, useState } from 'react';
-import { Link } from 'react-router-dom';
+import type { FormEvent } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge, type BadgeVariant } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { useLocale } from '@/hooks/use-locale';
+import { useFlows } from '@/providers/flows-provider';
+import { useProviders } from '@/providers/providers-provider';
 import { routes } from '@/lib/routes';
 import { useUser } from '@/providers/user-provider';
 
-import { type UnifiedRun, executionApi } from './artex-api';
+import { artexApi, type UnifiedRun, executionApi } from './artex-api';
 import { artexErrorText, useArtexRequest } from './use-artex-request';
 
 function statusVariant(status: string): BadgeVariant {
@@ -24,8 +32,20 @@ function statusVariant(status: string): BadgeVariant {
 function ExecutionCenter() {
     const { t } = useLocale();
     const { authInfo } = useUser();
+    const navigate = useNavigate();
+    const { createFlow } = useFlows();
+    const { selectedProvider } = useProviders();
     const [revision, setRevision] = useState(0);
     const [busyID, setBusyID] = useState('');
+    const [createOpen, setCreateOpen] = useState(false);
+    const [engine, setEngine] = useState<'artex' | 'pentagi'>('pentagi');
+    const [message, setMessage] = useState('');
+    const [description, setDescription] = useState('');
+    const [goal, setGoal] = useState('');
+    const [bindingID, setBindingID] = useState('');
+    const [createError, setCreateError] = useState('');
+    const [creating, setCreating] = useState(false);
+    const isAdmin = authInfo?.privileges?.includes('flows.admin') ?? false;
     const request = useCallback(
         (signal: AbortSignal) => {
             void revision;
@@ -34,7 +54,18 @@ function ExecutionCenter() {
         [revision],
     );
     const { data, error, loading } = useArtexRequest(request, true);
+    const bindingRequest = useCallback((signal: AbortSignal) => artexApi.modelBindings(signal), []);
+    const { data: bindings, loading: bindingsLoading } = useArtexRequest(
+        bindingRequest,
+        createOpen && engine === 'artex' && isAdmin,
+    );
     const items = data?.items ?? [];
+
+    useEffect(() => {
+        if (!bindingID && bindings?.length) {
+            setBindingID(bindings.find((item) => item.state === 'ready')?.id ?? bindings[0].id);
+        }
+    }, [bindingID, bindings]);
 
     const refresh = () => setRevision((value) => value + 1);
     const reconcile = async (run: UnifiedRun) => {
@@ -46,6 +77,38 @@ function ExecutionCenter() {
             refresh();
         } finally {
             setBusyID('');
+        }
+    };
+
+    const createExecution = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (creating) return;
+        setCreating(true);
+        setCreateError('');
+        try {
+            if (engine === 'pentagi') {
+                const flowID = await createFlow({
+                    message: message.trim(),
+                    providerName: selectedProvider?.name ?? '',
+                    resourceIds: [],
+                    useAgents: false,
+                });
+                if (!flowID) throw new Error('Flow could not be created');
+                setCreateOpen(false);
+                navigate(routes.flow(flowID));
+            } else {
+                if (!bindingID) throw new Error(t('executionCenter.bindingRequired'));
+                await artexApi.create(description.trim(), goal.trim() || message.trim(), 1800, bindingID);
+                setCreateOpen(false);
+                setMessage('');
+                setDescription('');
+                setGoal('');
+                setRevision((value) => value + 1);
+            }
+        } catch (caught) {
+            setCreateError(artexErrorText(caught, t));
+        } finally {
+            setCreating(false);
         }
     };
 
@@ -64,14 +127,9 @@ function ExecutionCenter() {
                         <RefreshCw className="mr-2 size-4" />
                         {t('executionCenter.refresh')}
                     </Button>
-                    <Button asChild size="sm">
-                        <Link to={routes.newFlow}>{t('executionCenter.newPentagi')}</Link>
+                    <Button onClick={() => setCreateOpen(true)} size="sm">
+                        {t('executionCenter.newExecution')}
                     </Button>
-                    {authInfo?.privileges?.includes('flows.admin') ? (
-                        <Button asChild size="sm" variant="secondary">
-                            <Link to={routes.artex}>{t('executionCenter.newArtex')}</Link>
-                        </Button>
-                    ) : null}
                 </div>
             </div>
 
@@ -133,6 +191,93 @@ function ExecutionCenter() {
                     )}
                 </CardContent>
             </Card>
+            <Dialog
+                onOpenChange={(open) => {
+                    if (!creating) setCreateOpen(open);
+                }}
+                open={createOpen}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{t('executionCenter.newExecution')}</DialogTitle>
+                    </DialogHeader>
+                    <form className="grid gap-4" onSubmit={(event) => void createExecution(event)}>
+                        <div className="grid gap-2">
+                            <Label>{t('executionCenter.engine')}</Label>
+                            <Select
+                                onValueChange={(value: 'artex' | 'pentagi') => {
+                                    setEngine(value);
+                                    setCreateError('');
+                                }}
+                                value={engine}
+                            >
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="pentagi">PentAGI</SelectItem>
+                                    {isAdmin ? <SelectItem value="artex">ARTEX</SelectItem> : null}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        {engine === 'pentagi' ? (
+                            <>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="execution-message">{t('executionCenter.goal')}</Label>
+                                    <Textarea
+                                        id="execution-message"
+                                        minLength={1}
+                                        onChange={(event) => setMessage(event.target.value)}
+                                        placeholder={t('executionCenter.goalPlaceholder')}
+                                        value={message}
+                                    />
+                                    <p className="text-muted-foreground text-xs">
+                                        {selectedProvider?.name
+                                            ? t('executionCenter.providerUsed', { provider: selectedProvider.name })
+                                            : t('executionCenter.providerMissing')}
+                                    </p>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="execution-description">{t('executionCenter.descriptionField')}</Label>
+                                    <Input
+                                        id="execution-description"
+                                        onChange={(event) => setDescription(event.target.value)}
+                                        value={description}
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="execution-goal">{t('executionCenter.goal')}</Label>
+                                    <Textarea
+                                        id="execution-goal"
+                                        minLength={1}
+                                        onChange={(event) => setGoal(event.target.value)}
+                                        value={goal}
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label>{t('executionCenter.modelBinding')}</Label>
+                                    <Select onValueChange={setBindingID} value={bindingID}>
+                                        <SelectTrigger><SelectValue placeholder={t('executionCenter.selectBinding')} /></SelectTrigger>
+                                        <SelectContent>
+                                            {(bindings ?? []).map((binding) => (
+                                                <SelectItem key={binding.id} value={binding.id}>
+                                                    {binding.spec.model} · {binding.state}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {bindingsLoading ? <p className="text-muted-foreground text-xs">{t('executionCenter.loading')}</p> : null}
+                                </div>
+                            </>
+                        )}
+                        {createError ? <p className="text-destructive text-sm">{createError}</p> : null}
+                        <Button disabled={creating || (engine === 'pentagi' ? !message.trim() || !selectedProvider : !bindingID || !goal.trim())} type="submit">
+                            {creating ? t('executionCenter.creating') : t('executionCenter.create')}
+                        </Button>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
