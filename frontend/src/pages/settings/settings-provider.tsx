@@ -7,7 +7,9 @@ import {
     ChevronsUpDown,
     Clock,
     Cpu,
+    Download,
     Ellipsis,
+    KeyRound,
     Lightbulb,
     Loader2,
     Play,
@@ -25,7 +27,7 @@ import type {
     AgentConfigInput,
     AgentsConfigInput,
     ProviderConfigFragmentFragment,
-    ProviderType,
+    ProviderConnectionInput,
 } from '@/graphql/types';
 import type { Translate } from '@/lib/i18n';
 
@@ -33,6 +35,7 @@ import ConfirmationDialog from '@/components/shared/confirmation-dialog';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
@@ -44,6 +47,7 @@ import {
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormSubmitButton } from '@/components/ui/form-submit-button';
 import { Input } from '@/components/ui/input';
+import { InputPassword } from '@/components/ui/input-password';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { StatusCard } from '@/components/ui/status-card';
@@ -52,7 +56,11 @@ import {
     AgentConfigType,
     CreateProviderDocument,
     DeleteProviderDocument,
+    DiscoverProviderModelsDocument,
+    ModelReasoningMode,
+    ProviderType,
     ReasoningEffort,
+    ReasoningMode,
     SettingsProvidersDocument,
     TestAgentDocument,
     TestProviderDocument,
@@ -104,8 +112,18 @@ interface FormModelComboboxItemProps extends BaseFieldProps, BaseInputProps {
 }
 
 interface ModelOption {
+    maxOutputTokens?: null | number;
     name: string;
     price?: null | { cacheRead: number; cacheWrite: number; input: number; output: number };
+    reasoning?: null | {
+        cannotDisable?: boolean | null;
+        defaultOn?: boolean | null;
+        efforts?: null | ReasoningEffort[];
+        mode?: ModelReasoningMode | null;
+        rejectsEffortWithTools?: boolean | null;
+        supported?: boolean | null;
+        takesNoThinkingDepth?: boolean | null;
+    };
     thinking?: boolean;
 }
 
@@ -488,6 +506,30 @@ function FormModelComboboxItem({
     );
 }
 
+function FormPasswordItem({ control, description, disabled, label, name, placeholder }: FormInputStringItemProps) {
+    const { field, fieldState } = useController({
+        control,
+        defaultValue: undefined,
+        disabled,
+        name,
+    });
+
+    return (
+        <FormItem>
+            <FormLabel>{label}</FormLabel>
+            <FormControl>
+                <InputPassword
+                    {...field}
+                    placeholder={placeholder}
+                    value={field.value ?? ''}
+                />
+            </FormControl>
+            {description && <FormDescription>{description}</FormDescription>}
+            {fieldState.error && <FormMessage>{fieldState.error.message}</FormMessage>}
+        </FormItem>
+    );
+}
+
 function FormTextareaItem({ control, description, disabled, label, name, placeholder }: FormInputStringItemProps) {
     const { field, fieldState } = useController({
         control,
@@ -553,6 +595,10 @@ const buildAgentConfigSchema = (t: Translate) =>
                 (value) => (value === '' || value === undefined ? null : value),
                 z.number().nullable().optional(),
             ),
+            minP: z.preprocess(
+                (value) => (value === '' || value === undefined ? null : value),
+                z.number().nullable().optional(),
+            ),
             model: z.preprocess((value) => value || '', z.string().min(1, t('settings.provider.modelRequired'))),
             n: z.preprocess(
                 (value) => (value === '' || value === undefined ? null : value),
@@ -593,6 +639,7 @@ const buildAgentConfigSchema = (t: Translate) =>
                         (value) => (value === '' || value === undefined ? null : value),
                         z.number().nullable().optional(),
                     ),
+                    mode: z.string().nullable().optional(),
                 })
                 .nullable()
                 .optional(),
@@ -600,6 +647,7 @@ const buildAgentConfigSchema = (t: Translate) =>
                 (value) => (value === '' || value === undefined ? null : value),
                 z.number().nullable().optional(),
             ),
+            responseMimeType: z.string().nullable().optional(),
             temperature: z.preprocess(
                 (value) => (value === '' || value === undefined ? null : value),
                 z.number().nullable().optional(),
@@ -618,6 +666,13 @@ const buildAgentConfigSchema = (t: Translate) =>
 const buildFormSchema = (t: Translate) =>
     z.object({
         agents: z.record(z.string(), buildAgentConfigSchema(t)).optional(),
+        connection: z
+            .object({
+                apiKey: z.string().optional(),
+                baseUrl: z.string().trim().optional(),
+                modelPrefix: z.string().trim().optional(),
+            })
+            .optional(),
         name: z.preprocess(
             (value) => value || '',
             z.string().min(1, t('settings.provider.nameRequired')).max(50, t('settings.provider.maxCharacters')),
@@ -647,9 +702,32 @@ const getReasoningEffort = (effort: null | string | undefined): null | Reasoning
             return ReasoningEffort.Medium;
         }
 
+        case 'max': {
+            return ReasoningEffort.Max;
+        }
+
+        case 'minimal': {
+            return ReasoningEffort.Minimal;
+        }
+
+        case 'xhigh': {
+            return ReasoningEffort.Xhigh;
+        }
+
         default: {
             return null;
         }
+    }
+};
+
+const getReasoningMode = (mode: null | string | undefined): null | ReasoningMode => {
+    switch (mode) {
+        case ReasoningMode.Adaptive:
+        case ReasoningMode.Budget:
+        case ReasoningMode.Off:
+            return mode;
+        default:
+            return null;
     }
 };
 
@@ -657,6 +735,7 @@ export const transformFormToGraphQL = (
     formData: FormData,
 ): {
     agents: AgentsConfigInput;
+    connection?: ProviderConnectionInput;
     name: string;
     type: ProviderType;
 } => {
@@ -670,6 +749,7 @@ export const transformFormToGraphQL = (
                 maxLength: data?.maxLength ?? null,
                 maxTokens: data?.maxTokens ?? null,
                 minLength: data?.minLength ?? null,
+                minP: data?.minP ?? null,
                 model: data!.model,
                 n: data?.n ?? null,
                 presencePenalty: data?.presencePenalty ?? null,
@@ -690,8 +770,10 @@ export const transformFormToGraphQL = (
                     ? {
                           effort: getReasoningEffort(data?.reasoning.effort),
                           maxTokens: data?.reasoning.maxTokens ?? null,
+                          mode: getReasoningMode(data?.reasoning.mode),
                       }
                     : null,
+                responseMimeType: data?.responseMimeType ?? null,
                 repetitionPenalty: data?.repetitionPenalty ?? null,
                 temperature: data?.temperature ?? null,
                 topK: data?.topK ?? null,
@@ -701,8 +783,17 @@ export const transformFormToGraphQL = (
             return { ...configs, [key]: config };
         }, {} as AgentsConfigInput);
 
+    const connection = formData.connection?.baseUrl
+        ? {
+              apiKey: formData.connection.apiKey?.trim() || null,
+              baseUrl: formData.connection.baseUrl.trim(),
+              modelPrefix: formData.connection.modelPrefix?.trim() || null,
+          }
+        : undefined;
+
     return {
         agents,
+        connection,
         name: formData.name,
         type: formData.type as ProviderType,
     };
@@ -946,6 +1037,8 @@ function SettingsProvider() {
     const [createProvider, { error: createError, loading: isCreateLoading }] = useMutation(CreateProviderDocument);
     const [updateProvider, { error: updateError, loading: isUpdateLoading }] = useMutation(UpdateProviderDocument);
     const [deleteProvider, { error: deleteError, loading: isDeleteLoading }] = useMutation(DeleteProviderDocument);
+    const [discoverProviderModels, { loading: isDiscoveringModels }] =
+        useMutation(DiscoverProviderModelsDocument);
     const [testProvider, { error: testError, loading: isTestLoading }] = useMutation(TestProviderDocument);
     const [testAgent, { error: agentTestError, loading: isAgentTestLoading }] = useMutation(TestAgentDocument);
     const [currentAgentKey, setCurrentAgentKey] = useState<null | string>(null);
@@ -955,6 +1048,8 @@ function SettingsProvider() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isLeaveDialogOpen, setIsLeaveDialogOpen] = useState(false);
     const [pendingBrowserBack, setPendingBrowserBack] = useState(false);
+    const [discoveredModels, setDiscoveredModels] = useState<ModelOption[]>([]);
+    const [selectedDiscoveredModel, setSelectedDiscoveredModel] = useState('');
     const allowBrowserLeaveRef = useRef(false);
     const hasPushedBlockerStateRef = useRef(false);
 
@@ -972,7 +1067,17 @@ function SettingsProvider() {
         resolver: zodResolver(formSchema),
     });
 
-    const { control, formState, getFieldState, handleSubmit: handleFormSubmit, reset, setValue, trigger, watch } = form;
+    const {
+        control,
+        formState,
+        getFieldState,
+        getValues,
+        handleSubmit: handleFormSubmit,
+        reset,
+        setValue,
+        trigger,
+        watch,
+    } = form;
 
     const { isDirty } = useFormState({ control });
 
@@ -1018,6 +1123,8 @@ function SettingsProvider() {
 
     const selectedType = useWatch({ control, name: 'type' });
 
+    const isCustomConnection = selectedType === ProviderType.Custom;
+
     const providerName = useWatch({ control, name: 'name' });
 
     const formQueryParams = useMemo(
@@ -1047,6 +1154,10 @@ function SettingsProvider() {
     const agentTypes = getAgentTypes();
 
     const availableModels = useMemo(() => {
+        if (isCustomConnection && discoveredModels.length > 0) {
+            return discoveredModels;
+        }
+
         if (!data?.settingsProviders?.models || !selectedType) {
             return [];
         }
@@ -1061,6 +1172,7 @@ function SettingsProvider() {
         return providerModels
             .map((model: any) => ({
                 name: model.name,
+                maxOutputTokens: model.maxOutputTokens ?? null,
                 price: model.price
                     ? {
                           cacheRead: model.price.cacheRead ?? 0,
@@ -1069,11 +1181,28 @@ function SettingsProvider() {
                           output: model.price.output ?? 0,
                       }
                     : null,
+                reasoning: model.reasoning
+                    ? {
+                          cannotDisable: model.reasoning.cannotDisable,
+                          defaultOn: model.reasoning.defaultOn,
+                          efforts: model.reasoning.efforts,
+                          mode: model.reasoning.mode,
+                          rejectsEffortWithTools: model.reasoning.rejectsEffortWithTools,
+                          supported: model.reasoning.supported,
+                          takesNoThinkingDepth: model.reasoning.takesNoThinkingDepth,
+                      }
+                    : null,
                 thinking: model.thinking,
             }))
             .filter((model) => model.name)
             .sort((a, b) => a.name.localeCompare(b.name));
-    }, [data, selectedType]);
+    }, [data, discoveredModels, isCustomConnection, selectedType]);
+
+    useEffect(() => {
+        if (!isCustomConnection) {
+            setDiscoveredModels([]);
+        }
+    }, [isCustomConnection]);
 
     const seededTypeRef = useRef<null | string>(null);
 
@@ -1164,7 +1293,12 @@ function SettingsProvider() {
             // A hand-typed ?type= URL bypasses the create menu's enabled-only filter; an
             // unknown or disabled type would otherwise create a dead provider or dump a raw
             // zod error on submit. Bounce it to the list. (Clone-by-id is gated separately below.)
-            if (!queryId && queryType && !providers.enabled[queryType as keyof typeof providers.enabled]) {
+            if (
+                !queryId &&
+                queryType &&
+                queryType !== ProviderType.Custom &&
+                !providers.enabled[queryType as keyof typeof providers.enabled]
+            ) {
                 toast.error(t('settings.provider.typeUnavailable', { type: queryType }));
                 navigate(routes.settings.providers, { replace: true });
 
@@ -1179,7 +1313,11 @@ function SettingsProvider() {
 
                     // Cloning a provider whose type is now disabled would only make
                     // another dead one — gate it the same as the ?type= path.
-                    if (sourceType && !providers.enabled[sourceType as keyof typeof providers.enabled]) {
+                    if (
+                        sourceType &&
+                        sourceType !== ProviderType.Custom &&
+                        !providers.enabled[sourceType as keyof typeof providers.enabled]
+                    ) {
                         toast.error(t('settings.provider.typeUnavailable', { type: sourceType }));
                         navigate(routes.settings.providers, { replace: true });
 
@@ -1188,6 +1326,12 @@ function SettingsProvider() {
 
                     reset({
                         agents: agents ? (normalizeGraphQLData(agents) as FormAgents) : {},
+                        connection: sourceProvider.connection
+                            ? {
+                                  baseUrl: sourceProvider.connection.baseUrl,
+                                  modelPrefix: sourceProvider.connection.modelPrefix || undefined,
+                              }
+                            : undefined,
                         name: t('settings.provider.copyName', { name }),
                         type: sourceType ?? undefined,
                     });
@@ -1200,6 +1344,7 @@ function SettingsProvider() {
 
                 reset({
                     agents: defaultProvider?.agents ? (normalizeGraphQLData(defaultProvider.agents) as FormAgents) : {},
+                    connection: undefined,
                     name: undefined,
                     type: queryType,
                 });
@@ -1210,6 +1355,7 @@ function SettingsProvider() {
             if (!selectedType) {
                 reset({
                     agents: {},
+                    connection: undefined,
                     name: undefined,
                     type: queryType,
                 });
@@ -1226,10 +1372,16 @@ function SettingsProvider() {
             return;
         }
 
-        const { agents, name, type } = provider;
+        const { agents, connection, name, type } = provider;
 
         reset({
             agents: agents ? (normalizeGraphQLData(agents) as FormAgents) : {},
+            connection: connection
+                ? {
+                      baseUrl: connection.baseUrl,
+                      modelPrefix: connection.modelPrefix || undefined,
+                  }
+                : undefined,
             name: name || undefined,
             type: type || undefined,
         });
@@ -1271,6 +1423,73 @@ function SettingsProvider() {
         setSubmitError(
             `${t('settings.provider.formValidationErrors')}\n\n${formatValidationErrors(errors as Record<string, unknown>, t)}`,
         );
+    };
+
+    const handleDiscoverModels = async () => {
+        const connection = getValues('connection');
+
+        if (!connection?.baseUrl?.trim()) {
+            setSubmitError(t('settings.provider.connectionBaseUrlRequired'));
+
+            return;
+        }
+
+        try {
+            setSubmitError(null);
+            const result = await discoverProviderModels({
+                variables: {
+                    connection: {
+                        apiKey: connection.apiKey?.trim() || null,
+                        baseUrl: connection.baseUrl.trim(),
+                        modelPrefix: connection.modelPrefix?.trim() || null,
+                        providerId: !isNew && providerId ? providerId : null,
+                    },
+                },
+            });
+            const models = (result.data?.discoverProviderModels ?? []).map((model) => ({
+                maxOutputTokens: model.maxOutputTokens,
+                name: model.name,
+                price: model.price
+                    ? {
+                          cacheRead: model.price.cacheRead,
+                          cacheWrite: model.price.cacheWrite,
+                          input: model.price.input,
+                          output: model.price.output,
+                      }
+                    : null,
+                reasoning: model.reasoning,
+                thinking: model.thinking ?? false,
+            }));
+            setDiscoveredModels(models);
+            setSelectedDiscoveredModel(models[0]?.name ?? '');
+            toast.success(t('settings.provider.modelsDiscovered', { count: models.length }));
+        } catch (discoverError) {
+            setSubmitError(
+                discoverError instanceof Error ? discoverError.message : t('settings.provider.modelsDiscoverError'),
+            );
+        }
+    };
+
+    const handleFillAgentsFromDiscoveredModel = () => {
+        const model = discoveredModels.find(({ name }) => name === selectedDiscoveredModel) ?? discoveredModels[0];
+
+        if (!model) {
+            return;
+        }
+
+        const agents = getValues('agents') ?? {};
+        const filled = Object.fromEntries(
+            Object.entries(agents).map(([key, agent]) => [
+                key,
+                {
+                    ...agent,
+                    model: model.name,
+                    price: model.price,
+                },
+            ]),
+        ) as FormAgents;
+        setValue('agents', filled, { shouldDirty: true, shouldValidate: true });
+        toast.success(t('settings.provider.modelsFilled', { model: model.name }));
     };
 
     const handleFormEvent = async (event: FormEvent<HTMLFormElement>) => {
@@ -1323,10 +1542,11 @@ function SettingsProvider() {
             setSubmitError(null);
 
             const formData = watch();
-            const { agents, type } = transformFormToGraphQL(formData);
+            const { agents, connection, type } = transformFormToGraphQL(formData);
             const result = await testProvider({
                 variables: {
                     agents,
+                    connection: type === ProviderType.Custom ? (connection ?? null) : null,
                     type,
                 },
             });
@@ -1430,6 +1650,10 @@ function SettingsProvider() {
         ? Object.keys(data?.settingsProviders.models).filter((key) => key !== '__typename')
         : [];
 
+    if (!providers.includes(ProviderType.Custom)) {
+        providers.push(ProviderType.Custom);
+    }
+
     const mutationError = createError || updateError || deleteError || testError || agentTestError || submitError;
 
     return (
@@ -1530,6 +1754,123 @@ function SettingsProvider() {
                             name="name"
                             placeholder={t('settings.provider.namePlaceholder')}
                         />
+
+                        {isCustomConnection && (
+                            <Card className="border-primary/30 bg-primary/5">
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="flex items-center gap-2 text-base">
+                                        <KeyRound className="size-4" />
+                                        {t('settings.provider.connectionTitle')}
+                                    </CardTitle>
+                                    <CardDescription>{t('settings.provider.connectionDescription')}</CardDescription>
+                                </CardHeader>
+                                <CardContent className="flex flex-col gap-4">
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <FormInputStringItem
+                                            control={control}
+                                            description={t('settings.provider.connectionBaseUrlDescription')}
+                                            disabled={isLoading}
+                                            label={t('settings.provider.connectionBaseUrl')}
+                                            name="connection.baseUrl"
+                                            placeholder={t('settings.provider.connectionBaseUrlPlaceholder')}
+                                        />
+                                        <FormPasswordItem
+                                            control={control}
+                                            description={t('settings.provider.connectionApiKeyDescription')}
+                                            disabled={isLoading}
+                                            label={t('settings.provider.connectionApiKey')}
+                                            name="connection.apiKey"
+                                            placeholder={t('settings.provider.connectionApiKeyPlaceholder')}
+                                        />
+                                    </div>
+                                    <FormInputStringItem
+                                        control={control}
+                                        description={t('settings.provider.connectionModelPrefixDescription')}
+                                        disabled={isLoading}
+                                        label={t('settings.provider.connectionModelPrefix')}
+                                        name="connection.modelPrefix"
+                                        placeholder={t('settings.provider.connectionModelPrefixPlaceholder')}
+                                    />
+                                    <div className="flex flex-wrap gap-2">
+                                        <Button
+                                            disabled={isLoading || isDiscoveringModels}
+                                            onClick={handleDiscoverModels}
+                                            type="button"
+                                            variant="secondary"
+                                        >
+                                            {isDiscoveringModels ? (
+                                                <Loader2 className="size-4 animate-spin" />
+                                            ) : (
+                                                <Download className="size-4" />
+                                            )}
+                                            {t('settings.provider.discoverModels')}
+                                        </Button>
+                                        {discoveredModels.length > 0 && (
+                                            <Button
+                                                onClick={handleFillAgentsFromDiscoveredModel}
+                                                type="button"
+                                                variant="outline"
+                                            >
+                                                {t('settings.provider.fillAgentsFromSelectedModel', {
+                                                    model: selectedDiscoveredModel || discoveredModels[0].name,
+                                                })}
+                                            </Button>
+                                        )}
+                                    </div>
+                                    {discoveredModels.length > 0 && (
+                                        <div className="bg-background/70 flex flex-col gap-3 rounded-lg border p-3">
+                                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                                <div>
+                                                    <p className="text-sm font-medium">
+                                                        {t('settings.provider.discoveredModelsTitle')}
+                                                    </p>
+                                                    <p className="text-muted-foreground text-xs">
+                                                        {t('settings.provider.discoveredModelsReady', {
+                                                            count: discoveredModels.length,
+                                                        })}
+                                                    </p>
+                                                </div>
+                                                <Select
+                                                    onValueChange={setSelectedDiscoveredModel}
+                                                    value={selectedDiscoveredModel || discoveredModels[0].name}
+                                                >
+                                                    <SelectTrigger className="w-full sm:w-64">
+                                                        <SelectValue placeholder={t('settings.provider.selectDiscoveredModel')} />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {discoveredModels.map((model) => (
+                                                            <SelectItem
+                                                                key={model.name}
+                                                                value={model.name}
+                                                            >
+                                                                {model.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="flex max-h-28 flex-wrap gap-1.5 overflow-y-auto">
+                                                {discoveredModels.map((model) => (
+                                                    <button
+                                                        className={cn(
+                                                            'rounded-full border px-2 py-1 text-xs transition-colors',
+                                                            model.name === (selectedDiscoveredModel || discoveredModels[0].name)
+                                                                ? 'border-primary bg-primary/10 text-primary'
+                                                                : 'text-muted-foreground hover:bg-muted',
+                                                        )}
+                                                        key={model.name}
+                                                        onClick={() => setSelectedDiscoveredModel(model.name)}
+                                                        type="button"
+                                                    >
+                                                        {model.name}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
 
                         {/* Agents Configuration Section */}
                         <div className="flex flex-col gap-4">
@@ -1743,6 +2084,25 @@ function SettingsProvider() {
                                                     placeholder="0.0"
                                                     step="0.01"
                                                 />
+
+                                                <FormInputNumberItem
+                                                    control={control}
+                                                    disabled={isLoading}
+                                                    label={t('settings.provider.minP')}
+                                                    max="1"
+                                                    min="0"
+                                                    name={`agents.${agentKey}.minP`}
+                                                    placeholder="0"
+                                                    step="0.01"
+                                                />
+
+                                                <FormInputStringItem
+                                                    control={control}
+                                                    disabled={isLoading}
+                                                    label={t('settings.provider.responseMimeType')}
+                                                    name={`agents.${agentKey}.responseMimeType`}
+                                                    placeholder="application/json"
+                                                />
                                             </div>
 
                                             {/* Extra Body field */}
@@ -1769,6 +2129,36 @@ function SettingsProvider() {
                                                         {t('settings.provider.reasoningConfiguration')}
                                                     </h4>
                                                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                                        <FormField
+                                                            control={control}
+                                                            name={`agents.${agentKey}.reasoning.mode`}
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>{t('settings.provider.reasoningMode')}</FormLabel>
+                                                                    <Select
+                                                                        disabled={isLoading}
+                                                                        onValueChange={(value) =>
+                                                                            field.onChange(value === 'none' ? null : value)
+                                                                        }
+                                                                        value={field.value ?? 'none'}
+                                                                    >
+                                                                        <FormControl>
+                                                                            <SelectTrigger>
+                                                                                <SelectValue placeholder={t('settings.provider.selectReasoningMode')} />
+                                                                            </SelectTrigger>
+                                                                        </FormControl>
+                                                                        <SelectContent>
+                                                                            <SelectItem value="none">{t('common.notSelected')}</SelectItem>
+                                                                            <SelectItem value={ReasoningMode.Adaptive}>{t('settings.provider.reasoningAdaptive')}</SelectItem>
+                                                                            <SelectItem value={ReasoningMode.Budget}>{t('settings.provider.reasoningBudget')}</SelectItem>
+                                                                            <SelectItem value={ReasoningMode.Off}>{t('settings.provider.reasoningOff')}</SelectItem>
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )}
+                                                        />
+
                                                         {/* Reasoning Effort field */}
                                                         <FormField
                                                             control={control}

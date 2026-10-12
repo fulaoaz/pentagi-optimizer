@@ -17,8 +17,9 @@ function withQuery(path: string, params: Record<string, string | undefined>): st
 }
 
 export const routes = {
+    artex: '/artex',
+    executionRuns: '/execution-runs',
     dashboard: '/dashboard',
-
     flow: (id: number | string, { tab }: { tab?: string } = {}) => withQuery(`/flows/${id}`, { tab }),
     flowReport: (id: number | string) => `/flows/${id}/report`,
     flows: '/flows',
@@ -26,6 +27,7 @@ export const routes = {
     knowledge: (id: number | string) => `/knowledges/${id}`,
     knowledges: '/knowledges',
     login: (fromPath?: string) => `/login${fromPath ? getReturnUrlParam(fromPath) : ''}`,
+    mcpConnectors: '/mcp-connectors',
     newFlow: '/flows/new',
     newKnowledge: '/knowledges/new',
     newTemplate: '/templates/new',
@@ -47,6 +49,7 @@ export const routes = {
         runtimeConfig: '/settings/runtime-config',
         searchEngines: '/settings/search-engines',
     },
+    skills: '/skills',
 
     template: (id: number | string) => `/templates/${id}`,
 

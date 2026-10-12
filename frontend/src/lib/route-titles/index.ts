@@ -40,7 +40,9 @@ export type TitleResolver =
  */
 export const routeTitles = {
     apiTokens: { title: 'title.apiTokens' },
+    artex: { title: 'title.artex' },
     dashboard: { title: 'title.dashboard' },
+    executionRuns: { title: 'title.executionRuns' },
     flow: {
         title: apolloTitle({
             document: FlowDocument,
@@ -65,6 +67,7 @@ export const routeTitles = {
     },
     knowledges: { title: 'title.knowledges' },
     login: { title: 'title.login' },
+    mcpConnectors: { title: 'title.mcpConnectors' },
     newFlow: { title: 'title.newFlow' },
     oauth: { title: 'title.oauth' },
     prompt: {
@@ -93,9 +96,9 @@ export const routeTitles = {
     providers: { title: 'title.providers' },
 
     resources: { title: 'title.resources' },
-
     runtimeConfig: { title: 'title.runtimeConfig' },
     searchEngines: { title: 'title.searchEngines' },
+    skills: { title: 'title.skills' },
 
     template: {
         title: apolloTitle({

@@ -17,6 +17,7 @@ import (
 	"pentagi/pkg/config"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/vxcontrol/cloud/models"
 	"github.com/vxcontrol/cloud/sdk"
 )
 
@@ -55,6 +56,27 @@ func (m *ServerSettingsFormModel) BuildForm() tea.Cmd {
 		locale.ServerSettingsLicenseKeyDesc,
 		config.LicenseKey,
 		true,
+	))
+
+	fields = append(fields, m.createTextField("update_strategy",
+		locale.ServerSettingsUpdateStrategy,
+		locale.ServerSettingsUpdateStrategyDesc,
+		config.UpdateStrategy,
+		false,
+	))
+
+	fields = append(fields, m.createTextField("update_server_host",
+		locale.ServerSettingsUpdateServerHost,
+		locale.ServerSettingsUpdateServerHostDesc,
+		config.UpdateServerHost,
+		false,
+	))
+
+	fields = append(fields, m.createTextField("support_server_host",
+		locale.ServerSettingsSupportServerHost,
+		locale.ServerSettingsSupportServerHostDesc,
+		config.SupportServerHost,
+		false,
 	))
 
 	fields = append(fields, m.createTextField("pentagi_tenant_id",
@@ -102,92 +124,12 @@ func (m *ServerSettingsFormModel) BuildForm() tea.Cmd {
 		false,
 	))
 
-	fields = append(fields, m.createBooleanField("mcp_enabled",
-		locale.ServerSettingsMCPEnabled,
-		locale.ServerSettingsMCPEnabledDesc,
-		config.MCPEnabled,
-	))
-
-	fields = append(fields, m.createTextField("mcp_server_name",
-		locale.ServerSettingsMCPServerName,
-		locale.ServerSettingsMCPServerNameDesc,
-		config.MCPServerName,
+	// trusted proxies
+	fields = append(fields, m.createTextField("pentagi_trusted_proxies",
+		locale.ServerSettingsTrustedProxies,
+		locale.ServerSettingsTrustedProxiesDesc,
+		config.TrustedProxies,
 		false,
-	))
-
-	fields = append(fields, m.createTextField("mcp_server_version",
-		locale.ServerSettingsMCPServerVersion,
-		locale.ServerSettingsMCPServerVersionDesc,
-		config.MCPServerVersion,
-		false,
-	))
-
-	fields = append(fields, m.createTextField("mcp_api_key",
-		locale.ServerSettingsMCPAPIKey,
-		locale.ServerSettingsMCPAPIKeyDesc,
-		config.MCPAPIKey,
-		true,
-	))
-
-	fields = append(fields, m.createTextField("mcp_write_api_key",
-		locale.ServerSettingsMCPWriteAPIKey,
-		locale.ServerSettingsMCPWriteAPIKeyDesc,
-		config.MCPWriteAPIKey,
-		true,
-	))
-
-	fields = append(fields, m.createBooleanField("mcp_allow_anonymous",
-		locale.ServerSettingsMCPAllowAnonymous,
-		locale.ServerSettingsMCPAllowAnonymousDesc,
-		config.MCPAllowAnonymous,
-	))
-
-	fields = append(fields, m.createTextField("mcp_allowed_origins",
-		locale.ServerSettingsMCPAllowedOrigins,
-		locale.ServerSettingsMCPAllowedOriginsDesc,
-		config.MCPAllowedOrigins,
-		false,
-	))
-
-	fields = append(fields, m.createTextField("mcp_allowed_tools",
-		locale.ServerSettingsMCPAllowedTools,
-		locale.ServerSettingsMCPAllowedToolsDesc,
-		config.MCPAllowedTools,
-		false,
-	))
-
-	fields = append(fields, m.createTextField("mcp_max_request_bytes",
-		locale.ServerSettingsMCPMaxRequestBytes,
-		locale.ServerSettingsMCPMaxRequestBytesDesc,
-		config.MCPMaxRequestBytes,
-		false,
-	))
-
-	fields = append(fields, m.createTextField("mcp_read_tool_rate_limit",
-		locale.ServerSettingsMCPReadToolRateLimit,
-		locale.ServerSettingsMCPReadToolRateLimitDesc,
-		config.MCPReadToolRateLimit,
-		false,
-	))
-
-	fields = append(fields, m.createTextField("mcp_write_tool_rate_limit",
-		locale.ServerSettingsMCPWriteToolRateLimit,
-		locale.ServerSettingsMCPWriteToolRateLimitDesc,
-		config.MCPWriteToolRateLimit,
-		false,
-	))
-
-	fields = append(fields, m.createTextField("mcp_approval_mode",
-		locale.ServerSettingsMCPApprovalMode,
-		locale.ServerSettingsMCPApprovalModeDesc,
-		config.MCPApprovalMode,
-		false,
-	))
-
-	fields = append(fields, m.createBooleanField("mcp_enable_write_tools",
-		locale.ServerSettingsMCPEnableWriteTools,
-		locale.ServerSettingsMCPEnableWriteToolsDesc,
-		config.MCPEnableWriteTools,
 	))
 
 	// proxy: url, username, password
@@ -646,32 +588,8 @@ func (m *ServerSettingsFormModel) GetHelpContent() string {
 			sections = append(sections, locale.ServerSettingsPublicURLHelp)
 		case "pentagi_cors_origins":
 			sections = append(sections, locale.ServerSettingsCORSOriginsHelp)
-		case "mcp_enabled":
-			sections = append(sections, locale.ServerSettingsMCPEnabledHelp)
-		case "mcp_server_name":
-			sections = append(sections, locale.ServerSettingsMCPServerNameHelp)
-		case "mcp_server_version":
-			sections = append(sections, locale.ServerSettingsMCPServerVersionHelp)
-		case "mcp_api_key":
-			sections = append(sections, locale.ServerSettingsMCPAPIKeyHelp)
-		case "mcp_write_api_key":
-			sections = append(sections, locale.ServerSettingsMCPWriteAPIKeyHelp)
-		case "mcp_allow_anonymous":
-			sections = append(sections, locale.ServerSettingsMCPAllowAnonymousHelp)
-		case "mcp_allowed_origins":
-			sections = append(sections, locale.ServerSettingsMCPAllowedOriginsHelp)
-		case "mcp_allowed_tools":
-			sections = append(sections, locale.ServerSettingsMCPAllowedToolsHelp)
-		case "mcp_max_request_bytes":
-			sections = append(sections, locale.ServerSettingsMCPMaxRequestBytesHelp)
-		case "mcp_read_tool_rate_limit":
-			sections = append(sections, locale.ServerSettingsMCPReadToolRateLimitHelp)
-		case "mcp_write_tool_rate_limit":
-			sections = append(sections, locale.ServerSettingsMCPWriteToolRateLimitHelp)
-		case "mcp_approval_mode":
-			sections = append(sections, locale.ServerSettingsMCPApprovalModeHelp)
-		case "mcp_enable_write_tools":
-			sections = append(sections, locale.ServerSettingsMCPEnableWriteToolsHelp)
+		case "pentagi_trusted_proxies":
+			sections = append(sections, locale.ServerSettingsTrustedProxiesHelp)
 		case "proxy_url":
 			sections = append(sections, locale.ServerSettingsProxyURLHelp)
 		case "http_client_timeout":
@@ -707,10 +625,14 @@ func (m *ServerSettingsFormModel) HandleSave() error {
 	newCfg := &controller.ServerSettingsConfig{
 		TenantID:                 cfg.TenantID,
 		LicenseKey:               cfg.LicenseKey,
+		UpdateStrategy:           cfg.UpdateStrategy,
+		UpdateServerHost:         cfg.UpdateServerHost,
+		SupportServerHost:        cfg.SupportServerHost,
 		PprofAddr:                cfg.PprofAddr,
 		ListenIP:                 cfg.ListenIP,
 		ListenPort:               cfg.ListenPort,
 		CorsOrigins:              cfg.CorsOrigins,
+		TrustedProxies:           cfg.TrustedProxies,
 		CookieSigningSalt:        cfg.CookieSigningSalt,
 		ProxyURL:                 cfg.ProxyURL,
 		HTTPClientTimeout:        cfg.HTTPClientTimeout,
@@ -750,6 +672,23 @@ func (m *ServerSettingsFormModel) HandleSave() error {
 				}
 			}
 			newCfg.LicenseKey.Value = value
+		case "update_strategy":
+			// Empty means "use the default", which is a legitimate answer and the
+			// one every existing installation currently gives. Anything else has to
+			// be a member of the vocabulary: the field is free text, so this is the
+			// only thing standing between a typo and an installation that quietly
+			// falls back to a channel the user did not pick.
+			if value != "" {
+				if err := models.UpdateStrategy(strings.ToLower(value)).Valid(); err != nil {
+					return fmt.Errorf("invalid update strategy %q: use preview, stable or nightly", value)
+				}
+				value = strings.ToLower(value)
+			}
+			newCfg.UpdateStrategy.Value = value
+		case "update_server_host":
+			newCfg.UpdateServerHost.Value = value
+		case "support_server_host":
+			newCfg.SupportServerHost.Value = value
 		case "pentagi_tenant_id":
 			if err := (&config.Config{TenantID: value}).ValidateTenantID(); err != nil {
 				return err
@@ -775,104 +714,8 @@ func (m *ServerSettingsFormModel) HandleSave() error {
 			newCfg.PublicURL.Value = value
 		case "pentagi_cors_origins":
 			newCfg.CorsOrigins.Value = value
-		case "mcp_enabled":
-			if value == "" {
-				value = newCfg.MCPEnabled.Default
-			}
-			if err := validateMCPBoolean(value, locale.ServerSettingsMCPEnabled); err != nil {
-				return err
-			}
-			newCfg.MCPEnabled.Value = value
-		case "mcp_server_name":
-			if value == "" {
-				value = newCfg.MCPServerName.Default
-			}
-			if err := validateMCPText(value, locale.ServerSettingsMCPServerName, 128); err != nil {
-				return err
-			}
-			newCfg.MCPServerName.Value = value
-		case "mcp_server_version":
-			if value == "" {
-				value = newCfg.MCPServerVersion.Default
-			}
-			if err := validateMCPText(value, locale.ServerSettingsMCPServerVersion, 128); err != nil {
-				return err
-			}
-			newCfg.MCPServerVersion.Value = value
-		case "mcp_api_key":
-			if err := validateMCPText(value, locale.ServerSettingsMCPAPIKey, 4096); err != nil {
-				return err
-			}
-			newCfg.MCPAPIKey.Value = value
-		case "mcp_write_api_key":
-			if err := validateMCPText(value, locale.ServerSettingsMCPWriteAPIKey, 4096); err != nil {
-				return err
-			}
-			newCfg.MCPWriteAPIKey.Value = value
-		case "mcp_allow_anonymous":
-			if value == "" {
-				value = newCfg.MCPAllowAnonymous.Default
-			}
-			if err := validateMCPBoolean(value, locale.ServerSettingsMCPAllowAnonymous); err != nil {
-				return err
-			}
-			newCfg.MCPAllowAnonymous.Value = value
-		case "mcp_allowed_origins":
-			normalized, err := normalizeMCPOriginList(value)
-			if err != nil {
-				return err
-			}
-			newCfg.MCPAllowedOrigins.Value = normalized
-		case "mcp_allowed_tools":
-			normalized, err := normalizeMCPToolList(value)
-			if err != nil {
-				return err
-			}
-			newCfg.MCPAllowedTools.Value = normalized
-		case "mcp_max_request_bytes":
-			if value == "" {
-				value = newCfg.MCPMaxRequestBytes.Default
-			}
-			maxBytes, err := strconv.Atoi(value)
-			if err != nil || maxBytes < 0 || maxBytes > mcpMaxRequestBytesLimit {
-				return fmt.Errorf("%s 必须是 0 至 %d 之间的整数", locale.ServerSettingsMCPMaxRequestBytes, mcpMaxRequestBytesLimit)
-			}
-			newCfg.MCPMaxRequestBytes.Value = strconv.Itoa(maxBytes)
-		case "mcp_read_tool_rate_limit":
-			if value == "" {
-				value = newCfg.MCPReadToolRateLimit.Default
-			}
-			rateLimit, err := parseMCPRateLimit(value)
-			if err != nil {
-				return fmt.Errorf("%s 必须是 0 至 %d 之间的整数", locale.ServerSettingsMCPReadToolRateLimit, mcpToolRateLimitLimit)
-			}
-			newCfg.MCPReadToolRateLimit.Value = strconv.Itoa(rateLimit)
-		case "mcp_write_tool_rate_limit":
-			if value == "" {
-				value = newCfg.MCPWriteToolRateLimit.Default
-			}
-			rateLimit, err := parseMCPRateLimit(value)
-			if err != nil {
-				return fmt.Errorf("%s 必须是 0 至 %d 之间的整数", locale.ServerSettingsMCPWriteToolRateLimit, mcpToolRateLimitLimit)
-			}
-			newCfg.MCPWriteToolRateLimit.Value = strconv.Itoa(rateLimit)
-		case "mcp_approval_mode":
-			if value == "" {
-				value = newCfg.MCPApprovalMode.Default
-			}
-			approvalMode, err := parseMCPApprovalMode(value)
-			if err != nil {
-				return fmt.Errorf("%s 必须是 scope、destructive 或 write", locale.ServerSettingsMCPApprovalMode)
-			}
-			newCfg.MCPApprovalMode.Value = approvalMode
-		case "mcp_enable_write_tools":
-			if value == "" {
-				value = newCfg.MCPEnableWriteTools.Default
-			}
-			if err := validateMCPBoolean(value, locale.ServerSettingsMCPEnableWriteTools); err != nil {
-				return err
-			}
-			newCfg.MCPEnableWriteTools.Value = value
+		case "pentagi_trusted_proxies":
+			newCfg.TrustedProxies.Value = value
 		case "proxy_url":
 			newCfg.ProxyURL.Value = value
 		case "proxy_username":
@@ -1052,11 +895,11 @@ func (m *ServerSettingsFormModel) OnFieldChanged(fieldIndex int, oldValue, newVa
 }
 
 func (m *ServerSettingsFormModel) GetFormFields() []FormField {
-	return m.BaseScreen.fields
+	return m.fields
 }
 
 func (m *ServerSettingsFormModel) SetFormFields(fields []FormField) {
-	m.BaseScreen.fields = fields
+	m.fields = fields
 }
 
 // Update handles screen-specific input, then delegates to base screen

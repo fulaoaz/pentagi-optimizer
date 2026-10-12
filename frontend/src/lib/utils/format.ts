@@ -3,6 +3,14 @@ import type { Locale as DateFnsLocale } from 'date-fns';
 import { format, isThisYear, isToday } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 
+const PROVIDER_LABELS: Record<string, string> = {
+    github: 'GitHub',
+    google: 'Google',
+};
+
+export const formatAccountProvider = (provider?: string): null | string =>
+    provider ? (PROVIDER_LABELS[provider] ?? provider) : null;
+
 export const formatName = (name?: string): string =>
     (name || '')
         .split('_')
@@ -20,6 +28,9 @@ export const formatDate = (date: Date, locale: DateFnsLocale = enUS) => {
 
     return format(date, locale.code === 'zh-CN' ? 'yyyy年M月d日 HH:mm' : 'HH:mm, d MMM yyyy', { locale });
 };
+
+export const formatTableDate = (date: Date) =>
+    isThisYear(date) ? formatDate(date) : format(date, 'd MMM yyyy', { locale: enUS });
 
 export const formatNumber = (value: number): string => new Intl.NumberFormat('en-US').format(value);
 

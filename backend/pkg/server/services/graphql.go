@@ -18,7 +18,9 @@ import (
 	"pentagi/pkg/server/auth"
 	"pentagi/pkg/server/logger"
 	"pentagi/pkg/server/response"
+	"pentagi/pkg/server/update"
 	"pentagi/pkg/templates"
+	"pentagi/pkg/timezone"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -61,6 +63,8 @@ func NewGraphqlService(
 	subscriptions subscriptions.SubscriptionsController,
 	knowledgeStore knowledge.KnowledgeStore,
 	replacer anonymizer.Replacer,
+	updates *update.Service,
+	timezones *timezone.Catalog,
 ) *GraphqlService {
 	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{
 		DB:              db,
@@ -73,12 +77,15 @@ func NewGraphqlService(
 		Subscriptions:   subscriptions,
 		Knowledge:       knowledgeStore,
 		Replacer:        replacer,
+		Updates:         updates,
+		Timezones:       timezones,
 	}}))
 	srv.SetErrorPresenter(localizedGraphQLErrorPresenter)
 
 	component := "pentagi-gql"
 	srv.AroundResponses(logger.WithGqlLogger(component))
 	logger := logrus.WithField("component", component)
+	srv.SetErrorPresenter(newGqlErrorPresenter(logger))
 
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.GET{})
@@ -94,12 +101,18 @@ func NewGraphqlService(
 		Cache: lru.New[string](100),
 	})
 	srv.Use(extension.FixedComplexityLimit(20000))
+	srv.AroundOperations(operationDeadline(OperationTimeout))
 
 	ov := newOriginValidator(origins)
 
 	// Add transport to support GraphQL subscriptions
+	// KeepAlivePingInterval only applies to the legacy subprotocol; a current
+	// client negotiates graphql-transport-ws, where the server pings on
+	// PingPongInterval and drops the socket if no pong arrives within twice it.
+	// Without the second one neither side notices a peer that went away.
 	srv.AddTransport(&transport.Websocket{
 		KeepAlivePingInterval: 10 * time.Second,
+		PingPongInterval:      20 * time.Second,
 		InitFunc: func(ctx context.Context, initPayload transport.InitPayload) (context.Context, *transport.InitPayload, error) {
 			if acceptLanguage := initPayload.GetString("Accept-Language"); acceptLanguage != "" {
 				ctx = withGraphQLLanguage(ctx, acceptLanguage)

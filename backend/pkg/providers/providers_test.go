@@ -2,8 +2,11 @@ package providers
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"path/filepath"
 	"testing"
 	"time"
@@ -81,6 +84,45 @@ func TestGetProviders_StaleUserRowSpansValidSibling(t *testing.T) {
 	require.NoError(t, err, "a stale sibling row must not fail the whole query")
 	assert.Contains(t, got, provider.ProviderName("ollama-user"), "a valid user provider survives a stale sibling")
 	assert.NotContains(t, got, provider.ProviderName("stale-minimax"), "the unbuildable sibling is skipped")
+}
+
+func TestGetProviders_LoadsEncryptedCustomConnectionWithoutGlobalDefaults(t *testing.T) {
+	requests := make(chan *http.Request, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests <- r.Clone(r.Context())
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"data":[{"id":"auto"}]}`))
+	}))
+	defer server.Close()
+
+	cfg := &config.Config{CookieSigningSalt: "test-provider-connection-salt"}
+	providerConfig := &pconfig.ProviderConfig{
+		Simple: &pconfig.AgentConfig{Model: "auto"},
+		Connection: &pconfig.ConnectionConfig{
+			BaseURL: server.URL + "/v1",
+			APIKey:  "saved-user-key",
+		},
+	}
+	require.NoError(t, sealProviderConnection(cfg, providerConfig))
+	rawConfig, err := json.Marshal(providerConfig)
+	require.NoError(t, err)
+
+	pc := &providerController{
+		cfg: cfg,
+		db: stubProvidersQuerier{rows: []database.Provider{{
+			Name:   "local-compatible",
+			Type:   database.ProviderType(provider.ProviderCustom),
+			Config: rawConfig,
+		}}},
+	}
+
+	got, err := pc.GetProviders(context.Background(), 1)
+	require.NoError(t, err)
+	require.Contains(t, got, provider.ProviderName("local-compatible"))
+
+	request := <-requests
+	assert.Equal(t, "/v1/models", request.URL.Path)
+	assert.Equal(t, "Bearer saved-user-key", request.Header.Get("Authorization"))
 }
 
 func TestBuildDefaultConfigs_DisabledProviderBadPathIsNotFatal(t *testing.T) {
@@ -226,25 +268,6 @@ func TestAgentConfigPricesMatchCatalog(t *testing.T) {
 			}
 		}
 	}
-}
-
-// fakeCallProvider overrides only Call(); embedding provider.Provider means
-// every other interface method is unimplemented and would panic on use,
-// which is fine since callWithSetupRetries only ever calls Call().
-type fakeCallProvider struct {
-	provider.Provider
-	callCount int
-	failTimes int
-	err       error
-	result    string
-}
-
-func (f *fakeCallProvider) Call(ctx context.Context, opt pconfig.ProviderOptionsType, prompt string) (string, error) {
-	f.callCount++
-	if f.callCount <= f.failTimes {
-		return "", f.err
-	}
-	return f.result, nil
 }
 
 func TestCallWithSetupRetries_SucceedsImmediately(t *testing.T) {

@@ -1,13 +1,16 @@
-import { LayoutDashboard } from 'lucide-react';
+import { ArrowRight, LayoutDashboard, Network, Sparkles } from 'lucide-react';
 import { useState, useTransition } from 'react';
+import { Link } from 'react-router-dom';
 
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UsageStatsPeriod } from '@/graphql/types';
 import { useLocale } from '@/hooks/use-locale';
 import { usePageStorageKeys } from '@/hooks/use-page-storage-keys';
+import { routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import { DashboardAnalytics } from '@/pages/dashboard/dashboard-analytics';
 import { DashboardOverview } from '@/pages/dashboard/dashboard-overview';
@@ -95,6 +98,42 @@ function Dashboard() {
             </header>
 
             <div className="flex flex-col gap-6 p-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                    <Link
+                        className="group"
+                        to={routes.mcpConnectors}
+                    >
+                        <Card className="h-full transition-colors group-hover:border-primary/60">
+                            <CardHeader>
+                                <CardTitle className="flex items-center justify-between text-base">
+                                    <span className="flex items-center gap-2">
+                                        <Network className="size-5 text-primary" />
+                                        {t('nav.mcp')}
+                                    </span>
+                                    <ArrowRight className="text-muted-foreground size-4 transition-transform group-hover:translate-x-1" />
+                                </CardTitle>
+                                <CardDescription>{t('dashboard.mcpDescription')}</CardDescription>
+                            </CardHeader>
+                        </Card>
+                    </Link>
+                    <Link
+                        className="group"
+                        to={routes.skills}
+                    >
+                        <Card className="h-full transition-colors group-hover:border-primary/60">
+                            <CardHeader>
+                                <CardTitle className="flex items-center justify-between text-base">
+                                    <span className="flex items-center gap-2">
+                                        <Sparkles className="size-5 text-primary" />
+                                        {t('nav.skills')}
+                                    </span>
+                                    <ArrowRight className="text-muted-foreground size-4 transition-transform group-hover:translate-x-1" />
+                                </CardTitle>
+                                <CardDescription>{t('dashboard.skillsDescription')}</CardDescription>
+                            </CardHeader>
+                        </Card>
+                    </Link>
+                </div>
                 <Tabs
                     className="w-full"
                     onValueChange={handleTabChange}

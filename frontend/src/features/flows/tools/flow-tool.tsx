@@ -9,20 +9,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import FlowAgentIcon from '@/features/flows/agents/flow-agent-icon';
 import { useLocale } from '@/hooks/use-locale';
 import { copyMessageToClipboard } from '@/lib/clipboard';
+import { matchesSearchTerm } from '@/lib/text-filter';
 import { formatDate, formatName } from '@/lib/utils/format';
 
 interface FlowToolProps {
     log: SearchLogFragmentFragment;
     searchValue?: string;
 }
-
-const containsSearchValue = (text: null | string | undefined, searchValue: string): boolean => {
-    if (!text || !searchValue.trim()) {
-        return false;
-    }
-
-    return text.toLowerCase().includes(searchValue.toLowerCase().trim());
-};
 
 function FlowTool({ log, searchValue = '' }: FlowToolProps) {
     const { locale, t } = useLocale();
@@ -36,8 +29,8 @@ function FlowTool({ log, searchValue = '' }: FlowToolProps) {
         }
 
         return {
-            hasQueryMatch: containsSearchValue(query, trimmedSearch),
-            hasResultMatch: containsSearchValue(result, trimmedSearch),
+            hasQueryMatch: matchesSearchTerm(query, trimmedSearch),
+            hasResultMatch: matchesSearchTerm(result, trimmedSearch),
         };
     }, [searchValue, query, result]);
 

@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import { routes } from '@/lib/routes';
+import { GROWTH_IF_QUADRATIC, slowdownWhenInputQuadruples } from '@/test-utils/cost-growth';
 
 import { affectedRoutes } from './affected-routes.ts';
 import { ROUTE_MANIFEST } from './routes.ts';
@@ -20,14 +21,17 @@ const { RULES } = (await import(pathToFileURL(join(__dirname, 'mock-llm', 'scena
  */
 const EXCLUDED: Record<string, string> = {
     '/': 'redirects to /dashboard',
+    '/artex': 'external ARTEX adapter; component tests cover configuration, permissions and task switching',
+    '/execution-runs': 'unified execution center; requires an authenticated native/ARTEX runtime cassette for visual sweeps',
     '/flows/new': 'create form; no stable list/detail ready-state to sweep',
     '/knowledges/new': 'create-mode variant of the knowledge detail page',
+    '/mcp-connectors': 'integration hub; needs an authenticated runtime-config cassette and visual baseline',
     '/oauth/result': 'OAuth popup landing; only meaningful mid-OAuth-roundtrip',
     '/settings': 'redirects to /settings/account',
     '/settings/account': 'needs an account cassette + visual baseline before joining the sweep',
+    '/settings/runtime-config': 'needs a config cassette + visual baseline before joining the sweep',
     '/settings/search-engines': 'needs a config cassette + visual baseline before joining the sweep',
-    '/settings/runtime-config': 'needs a config cassette + visual baseline before joining the sweep',
-    '/settings/runtime-config': 'needs a config cassette + visual baseline before joining the sweep',
+    '/skills': 'integration hub; needs an authenticated prompt/provider cassette and visual baseline',
     '/templates/new': 'create-mode variant of the template detail page',
 };
 
@@ -118,10 +122,10 @@ describe('mock-llm rule matching', () => {
     });
 
     it('rejects a marker-less request without re-scanning from every offset', () => {
-        const request = JSON.stringify({ messages: 'a'.repeat(120 * 1024) });
-        const started = performance.now();
+        const markerLessRequest = (bytes: number) => JSON.stringify({ messages: 'a'.repeat(bytes) });
+        const probe = (request: string) => rule?.match.test(request);
 
-        expect(rule?.match.test(request)).toBe(false);
-        expect(performance.now() - started).toBeLessThan(500);
+        expect(probe(markerLessRequest(120 * 1024))).toBe(false);
+        expect(slowdownWhenInputQuadruples(markerLessRequest, probe, 120 * 1024)).toBeLessThan(GROWTH_IF_QUADRATIC / 2);
     });
 });

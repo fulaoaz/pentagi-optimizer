@@ -1,0 +1,46 @@
+{
+  "observedAt": "2026-09-24T11:59:41.366Z",
+  "sourceCommit": "bf7f414477832b77d2152539c0723dc691086522",
+  "mode": "verify-restart",
+  "realComponents": [
+    "ARTEX backend",
+    "PostgreSQL 16"
+  ],
+  "simulatedComponents": [
+    "OpenAI protocol model fixture"
+  ],
+  "checks": [
+    {
+      "name": "owned_isolated_lab",
+      "passed": true
+    },
+    {
+      "name": "no_external_container_egress",
+      "passed": true
+    },
+    {
+      "name": "real_artex_health",
+      "passed": true
+    },
+    {
+      "name": "tasks_require_authentication",
+      "passed": true
+    },
+    {
+      "name": "login_token_issued",
+      "passed": true
+    },
+    {
+      "name": "paused_task_survives_restart",
+      "passed": false
+    },
+    {
+      "name": "existing_control_token_survives_container_recreation",
+      "passed": true
+    }
+  ],
+  "outcome": "failed",
+  "failure": "Check failed: paused_task_survives_restart",
+  "binarySHA256": "211f4251cfdca3156180b414dc6bf7212004e933907a030d93013ae0a663d68d",
+  "interpretation": "The 90-second task reached its wall-clock deadline while paused. API status=timeout and paused=true; this is deadline behavior, not data loss. Persistence probes now use 3600 seconds."
+}

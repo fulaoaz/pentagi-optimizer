@@ -16,6 +16,7 @@ import {
     type FileManagerAction,
     type FileManagerBulkAction,
     type FileNode,
+    pluralizeItems,
 } from '@/components/shared/file-manager';
 import { Button } from '@/components/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
@@ -25,8 +26,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { StatusType } from '@/graphql/types';
 import { useFilesDragAndDrop } from '@/hooks/use-files-drag-and-drop';
-import { useLocale } from '@/hooks/use-locale';
-import { copyToClipboard } from '@/lib/report';
+import { copyToClipboard } from '@/lib/clipboard';
 import { useFlow } from '@/providers/flow-provider';
 
 import { FlowFilesAttachResourcesDialog } from './flow-files-attach-resources-dialog';

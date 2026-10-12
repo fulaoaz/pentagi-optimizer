@@ -3,9 +3,10 @@ import type { ReactNode } from 'react';
 import { BarChart2, Loader2 } from 'lucide-react';
 import { ResponsiveContainer } from 'recharts';
 
-import { DashboardError } from '@/components/dashboard/dashboard-error';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLocale } from '@/hooks/use-locale';
+
+import { DashboardError } from './dashboard-error';
 
 export function ChartCard({
     children,

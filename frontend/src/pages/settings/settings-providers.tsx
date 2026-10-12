@@ -89,43 +89,50 @@ export function SettingsProvidersHeader() {
              * intent ("create provider") so screen readers don't just announce
              * "Create Provider, menu" but "Create provider, choose type, menu".
              */}
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button
-                        aria-label={t('settings.providers.createAria')}
-                        className="shrink-0"
-                        variant="secondary"
-                    >
-                        {t('settings.createProvider')}
-                        <ChevronDown className="size-4" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                    align="end"
-                    style={{
-                        width: 'var(--radix-dropdown-menu-trigger-width)',
-                    }}
+            <div className="flex shrink-0 items-center gap-2">
+                <Button
+                    onClick={() => handleProviderCreate(ProviderType.Custom)}
+                    size="sm"
+                    variant="outline"
                 >
-                    {availableTypes.length === 0 ? (
-                        <DropdownMenuItem disabled>{t('settings.providers.noAvailableTypes')}</DropdownMenuItem>
-                    ) : (
-                        availableTypes.map(({ label, type }) => {
-                            const Icon = providerIcons[type];
-                            const displayLabel = type === ProviderType.Custom ? t('settings.providers.custom') : label;
+                    {t('settings.providers.createCustom')}
+                </Button>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            aria-label={t('settings.providers.createAria')}
+                            variant="secondary"
+                        >
+                            {t('settings.createProvider')}
+                            <ChevronDown className="size-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                        align="end"
+                        style={{
+                            width: 'var(--radix-dropdown-menu-trigger-width)',
+                        }}
+                    >
+                        {availableTypes.length === 0 ? (
+                            <DropdownMenuItem disabled>{t('settings.providers.noAvailableTypes')}</DropdownMenuItem>
+                        ) : (
+                            availableTypes.map(({ label, type }) => {
+                                const Icon = providerIcons[type];
 
-                            return (
-                                <DropdownMenuItem
-                                    key={type}
-                                    onClick={() => handleProviderCreate(type)}
-                                >
-                                    {Icon && <Icon className="size-4" />}
-                                    {displayLabel}
-                                </DropdownMenuItem>
-                            );
-                        })
-                    )}
-                </DropdownMenuContent>
-            </DropdownMenu>
+                                return (
+                                    <DropdownMenuItem
+                                        key={type}
+                                        onClick={() => handleProviderCreate(type)}
+                                    >
+                                        {Icon && <Icon className="size-4" />}
+                                        {label}
+                                    </DropdownMenuItem>
+                                );
+                            })
+                        )}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
         </div>
     );
 }

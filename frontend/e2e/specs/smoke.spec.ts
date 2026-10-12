@@ -11,7 +11,7 @@ test.describe('smoke', { tag: '@smoke' }, () => {
             await page.goto('/flows');
 
             await expect(page).toHaveURL(/\/login\?returnUrl=%2Fflows/);
-            await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+            await expect(page.locator('form button[type="submit"]')).toBeVisible();
             // The guest /info carries OAuth providers, so the login page renders its OAuth buttons.
             await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible();
             expectCleanPage(pageErrorLog);
@@ -19,9 +19,9 @@ test.describe('smoke', { tag: '@smoke' }, () => {
 
         test('logs in through the form and lands on the flows list', async ({ page, pageErrorLog }) => {
             await page.goto('/flows');
-            await page.getByLabel('Login').fill(SEEDED_USER.mail);
-            await page.getByRole('textbox', { name: 'Password' }).fill('e2e-password');
-            await page.getByRole('button', { name: 'Sign in' }).click();
+            await page.locator('input[name="mail"]').fill(SEEDED_USER.mail);
+            await page.locator('input[name="password"]').fill('e2e-password');
+            await page.locator('form button[type="submit"]').click();
 
             await expect(page).toHaveURL(/\/flows$/);
             await expect(page.getByText(SEEDED_USER.mail)).toBeVisible();
@@ -34,19 +34,19 @@ test.describe('smoke', { tag: '@smoke' }, () => {
 
         test('surfaces the error and re-disables Sign in until a field changes', async ({ page, pageErrorLog }) => {
             await page.goto('/login');
-            await page.getByLabel('Login').fill(SEEDED_USER.mail);
-            await page.getByRole('textbox', { name: 'Password' }).fill('wrong-password');
-            await page.getByRole('button', { name: 'Sign in' }).click();
+            await page.locator('input[name="mail"]').fill(SEEDED_USER.mail);
+            await page.locator('input[name="password"]').fill('wrong-password');
+            await page.locator('form button[type="submit"]').click();
 
             await expect(page.getByText('Login failed. Please try again.').first()).toBeVisible();
             await expect(page).toHaveURL(/\/login/);
             // Disabled by FormSubmitButton's `requireValid` gate (`isSubmitted && !isValid`), not by
             // the 401: the typed values are still schema-valid, and only a change recomputes validity.
-            await expect(page.getByRole('button', { name: 'Sign in' })).toBeDisabled();
+            await expect(page.locator('form button[type="submit"]')).toBeDisabled();
 
-            await page.getByRole('textbox', { name: 'Password' }).fill('another-password');
+            await page.locator('input[name="password"]').fill('another-password');
 
-            await expect(page.getByRole('button', { name: 'Sign in' })).toBeEnabled();
+            await expect(page.locator('form button[type="submit"]')).toBeEnabled();
             // The 401 logs an expected browser console error, but the path must raise no
             // uncaught JS exception / unhandled rejection.
             expect(pageErrorLog.pageErrors).toEqual([]);

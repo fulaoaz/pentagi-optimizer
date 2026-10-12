@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 
 import type { OverwriteOutcome } from '@/components/shared/overwrite';
 
-import { useLocale } from '@/hooks/use-locale';
+import { pluralizeItems } from '@/components/shared/file-manager';
 import { api, getApiErrorMessage, getApiErrorStatusCode } from '@/lib/axios';
 
 import { CONTAINER_TARGET_DIRECTORY, FLOW_FILES_PULL_API_PATH } from './flow-files-constants';

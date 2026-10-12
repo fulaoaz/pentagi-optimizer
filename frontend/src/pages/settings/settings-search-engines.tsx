@@ -71,3 +71,5 @@ export function SettingsSearchEngines() {
         </div>
     );
 }
+
+export default SettingsSearchEngines;

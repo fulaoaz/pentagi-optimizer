@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import type { UserResourceFragmentFragment } from '@/graphql/types';
 import type { Translate } from '@/lib/i18n';
 
-import { useLocale } from '@/hooks/use-locale';
+import { pluralizeItems } from '@/components/shared/file-manager';
 import { api, getApiErrorMessage, unwrapApiResponse } from '@/lib/axios';
 import { validateUploadBatch } from '@/lib/upload-validation';
 

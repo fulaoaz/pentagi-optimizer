@@ -25,6 +25,9 @@ import rehypeHighlight from 'rehype-highlight';
 import rehypeSlug from 'rehype-slug';
 import remarkGfm from 'remark-gfm';
 
+import { ScrollableRegion } from '@/components/ui/scrollable-region';
+import { escapeRegExp } from '@/lib/utils/regex';
+
 const lowlight = createLowlight();
 lowlight.register('bash', bash);
 lowlight.register('c', c);
@@ -89,10 +92,6 @@ const textElements = [
     'dt',
     'dd',
 ];
-
-const escapeRegExp = (string: string): string => {
-    return string.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
-};
 
 function Markdown({ children, className, searchValue }: MarkdownProps) {
     const processedSearch = useMemo(() => {
@@ -228,9 +227,12 @@ function Markdown({ children, className, searchValue }: MarkdownProps) {
         }
 
         components.table = ({ children: nodeChildren, ...props }) => (
-            <div className="overflow-x-auto">
+            <ScrollableRegion
+                className="overflow-x-auto"
+                label="Table"
+            >
                 <table {...props}>{processedSearch ? processTextNode(nodeChildren) : nodeChildren}</table>
-            </div>
+            </ScrollableRegion>
         );
 
         return components;

@@ -29,10 +29,6 @@ Two rules make the orchestrator possible:
 
 ## Response boundaries
 
-Every provider response is read through the shared `readSearchResponseBody` / `decodeSearchResponseBody` helpers before parsing. Responses larger than `4 MiB` are rejected, including chunked bodies without a `Content-Length` header. Searcher prompts are bounded to `256 KiB` before they reach a summarizer, raw source content is bounded again before it enters a result, and truncation preserves UTF-8 boundaries. Provider output is data, not an instruction; callers must retain the trust boundary when forwarding it to an LLM.
-
-## Import boundary
-
 `searchers` must **not** import `pentagi/pkg/tools` (the orchestrator imports this package). It depends only on neutral packages: `config`, `database` (for the `SearchengineType` attribution enum), `system` (HTTP client), and `observability`.
 
 ## Adding a new engine
@@ -41,7 +37,7 @@ Every provider response is read through the shared `readSearchResponseBody` / `d
 2. Add the engine's config field(s) to `pkg/config/config.go` (+ `.env.example`, `docker-compose.yml`, `config_test.go`).
 3. Construct it in `buildSearchEngines` (`pkg/tools/web_search.go`) and place its id in the relevant `fallbackStrategy` chains — that table is the only place engine priority lives.
 4. If the engine needs a **new** attribution value (not one of the existing `SearchengineType`s), add a goose migration under `backend/migrations/sql/`, a `SearchengineType<Name>` constant in `pkg/database/models.go`, and reconcile `pkg/server/models/searchlogs.go`. Reusing an existing value (as the internal engine reuses `browser`) needs no migration.
-5. Add `<name>_test.go`. The shared MITM proxy harness (`newTestProxy`) lives in `proxy_test.go`.
+5. Add `<name>_test.go`. The shared MITM proxy harness (`newTestProxy`) lives in `fixtures_test.go`.
 
 ## Current engines
 

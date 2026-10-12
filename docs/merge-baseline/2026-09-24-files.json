@@ -1,0 +1,329 @@
+{
+  "date": "2026-09-24",
+  "head": "756d4c0cd2fbfe2ebab796ada17b5504efbfa62f",
+  "branch": "opt-clean-main",
+  "purpose": "P0 baseline: source file names and hashes only, no credentials or runtime data",
+  "excluded": [
+    ".env",
+    "runtime credentials",
+    "node_modules",
+    ".pnpm-store",
+    "frontend/_lf",
+    "frontend/_lf2",
+    "logs and runtime artifacts"
+  ],
+  "files": [
+    {
+      "path": ".env.example",
+      "group": "mixed-review-hunks",
+      "tracked": true,
+      "sha256": "87bfe3f97072a67ae902a7df03a8612e75ae2b4d6fd251f345bf27e95a11f377"
+    },
+    {
+      "path": "backend/docs/config.md",
+      "group": "mixed-review-hunks",
+      "tracked": true,
+      "sha256": "8169e8da2aed649173344aeb9541acf92a69e786b0616d53154cc93886ea2eda"
+    },
+    {
+      "path": "backend/pkg/config/config.go",
+      "group": "mixed-review-hunks",
+      "tracked": true,
+      "sha256": "09baf520120b8d152be33eabf41bbbaa49f8894f58b18ddc97d163528c922041"
+    },
+    {
+      "path": "backend/pkg/config/runtime_config_test.go",
+      "group": "existing-preserve",
+      "tracked": false,
+      "sha256": "ffae4061de540ed667b126a3f802839af4271a9515320cba7bf26a8f13425feb"
+    },
+    {
+      "path": "backend/pkg/config/runtime_config.go",
+      "group": "existing-preserve",
+      "tracked": false,
+      "sha256": "f34e5642dfe2dac54734881ab0e0be1372a1f1b7e5a737b67463833785a72527"
+    },
+    {
+      "path": "backend/pkg/database/converter/converter.go",
+      "group": "existing-preserve",
+      "tracked": true,
+      "sha256": "9d5cf4b4983cdd5fb5f62ce8ef3df5cda58f626f8be9d2233744772d4f2041f3"
+    },
+    {
+      "path": "backend/pkg/graph/generated.go",
+      "group": "existing-preserve",
+      "tracked": true,
+      "sha256": "6840ce74edfbc31bd0d45bf7808cd6a551eba0a31fdeae4c2c530cb9cf224ec6"
+    },
+    {
+      "path": "backend/pkg/graph/model/models_gen.go",
+      "group": "existing-preserve",
+      "tracked": true,
+      "sha256": "ef381f1dbe235d7138bebc0f762a3a676ead70d3cbee6efd40ddd92bb868aff2"
+    },
+    {
+      "path": "backend/pkg/graph/schema.graphqls",
+      "group": "existing-preserve",
+      "tracked": true,
+      "sha256": "f0823739bc2a73a31129a081a070b922bd114fc678dc6201256a1cdc9633e02a"
+    },
+    {
+      "path": "backend/pkg/graph/schema.resolvers.go",
+      "group": "existing-preserve",
+      "tracked": true,
+      "sha256": "030f54c1d96524e1b849445b49bb60ef043bf72fff0926bd5df59c045dfc87bc"
+    },
+    {
+      "path": "backend/pkg/integrations/artex/client_test.go",
+      "group": "artex-prototype",
+      "tracked": false,
+      "sha256": "3e436a99dd35be4b66767dfc49c4d22b39008a09bab56750b33c59f7698dfc43"
+    },
+    {
+      "path": "backend/pkg/integrations/artex/client.go",
+      "group": "artex-prototype",
+      "tracked": false,
+      "sha256": "967c0f03aa29a05cd3f3062e36065b336bed67c55adce4f5ff6f7d661126c21e"
+    },
+    {
+      "path": "backend/pkg/providers/connection_test.go",
+      "group": "existing-preserve",
+      "tracked": false,
+      "sha256": "25ecbed09d645c3d6578c3047f0aff5dbbae75b6ea3d7be290e3b7a6d6c9022b"
+    },
+    {
+      "path": "backend/pkg/providers/connection.go",
+      "group": "existing-preserve",
+      "tracked": false,
+      "sha256": "363eb75ce73db8b80b7b8480b2874dc73cb26452a819536f7dcf98608dce5969"
+    },
+    {
+      "path": "backend/pkg/providers/pconfig/config.go",
+      "group": "existing-preserve",
+      "tracked": true,
+      "sha256": "92e828c01d2e8973ddae33ca91067106131941b879d7dfb355b8ba4f3754b66d"
+    },
+    {
+      "path": "backend/pkg/providers/providers_test.go",
+      "group": "existing-preserve",
+      "tracked": true,
+      "sha256": "6ca8ae24081f61a5b6623edb46f3194ae87cf2c9b0657a07a5cb0f87dcfee8e7"
+    },
+    {
+      "path": "backend/pkg/providers/providers.go",
+      "group": "existing-preserve",
+      "tracked": true,
+      "sha256": "fd2a92bc9f53d654fbbdf21f03808c01f4b7011ae2fd31bc3331f07a06350ca2"
+    },
+    {
+      "path": "backend/pkg/server/response/locale.go",
+      "group": "existing-preserve",
+      "tracked": true,
+      "sha256": "ade674b9f91607415f4e8f2830e35001be5bbd88c66d7659db16afefd8f8f0c1"
+    },
+    {
+      "path": "backend/pkg/server/router_test.go",
+      "group": "existing-preserve",
+      "tracked": true,
+      "sha256": "6e30edb82fb71674be2fed3a3c54e6e9fea16a5befd03f7ff2799548572a7750"
+    },
+    {
+      "path": "backend/pkg/server/router.go",
+      "group": "mixed-review-hunks",
+      "tracked": true,
+      "sha256": "20d9f02df2f7b1248658c5948a764b33cfa228e4f148261e15419f066bec47d5"
+    },
+    {
+      "path": "backend/pkg/server/services/artex_test.go",
+      "group": "artex-prototype",
+      "tracked": false,
+      "sha256": "ad3f6596106ec1fd10d365ba48d0eecf7c526fcec7cb72f6650cde553a5f2ac0"
+    },
+    {
+      "path": "backend/pkg/server/services/artex.go",
+      "group": "artex-prototype",
+      "tracked": false,
+      "sha256": "fdbcd870a0450c816566bf483ead3fbf1317073e8e148a3a95b3e872fb4b4224"
+    },
+    {
+      "path": "backend/pkg/server/services/templates/graphql-playground-cn.html",
+      "group": "existing-preserve",
+      "tracked": true,
+      "sha256": "90ef16724b2fee0bb71379d67d199b597898d7f1879c8ef3feeb82b9e7ab1d23"
+    },
+    {
+      "path": "backend/pkg/server/services/templates/swagger-cn.html",
+      "group": "existing-preserve",
+      "tracked": true,
+      "sha256": "e831d5752c0be973808e9602b8d60498f12e4ad5a58bd12f2cafd564f9cf0dfa"
+    },
+    {
+      "path": "backend/pkg/tools/runtime_config_test.go",
+      "group": "existing-preserve",
+      "tracked": true,
+      "sha256": "ed3e99cf0b7d230636541a239353d379f4a7bf7b5ec8d1a29a465efe9b08fa8f"
+    },
+    {
+      "path": "backend/pkg/tools/runtime_config.go",
+      "group": "existing-preserve",
+      "tracked": true,
+      "sha256": "7a7d25ca6f12ad2d212ba7581fca94cd85c187a26e994521854d05afa18c3d08"
+    },
+    {
+      "path": "docker-compose.artex.yml",
+      "group": "artex-prototype",
+      "tracked": false,
+      "sha256": "9fdf1c77243781576de9979bf072387479179538210cbcf39b9fe1642b4ca8aa"
+    },
+    {
+      "path": "docker-compose.yml",
+      "group": "existing-preserve",
+      "tracked": true,
+      "sha256": "3a0bb2d4d1848c19ca7903fe44c6b281f676ae68f49fc2087b5272c85afd37ab"
+    },
+    {
+      "path": "docs/ARTEX_INTEGRATION.zh-CN.md",
+      "group": "artex-prototype",
+      "tracked": false,
+      "sha256": "8520a6d17ab7367f8bce931a71f47932a3e96eaeaf28c90778754fa1146867c9"
+    },
+    {
+      "path": "docs/ARTEX_MERGE_PLAN.zh-CN.md",
+      "group": "artex-prototype",
+      "tracked": false,
+      "sha256": "a579b314fcff4bf9a180bf442f03b519fc0e88e951b6e18df333c8150d5f793c"
+    },
+    {
+      "path": "frontend/e2e/route-manifest.unit.test.ts",
+      "group": "mixed-review-hunks",
+      "tracked": true,
+      "sha256": "43d821b6895b32b70ee259a29c1656d70886e63262a29c6fdbf04dfea0964a46"
+    },
+    {
+      "path": "frontend/graphql-schema.graphql",
+      "group": "existing-preserve",
+      "tracked": true,
+      "sha256": "4d20caf0532d910c5cb71c53054e6fab7b96c2eb78febb5a72aa4ae591dc9b53"
+    },
+    {
+      "path": "frontend/src/app.tsx",
+      "group": "mixed-review-hunks",
+      "tracked": true,
+      "sha256": "5bd3c756c3cfc55c1de8a528baca33344ea2ba6e3bd21ef0b2c88ed79002b936"
+    },
+    {
+      "path": "frontend/src/components/layouts/main/main-sidebar.tsx",
+      "group": "mixed-review-hunks",
+      "tracked": true,
+      "sha256": "153e5e9f99ef09156794c90a1bd5da18b253de40371dc7e4ab323335a676017e"
+    },
+    {
+      "path": "frontend/src/graphql/types.ts",
+      "group": "existing-preserve",
+      "tracked": true,
+      "sha256": "f82f5fac3f082eefb690369d8ba34e2640490b491f872bb29b68d959ce372558"
+    },
+    {
+      "path": "frontend/src/lib/i18n/locales/en.ts",
+      "group": "mixed-review-hunks",
+      "tracked": true,
+      "sha256": "fef2307981f9bb78a114a6978969570c4d6b6b6eefa30b7fa3ac000d08f78cc7"
+    },
+    {
+      "path": "frontend/src/lib/i18n/locales/zh-CN.ts",
+      "group": "mixed-review-hunks",
+      "tracked": true,
+      "sha256": "746aa61640a5d754e7ca362afc974b35df1f4fcd984e4db98a1e1dcd5c8308d7"
+    },
+    {
+      "path": "frontend/src/lib/route-titles/index.ts",
+      "group": "mixed-review-hunks",
+      "tracked": true,
+      "sha256": "f2f2734114a7b3888c961d2ed4033b929236bdeb44380ceb37e474bc2ea1b0b5"
+    },
+    {
+      "path": "frontend/src/lib/routes.ts",
+      "group": "mixed-review-hunks",
+      "tracked": true,
+      "sha256": "905b73a53e6f0f2b740e40cf07623dd3b69281dbe0d3d5d7ff86bdff21ee8c46"
+    },
+    {
+      "path": "frontend/src/pages/dashboard/dashboard.tsx",
+      "group": "existing-preserve",
+      "tracked": true,
+      "sha256": "142efbe8ad89d610e29acda50f788d2a906efa51708ef02b5ea4f4999220ef1a"
+    },
+    {
+      "path": "frontend/src/pages/integrations/artex-api.ts",
+      "group": "artex-prototype",
+      "tracked": false,
+      "sha256": "8fb96b98e6660c0a57ba4a67206ef9c1fd28ee00a9d14c14071d485247a66b47"
+    },
+    {
+      "path": "frontend/src/pages/integrations/artex-task-details.tsx",
+      "group": "artex-prototype",
+      "tracked": false,
+      "sha256": "23d4a1bb1816f6f6216d73e755fca81f59bba82f3c5aaf8d55f27a0dd7fe2e40"
+    },
+    {
+      "path": "frontend/src/pages/integrations/artex-workbench.test.tsx",
+      "group": "artex-prototype",
+      "tracked": false,
+      "sha256": "4e6b37eeefeccd8f078931d299c3a351fdacfae76626872269b9f08cbc4509c1"
+    },
+    {
+      "path": "frontend/src/pages/integrations/artex-workbench.tsx",
+      "group": "artex-prototype",
+      "tracked": false,
+      "sha256": "30a2722c37842b37fc85548fe86d5d381f40610b75c94df75d281f2011627cbb"
+    },
+    {
+      "path": "frontend/src/pages/integrations/mcp-connectors.tsx",
+      "group": "existing-preserve",
+      "tracked": false,
+      "sha256": "1b7ceefec6cf02a28a4b0b747749a8eb6edf349eeb11359e8bae678d40f85d42"
+    },
+    {
+      "path": "frontend/src/pages/integrations/skills-center.tsx",
+      "group": "existing-preserve",
+      "tracked": false,
+      "sha256": "36f33c96f2e2e027634b92369804972c2cc11c54d9beb5dcb7ec4c38818396ab"
+    },
+    {
+      "path": "frontend/src/pages/integrations/use-artex-request.ts",
+      "group": "artex-prototype",
+      "tracked": false,
+      "sha256": "7b0aec76b73f04c5ec0edb4a0fe9b151bbb892b82ece3ba1bb9194f80a653e09"
+    },
+    {
+      "path": "frontend/src/pages/settings/settings-provider.tsx",
+      "group": "existing-preserve",
+      "tracked": true,
+      "sha256": "a440da7af8c6b027add3e2a8ecd3dba901bde989548b083a4587ce360a062e59"
+    },
+    {
+      "path": "frontend/src/pages/settings/settings-providers.tsx",
+      "group": "existing-preserve",
+      "tracked": true,
+      "sha256": "446f3bb463e6728159d5f84268a99ae7560aba9b3f8ce8500ed6f25ba4695aea"
+    },
+    {
+      "path": "frontend/src/pages/settings/settings-runtime-config.tsx",
+      "group": "existing-preserve",
+      "tracked": true,
+      "sha256": "96e0c5325604b74bef23806282ccfd6dcf51b6485d647738b915588506202fe3"
+    },
+    {
+      "path": "frontend/src/pages/settings/settings-search-engines.tsx",
+      "group": "existing-preserve",
+      "tracked": true,
+      "sha256": "f3dbcdb0305941756b4f682ddcca668dfd4819b84dff253061672f89d3a11933"
+    },
+    {
+      "path": "README.md",
+      "group": "mixed-review-hunks",
+      "tracked": true,
+      "sha256": "b112a31ff9eafa036ad158f520b6d146381802c116b60374389dfaec1b133497"
+    }
+  ]
+}

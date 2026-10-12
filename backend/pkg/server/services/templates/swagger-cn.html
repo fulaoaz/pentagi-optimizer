@@ -16,6 +16,160 @@ window.ui = SwaggerUIBundle({
   deepLinking: true,
   persistAuthorization: true,
 });
+const translations = new Map(Object.entries({
+  "Authorize": "授权",
+  "Close": "关闭",
+  "Apply": "应用",
+  "Cancel": "取消",
+  "Clear": "清除",
+  "Try it out": "试运行",
+  "Execute": "执行",
+  "Reset": "重置",
+  "Download": "下载",
+  "Copy": "复制",
+  "Explore": "浏览",
+  "Filter by tag": "按标签筛选",
+  "No operations defined in spec!": "接口规范中没有定义操作。",
+  "Request URL": "请求地址",
+  "Request body": "请求正文",
+  "Request headers": "请求头",
+  "Response body": "响应正文",
+  "Response headers": "响应头",
+  "Response": "响应",
+  "Responses": "响应列表",
+  "Parameters": "参数",
+  "Parameter": "参数",
+  "Request samples": "请求示例",
+  "Response samples": "响应示例",
+  "Example Value": "示例值",
+  "Model": "模型",
+  "Models": "模型",
+  "Schemas": "模式",
+  "Description": "描述",
+  "Name": "名称",
+  "Type": "类型",
+  "Required": "必填",
+  "Format": "格式",
+  "Servers": "服务器",
+  "Server": "服务器",
+  "Expand operation": "展开接口",
+  "Collapse operation": "收起接口",
+  "Agentlogs": "智能体日志",
+  "Anonymize": "匿名化",
+  "Assistantlogs": "助手日志",
+  "Containers": "容器",
+  "Flows": "任务流",
+  "Assistants": "助手",
+  "FlowFiles": "任务流文件",
+  "Knowledge": "知识库",
+  "Prompts": "提示词",
+  "Providers": "模型提供商",
+  "Resources": "资源",
+  "Settings": "设置",
+  "Tokens": "令牌",
+  "Users": "用户",
+  "User": "当前用户",
+  "Public": "公共接口",
+  "Screenshots": "截图",
+  "Models": "数据模型",
+  "PentAGI Swagger API": "PentAGI 接口文档",
+  "Swagger API for Penetration Testing Advanced General Intelligence PentAGI.": "PentAGI 渗透测试智能系统 API。",
+  "Terms of service": "服务条款",
+  "Send email to PentAGI Development Team": "发送邮件给 PentAGI 开发团队",
+  "Agentlogs": "智能体日志",
+  "Assistantlogs": "助手日志",
+  "FlowFiles": "任务流文件",
+  "Msglogs": "消息日志",
+  "Searchlogs": "搜索日志",
+  "Termlogs": "终端日志",
+  "Toolcalls": "工具调用",
+  "Vecstorelogs": "向量库日志",
+}));
+function translateSwaggerText(value, parent) {
+  if (translations.has(value)) return translations.get(value);
+  if (!parent || !parent.classList.contains("opblock-summary-description")) return value;
+  const rules = [
+    [/^Retrieve (.+) list by flow id$/, "按任务流 ID 获取$1列表"],
+    [/^Retrieve (.+) list$/, "获取$1列表"],
+    [/^Retrieve (.+) info by id and flow id$/, "按 ID 和任务流 ID 获取$1信息"],
+    [/^Retrieve (.+) by id$/, "按 ID 获取$1"],
+    [/^Retrieve (.+)$/, "获取$1"],
+    [/^List (.+)$/, "列出$1"],
+    [/^Create new (.+)$/, "创建$1"],
+    [/^Create (.+)$/, "创建$1"],
+    [/^Update (.+)$/, "更新$1"],
+    [/^Delete (.+)$/, "删除$1"],
+    [/^Get (.+)$/, "获取$1"],
+    [/^Patch (.+)$/, "修改$1"],
+    [/^Upload (.+)$/, "上传$1"],
+    [/^Download (.+)$/, "下载$1"],
+    [/^Perform graphql requests$/i, "执行 GraphQL 请求"],
+    [/^Anonymize text$/i, "匿名化文本"],
+    [/^Login (.+)$/i, "登录$1"],
+    [/^Logout (.+)$/i, "退出$1"],
+    [/^Change current account display name$/i, "修改当前账户显示名称"],
+  ];
+  for (const [pattern, replacement] of rules) {
+    if (pattern.test(value)) return translateSwaggerWords(value.replace(pattern, replacement));
+  }
+  return translateSwaggerWords(value);
+}
+function translateSwaggerWords(value) {
+  if (!value) return value;
+  const words = [
+    [/\bagentlogs\b/gi, "智能体日志"], [/\bassistantlogs\b/gi, "助手日志"],
+    [/\bflow files\b/gi, "任务流文件"], [/\bflow\b/gi, "任务流"],
+    [/\bflows\b/gi, "任务流"], [/\bcontainers?\b/gi, "容器"],
+    [/\bassistants?\b/gi, "助手"], [/\bfiles?\b/gi, "文件"],
+    [/\bdirectories?\b/gi, "目录"], [/\bresources?\b/gi, "资源"],
+    [/\bsubtasks?\b/gi, "子任务"], [/\bscreenshots?\b/gi, "截图"],
+    [/\bsearchlogs\b/gi, "搜索日志"], [/\btermlogs\b/gi, "终端日志"],
+    [/\btoolcalls?\b/gi, "工具调用"], [/\bvecstorelogs\b/gi, "向量库日志"],
+    [/\bknowledge( documents?)?\b/gi, "知识库$1"], [/\bprompts?\b/gi, "提示词"],
+    [/\busers?\b/gi, "用户"], [/\bsettings\b/gi, "设置"],
+    [/\banalytics\b/gi, "分析"], [/\bgraph\b/gi, "图"],
+    [/\bcurrent\b/gi, "当前"], [/\bspecific\b/gi, "指定"],
+    [/\bby id\b/gi, "按 ID"], [/\bby flow id\b/gi, "按任务流 ID"],
+    [/\bwith custom functions\b/gi, "使用自定义函数"],
+    [/\bfrom the running container\b/gi, "从运行中的容器"],
+    [/\bfrom external OAuth application\b/gi, "从外部 OAuth 应用"],
+    [/\binto OAuth2 external system via HTTP redirect\b/gi, "通过 HTTP 重定向进入 OAuth2 外部系统"],
+    [/\binto system\b/gi, "进入系统"], [/\bvia HTTP redirect\b/gi, "通过 HTTP 重定向"],
+    [/\bfor automation\b/gi, "用于自动化"], [/\bfor specific flow\b/gi, "针对指定任务流"],
+    [/\bto flow workspace\b/gi, "到任务流工作区"], [/\bto resource storage\b/gi, "到资源存储"],
+    [/\bfrom the running container into the local cache\b/gi, "从运行中的容器拉取到本地缓存"],
+    [/\bresource or resources\b/gi, "资源"], [/\bby type\b/gi, "按类型"],
+    [/\busers?\b/gi, "用户"], [/\bsystem\b/gi, "系统"], [/\bsettings\b/gi, "设置"],
+    [/\bfunctions?\b/gi, "函数"], [/\bcustom\b/gi, "自定义"], [/\banalytics\b/gi, "分析"],
+    [/\bspecific\b/gi, "指定"], [/\busage\b/gi, "用量"], [/\bworkspace\b/gi, "工作区"],
+    [/\bdirectory\b/gi, "目录"], [/\bdownload\b/gi, "下载"], [/\bupload\b/gi, "上传"],
+    [/\bpull\b/gi, "拉取"], [/\bcopy\b/gi, "复制"], [/\bpromote\b/gi, "提升"],
+    [/\bcached\b/gi, "缓存"], [/\bpaths?\b/gi, "路径"], [/\brunning\b/gi, "运行中"],
+    [/\blocal\b/gi, "本地"], [/\bcache\b/gi, "缓存"], [/\bwith\b/gi, "使用"],
+    [/\bfrom\b/gi, "从"], [/\binto\b/gi, "到"], [/\bto\b/gi, "到"],
+    [/\bfor\b/gi, "用于"], [/\band\b/gi, "和"], [/\bor\b/gi, "或"],
+  ];
+  return words.reduce((result, [pattern, replacement]) => result.replace(pattern, replacement), value);
+}
+function localizeSwagger(root = document) {
+  root.querySelectorAll("[aria-label], [title], [placeholder]").forEach((element) => {
+    for (const attribute of ["aria-label", "title", "placeholder"]) {
+      const value = element.getAttribute(attribute);
+      if (value && translations.has(value)) element.setAttribute(attribute, translations.get(value));
+    }
+  });
+  const walker = document.createTreeWalker(root.body || root, NodeFilter.SHOW_TEXT);
+  let node;
+  while ((node = walker.nextNode())) {
+    if (node.parentElement?.closest("pre, code, .microlight")) continue;
+    const value = node.textContent.trim();
+    if (!value) continue;
+    const translated = translateSwaggerText(value, node.parentElement);
+    if (translated !== value) node.textContent = node.textContent.replace(value, translated);
+  }
+}
+localizeSwagger();
+new MutationObserver(() => localizeSwagger()).observe(document.body, { childList: true, subtree: true });
 </script>
 </body>
 </html>

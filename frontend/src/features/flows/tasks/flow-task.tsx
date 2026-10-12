@@ -6,7 +6,7 @@ import Markdown from '@/components/shared/markdown';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { StatusType } from '@/graphql/types';
-import { useLocale } from '@/hooks/use-locale';
+import { matchesSearchTerm } from '@/lib/text-filter';
 
 import FlowSubtask from './flow-subtask';
 import FlowTaskStatusIcon from './flow-task-status-icon';
@@ -16,12 +16,20 @@ interface FlowTaskProps {
     task: TaskFragmentFragment;
 }
 
-const containsSearchValue = (text: null | string | undefined, searchValue: string): boolean => {
-    if (!text || !searchValue.trim()) {
-        return false;
-    }
+const describeMissingSubtasks = (status: StatusType) => {
+    switch (status) {
+        case StatusType.Failed: {
+            return 'The task failed before any subtasks were created.';
+        }
 
-    return text.toLowerCase().includes(searchValue.toLowerCase().trim());
+        case StatusType.Finished: {
+            return 'The task ended before any subtasks were created.';
+        }
+
+        default: {
+            return 'Waiting for subtasks to be created...';
+        }
+    }
 };
 
 function FlowTask({ searchValue = '', task }: FlowTaskProps) {
@@ -37,7 +45,7 @@ function FlowTask({ searchValue = '', task }: FlowTaskProps) {
         }
 
         return {
-            hasResultMatch: containsSearchValue(result, trimmedSearch),
+            hasResultMatch: matchesSearchTerm(result, trimmedSearch),
         };
     }, [searchValue, result]);
 
@@ -149,7 +157,7 @@ function FlowTask({ searchValue = '', task }: FlowTaskProps) {
                     ))}
                 </div>
             ) : (
-                <div className="text-muted-foreground mt-2 ml-6 text-xs">{t('flow.tasks.waitingForSubtasks')}</div>
+                <div className="text-muted-foreground mt-2 ml-6 text-xs">{describeMissingSubtasks(status)}</div>
             )}
         </div>
     );

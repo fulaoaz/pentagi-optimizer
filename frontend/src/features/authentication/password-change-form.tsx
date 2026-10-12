@@ -14,44 +14,54 @@ import { Input } from '@/components/ui/input';
 import { useLocale } from '@/hooks/use-locale';
 import { api, type ApiErrorResponse, type ApiHttpError } from '@/lib/axios';
 
-const buildPasswordChangeSchema = (t: Translate) =>
-    z
-        .object({
-            confirmPassword: z.string().min(1, { message: t('auth.confirmPasswordRequired') }),
-            currentPassword: z.string().min(1, { message: t('auth.currentPasswordRequired') }),
-            newPassword: z
-                .string()
-                .min(8, { message: t('auth.passwordMinLength') })
-                .max(100, { message: t('auth.passwordMaxLength') })
-                // bcrypt, which hashes it server-side, refuses anything longer than 72 bytes.
-                .refine((password) => new TextEncoder().encode(password).length <= 72, {
-                    message: t('auth.passwordTooLong'),
-                })
-                .refine(
-                    (password) => {
-                        if (password.length > 15) {
-                            return true;
-                        }
+const passwordChangeFormSchema = z
+    .object({
+        confirmPassword: z.string().min(1, { message: 'Confirm your password' }),
+        currentPassword: z.string().min(1, { message: 'Current password is required' }),
+        newPassword: z
+            .string()
+            .min(8, { message: 'Password must be at least 8 characters' })
+            // bcrypt, which hashes it server-side, refuses anything longer than 72 bytes.
+            .refine((password) => new TextEncoder().encode(password).length <= 72, {
+                message: 'Password must not exceed 72 characters',
+            })
+            .refine(
+                (password) => {
+                    const length = [...password].length;
 
-                        return (
-                            password.length >= 8 &&
-                            /[0-9]/.test(password) &&
-                            /[a-z]/.test(password) &&
-                            /[A-Z]/.test(password) &&
-                            /[!@#$&*]/.test(password)
-                        );
-                    },
-                    { message: t('auth.passwordComplexity') },
-                ),
-        })
-        .refine((data) => data.newPassword === data.confirmPassword, {
-            message: t('auth.passwordsMismatch'),
-            path: ['confirmPassword'],
-        })
-        .refine((data) => data.currentPassword !== data.newPassword, {
-            message: t('auth.newPasswordDifferent'),
-            path: ['newPassword'],
-        });
+                    if (length > 15) {
+                        return true;
+                    }
+
+                    return (
+                        length >= 8 &&
+                        /[0-9]/.test(password) &&
+                        /[a-z]/.test(password) &&
+                        /[A-Z]/.test(password) &&
+                        /[!@#$&*]/.test(password)
+                    );
+                },
+                {
+                    message:
+                        'Password must be either longer than 15 characters, or at least 8 characters with a number, lowercase, uppercase, and special character (!@#$&*)',
+                },
+            ),
+    })
+    .refine((data) => data.newPassword === data.confirmPassword, {
+        message: "Passwords don't match",
+        path: ['confirmPassword'],
+    })
+    .refine((data) => data.currentPassword !== data.newPassword, {
+        message: 'New password must be different from current password',
+        path: ['newPassword'],
+    });
+
+const ERROR_BY_CODE: Record<string, string> = {
+    'Users.ChangePasswordCurrentUser.InvalidCurrentPassword': 'Current password is incorrect',
+    'Users.ChangePasswordCurrentUser.InvalidNewPassword': 'New password does not meet requirements',
+    'Users.ChangePasswordCurrentUser.InvalidPassword': 'Password validation failed',
+    'Users.NotFound': 'User not found',
+};
 
 interface PasswordChangeFormProps {
     isModal?: boolean;
@@ -61,7 +71,7 @@ interface PasswordChangeFormProps {
     showSkip?: boolean;
 }
 
-type PasswordChangeFormValues = z.infer<ReturnType<typeof buildPasswordChangeSchema>>;
+type PasswordChangeFormValues = z.infer<typeof passwordChangeFormSchema>;
 
 export function PasswordChangeForm({
     isModal = true,
@@ -83,7 +93,7 @@ export function PasswordChangeForm({
             currentPassword: '',
             newPassword: '',
         },
-        resolver: zodResolver(passwordChangeSchema),
+        schema: passwordChangeFormSchema,
     });
 
     const handleSubmit = async (values: PasswordChangeFormValues) => {

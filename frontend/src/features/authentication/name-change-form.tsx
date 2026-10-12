@@ -13,14 +13,13 @@ import { useLocale } from '@/hooks/use-locale';
 import { api, resolveApiErrorMessage } from '@/lib/axios';
 import { useUser } from '@/providers/user-provider';
 
-const buildNameChangeSchema = (t: Translate) =>
-    z.object({
-        name: z
-            .string()
-            .trim()
-            .min(1, { message: t('auth.nameRequired') })
-            .max(70, { message: t('auth.nameMaxLength') }),
-    });
+const nameChangeFormSchema = z.object({
+    name: z
+        .string()
+        .trim()
+        .min(1, { message: 'Name is required' })
+        .max(70, { message: 'Name must not exceed 70 characters' }),
+});
 
 const ERROR_BY_CODE: Record<string, string> = {
     'Users.ChangeNameCurrentUser.InvalidName': 'New name does not meet requirements',
@@ -32,7 +31,7 @@ interface NameChangeFormProps {
     onSuccess?: () => void;
 }
 
-type NameChangeFormValues = z.infer<ReturnType<typeof buildNameChangeSchema>>;
+type NameChangeFormValues = z.infer<typeof nameChangeFormSchema>;
 
 export function NameChangeForm({ onCancel, onSuccess }: NameChangeFormProps) {
     const { t } = useLocale();
@@ -44,7 +43,7 @@ export function NameChangeForm({ onCancel, onSuccess }: NameChangeFormProps) {
         defaultValues: {
             name: authInfo?.user?.name ?? '',
         },
-        schema: nameChangeSchema,
+        schema: nameChangeFormSchema,
     });
 
     const handleSubmit = async (values: NameChangeFormValues) => {

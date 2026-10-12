@@ -203,6 +203,13 @@ export enum PromptValidationErrorType {
     VariableTypeMismatch = 'variable_type_mismatch',
 }
 
+export type ProviderConnectionInput = {
+    apiKey?: string | null | undefined;
+    baseUrl: string;
+    modelPrefix?: string | null | undefined;
+    providerId?: string | number | null | undefined;
+};
+
 export enum ProviderType {
     Anthropic = 'anthropic',
     Bedrock = 'bedrock',
@@ -212,9 +219,11 @@ export enum ProviderType {
     Glm = 'glm',
     Kimi = 'kimi',
     Minimax = 'minimax',
+    Mistral = 'mistral',
     Ollama = 'ollama',
     Openai = 'openai',
     Qwen = 'qwen',
+    Xai = 'xai',
 }
 
 export type ReasoningConfigInput = {
@@ -228,6 +237,7 @@ export enum ReasoningEffort {
     Low = 'low',
     Max = 'max',
     Medium = 'medium',
+    Minimal = 'minimal',
     Xhigh = 'xhigh',
 }
 
@@ -247,6 +257,11 @@ export enum ResultType {
     Error = 'error',
     Success = 'success',
 }
+
+export type RuntimeConfigUpdateInput = {
+    key: string;
+    value: string;
+};
 
 export enum StatusType {
     Created = 'created',
@@ -293,6 +308,15 @@ export type UpdateKnowledgeDocumentInput = {
     question?: string | null | undefined;
 };
 
+export enum UpdateState {
+    Disabled = 'disabled',
+    Pending = 'pending',
+    Unknown = 'unknown',
+    Unreachable = 'unreachable',
+    UpToDate = 'up_to_date',
+    UpdateAvailable = 'update_available',
+}
+
 export enum UsageStatsPeriod {
     Month = 'month',
     Quarter = 'quarter',
@@ -313,8 +337,19 @@ export type SettingsFragmentFragment = {
     assistantUseAgents: boolean;
 };
 
+export type VersionInfoFragmentFragment = {
+    current: string;
+    build: string;
+    state: UpdateState;
+    latest: string | null;
+    strategy: string;
+    checkedAt: string | null;
+    failedAt: string | null;
+};
+
 export type FlowFragmentFragment = {
     id: string;
+    userId: string;
     title: string;
     status: StatusType;
     createdAt: string;
@@ -391,6 +426,7 @@ export type ScreenshotFragmentFragment = {
 
 export type FlowFileFragmentFragment = {
     id: string;
+    flowId: string;
     name: string;
     path: string;
     size: number;
@@ -503,12 +539,15 @@ export type ProviderTestResultFragmentFragment = {
 export type ModelConfigFragmentFragment = {
     name: string;
     thinking: boolean | null;
+    maxOutputTokens: number | null;
     reasoning: {
         mode: ModelReasoningMode | null;
         efforts: Array<ReasoningEffort> | null;
         supported: boolean | null;
         cannotDisable: boolean | null;
         defaultOn: boolean | null;
+        rejectsEffortWithTools: boolean | null;
+        takesNoThinkingDepth: boolean | null;
     } | null;
     price: { input: number; output: number; cacheRead: number; cacheWrite: number } | null;
 };
@@ -521,6 +560,7 @@ export type ProviderConfigFragmentFragment = {
     type: ProviderType;
     createdAt: string;
     updatedAt: string;
+    connection: { baseUrl: string; hasApiKey: boolean; modelPrefix: string } | null;
     agents: AgentsConfigFragmentFragment;
 };
 
@@ -719,6 +759,10 @@ export type SettingsQueryVariables = Exact<{ [key: string]: never }>;
 
 export type SettingsQuery = { settings: SettingsFragmentFragment };
 
+export type VersionInfoQueryVariables = Exact<{ [key: string]: never }>;
+
+export type VersionInfoQuery = { versionInfo: VersionInfoFragmentFragment };
+
 export type SettingsProvidersQueryVariables = Exact<{ [key: string]: never }>;
 
 export type SettingsProvidersQuery = {
@@ -735,6 +779,8 @@ export type SettingsProvidersQuery = {
             kimi: boolean;
             qwen: boolean;
             minimax: boolean;
+            mistral: boolean;
+            xai: boolean;
         };
         default: {
             openai: ProviderConfigFragmentFragment;
@@ -748,6 +794,8 @@ export type SettingsProvidersQuery = {
             kimi: ProviderConfigFragmentFragment | null;
             qwen: ProviderConfigFragmentFragment | null;
             minimax: ProviderConfigFragmentFragment | null;
+            mistral: ProviderConfigFragmentFragment | null;
+            xai: ProviderConfigFragmentFragment | null;
         };
         userDefined: Array<ProviderConfigFragmentFragment> | null;
         models: {
@@ -762,6 +810,8 @@ export type SettingsProvidersQuery = {
             kimi: Array<ModelConfigFragmentFragment> | null;
             qwen: Array<ModelConfigFragmentFragment> | null;
             minimax: Array<ModelConfigFragmentFragment> | null;
+            mistral: Array<ModelConfigFragmentFragment> | null;
+            xai: Array<ModelConfigFragmentFragment> | null;
         };
     };
 };
@@ -866,6 +916,7 @@ export type UsageStatsTotalQuery = { usageStatsTotal: UsageStatsFragmentFragment
 
 export type UsageStatsByPeriodQueryVariables = Exact<{
     period: UsageStatsPeriod;
+    timezone?: string | null | undefined;
 }>;
 
 export type UsageStatsByPeriodQuery = { usageStatsByPeriod: Array<DailyUsageStatsFragmentFragment> };
@@ -910,6 +961,7 @@ export type ToolcallsStatsTotalQuery = { toolcallsStatsTotal: ToolcallsStatsFrag
 
 export type ToolcallsStatsByPeriodQueryVariables = Exact<{
     period: UsageStatsPeriod;
+    timezone?: string | null | undefined;
 }>;
 
 export type ToolcallsStatsByPeriodQuery = { toolcallsStatsByPeriod: Array<DailyToolcallsStatsFragmentFragment> };
@@ -938,6 +990,7 @@ export type FlowsStatsTotalQuery = { flowsStatsTotal: FlowsStatsFragmentFragment
 
 export type FlowsStatsByPeriodQueryVariables = Exact<{
     period: UsageStatsPeriod;
+    timezone?: string | null | undefined;
 }>;
 
 export type FlowsStatsByPeriodQuery = { flowsStatsByPeriod: Array<DailyFlowsStatsFragmentFragment> };
@@ -950,6 +1003,7 @@ export type FlowStatsByFlowQuery = { flowStatsByFlow: FlowStatsFragmentFragment 
 
 export type FlowsExecutionStatsByPeriodQueryVariables = Exact<{
     period: UsageStatsPeriod;
+    timezone?: string | null | undefined;
 }>;
 
 export type FlowsExecutionStatsByPeriodQuery = {
@@ -1122,6 +1176,7 @@ export type TestAgentMutationVariables = Exact<{
     type: ProviderType;
     agentType: AgentConfigType;
     agent: AgentConfigInput;
+    simple?: AgentConfigInput | null | undefined;
 }>;
 
 export type TestAgentMutation = { testAgent: AgentTestResultFragmentFragment };
@@ -1129,14 +1184,41 @@ export type TestAgentMutation = { testAgent: AgentTestResultFragmentFragment };
 export type TestProviderMutationVariables = Exact<{
     type: ProviderType;
     agents: AgentsConfigInput;
+    connection?: ProviderConnectionInput | null | undefined;
 }>;
 
 export type TestProviderMutation = { testProvider: ProviderTestResultFragmentFragment };
+
+export type DiscoverProviderModelsMutationVariables = Exact<{
+    connection: ProviderConnectionInput;
+}>;
+
+export type DiscoverProviderModelsMutation = {
+    discoverProviderModels: Array<{
+        name: string;
+        description: string | null;
+        releaseDate: string | null;
+        thinking: boolean | null;
+        maxOutputTokens: number | null;
+        contextWindow: number | null;
+        reasoning: {
+            mode: ModelReasoningMode | null;
+            efforts: Array<ReasoningEffort> | null;
+            supported: boolean | null;
+            cannotDisable: boolean | null;
+            defaultOn: boolean | null;
+            rejectsEffortWithTools: boolean | null;
+            takesNoThinkingDepth: boolean | null;
+        } | null;
+        price: { input: number; output: number; cacheRead: number; cacheWrite: number } | null;
+    }>;
+};
 
 export type CreateProviderMutationVariables = Exact<{
     name: string;
     type: ProviderType;
     agents: AgentsConfigInput;
+    connection?: ProviderConnectionInput | null | undefined;
 }>;
 
 export type CreateProviderMutation = { createProvider: ProviderConfigFragmentFragment };
@@ -1145,6 +1227,7 @@ export type UpdateProviderMutationVariables = Exact<{
     providerId: string | number;
     name: string;
     agents: AgentsConfigInput;
+    connection?: ProviderConnectionInput | null | undefined;
 }>;
 
 export type UpdateProviderMutation = { updateProvider: ProviderConfigFragmentFragment };
@@ -1339,15 +1422,7 @@ export type TaskUpdatedSubscriptionVariables = Exact<{
     flowId: string | number;
 }>;
 
-export type TaskUpdatedSubscription = {
-    taskUpdated: {
-        id: string;
-        status: StatusType;
-        result: string;
-        updatedAt: string;
-        subtasks: Array<SubtaskFragmentFragment> | null;
-    };
-};
+export type TaskUpdatedSubscription = { taskUpdated: TaskFragmentFragment };
 
 export type ProviderCreatedSubscriptionVariables = Exact<{ [key: string]: never }>;
 
@@ -1431,6 +1506,25 @@ export type RuntimeConfigQuery = {
     runtimeConfig: Array<{
         key: string;
         category: string;
+        kind: string;
+        value: string;
+        defaultValue: string;
+        configured: boolean;
+        sensitive: boolean;
+        restartRequired: boolean;
+        description: string;
+    }>;
+};
+
+export type UpdateRuntimeConfigMutationVariables = Exact<{
+    updates: Array<RuntimeConfigUpdateInput> | RuntimeConfigUpdateInput;
+}>;
+
+export type UpdateRuntimeConfigMutation = {
+    updateRuntimeConfig: Array<{
+        key: string;
+        category: string;
+        kind: string;
         value: string;
         defaultValue: string;
         configured: boolean;
@@ -1461,6 +1555,28 @@ export const SettingsFragmentFragmentDoc = {
         },
     ],
 } as unknown as DocumentNode<SettingsFragmentFragment, unknown>;
+export const VersionInfoFragmentFragmentDoc = {
+    kind: 'Document',
+    definitions: [
+        {
+            kind: 'FragmentDefinition',
+            name: { kind: 'Name', value: 'versionInfoFragment' },
+            typeCondition: { kind: 'NamedType', name: { kind: 'Name', value: 'VersionInfo' } },
+            selectionSet: {
+                kind: 'SelectionSet',
+                selections: [
+                    { kind: 'Field', name: { kind: 'Name', value: 'current' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'build' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'state' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'latest' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'strategy' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'checkedAt' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'failedAt' } },
+                ],
+            },
+        },
+    ],
+} as unknown as DocumentNode<VersionInfoFragmentFragment, unknown>;
 export const TerminalFragmentFragmentDoc = {
     kind: 'Document',
     definitions: [
@@ -1510,6 +1626,7 @@ export const FlowFragmentFragmentDoc = {
                 kind: 'SelectionSet',
                 selections: [
                     { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'userId' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'title' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'status' } },
                     {
@@ -1716,6 +1833,7 @@ export const FlowFileFragmentFragmentDoc = {
                 kind: 'SelectionSet',
                 selections: [
                     { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'flowId' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'path' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'size' } },
@@ -2149,6 +2267,7 @@ export const ModelConfigFragmentFragmentDoc = {
                 selections: [
                     { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'thinking' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'maxOutputTokens' } },
                     {
                         kind: 'Field',
                         name: { kind: 'Name', value: 'reasoning' },
@@ -2160,6 +2279,8 @@ export const ModelConfigFragmentFragmentDoc = {
                                 { kind: 'Field', name: { kind: 'Name', value: 'supported' } },
                                 { kind: 'Field', name: { kind: 'Name', value: 'cannotDisable' } },
                                 { kind: 'Field', name: { kind: 'Name', value: 'defaultOn' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'rejectsEffortWithTools' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'takesNoThinkingDepth' } },
                             ],
                         },
                     },
@@ -2444,6 +2565,18 @@ export const ProviderConfigFragmentFragmentDoc = {
                     { kind: 'Field', name: { kind: 'Name', value: 'id' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'type' } },
+                    {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'connection' },
+                        selectionSet: {
+                            kind: 'SelectionSet',
+                            selections: [
+                                { kind: 'Field', name: { kind: 'Name', value: 'baseUrl' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'hasApiKey' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'modelPrefix' } },
+                            ],
+                        },
+                    },
                     {
                         kind: 'Field',
                         name: { kind: 'Name', value: 'agents' },
@@ -3456,6 +3589,7 @@ export const FlowsDocument = {
                 kind: 'SelectionSet',
                 selections: [
                     { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'userId' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'title' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'status' } },
                     {
@@ -3555,6 +3689,48 @@ export const SettingsDocument = {
         },
     ],
 } as unknown as DocumentNode<SettingsQuery, SettingsQueryVariables>;
+export const VersionInfoDocument = {
+    kind: 'Document',
+    definitions: [
+        {
+            kind: 'OperationDefinition',
+            operation: 'query',
+            name: { kind: 'Name', value: 'versionInfo' },
+            selectionSet: {
+                kind: 'SelectionSet',
+                selections: [
+                    {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'versionInfo' },
+                        selectionSet: {
+                            kind: 'SelectionSet',
+                            selections: [
+                                { kind: 'FragmentSpread', name: { kind: 'Name', value: 'versionInfoFragment' } },
+                            ],
+                        },
+                    },
+                ],
+            },
+        },
+        {
+            kind: 'FragmentDefinition',
+            name: { kind: 'Name', value: 'versionInfoFragment' },
+            typeCondition: { kind: 'NamedType', name: { kind: 'Name', value: 'VersionInfo' } },
+            selectionSet: {
+                kind: 'SelectionSet',
+                selections: [
+                    { kind: 'Field', name: { kind: 'Name', value: 'current' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'build' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'state' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'latest' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'strategy' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'checkedAt' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'failedAt' } },
+                ],
+            },
+        },
+    ],
+} as unknown as DocumentNode<VersionInfoQuery, VersionInfoQueryVariables>;
 export const SettingsProvidersDocument = {
     kind: 'Document',
     definitions: [
@@ -3588,6 +3764,8 @@ export const SettingsProvidersDocument = {
                                             { kind: 'Field', name: { kind: 'Name', value: 'kimi' } },
                                             { kind: 'Field', name: { kind: 'Name', value: 'qwen' } },
                                             { kind: 'Field', name: { kind: 'Name', value: 'minimax' } },
+                                            { kind: 'Field', name: { kind: 'Name', value: 'mistral' } },
+                                            { kind: 'Field', name: { kind: 'Name', value: 'xai' } },
                                         ],
                                     },
                                 },
@@ -3730,6 +3908,32 @@ export const SettingsProvidersDocument = {
                                             {
                                                 kind: 'Field',
                                                 name: { kind: 'Name', value: 'minimax' },
+                                                selectionSet: {
+                                                    kind: 'SelectionSet',
+                                                    selections: [
+                                                        {
+                                                            kind: 'FragmentSpread',
+                                                            name: { kind: 'Name', value: 'providerConfigFragment' },
+                                                        },
+                                                    ],
+                                                },
+                                            },
+                                            {
+                                                kind: 'Field',
+                                                name: { kind: 'Name', value: 'mistral' },
+                                                selectionSet: {
+                                                    kind: 'SelectionSet',
+                                                    selections: [
+                                                        {
+                                                            kind: 'FragmentSpread',
+                                                            name: { kind: 'Name', value: 'providerConfigFragment' },
+                                                        },
+                                                    ],
+                                                },
+                                            },
+                                            {
+                                                kind: 'Field',
+                                                name: { kind: 'Name', value: 'xai' },
                                                 selectionSet: {
                                                     kind: 'SelectionSet',
                                                     selections: [
@@ -3895,6 +4099,32 @@ export const SettingsProvidersDocument = {
                                             {
                                                 kind: 'Field',
                                                 name: { kind: 'Name', value: 'minimax' },
+                                                selectionSet: {
+                                                    kind: 'SelectionSet',
+                                                    selections: [
+                                                        {
+                                                            kind: 'FragmentSpread',
+                                                            name: { kind: 'Name', value: 'modelConfigFragment' },
+                                                        },
+                                                    ],
+                                                },
+                                            },
+                                            {
+                                                kind: 'Field',
+                                                name: { kind: 'Name', value: 'mistral' },
+                                                selectionSet: {
+                                                    kind: 'SelectionSet',
+                                                    selections: [
+                                                        {
+                                                            kind: 'FragmentSpread',
+                                                            name: { kind: 'Name', value: 'modelConfigFragment' },
+                                                        },
+                                                    ],
+                                                },
+                                            },
+                                            {
+                                                kind: 'Field',
+                                                name: { kind: 'Name', value: 'xai' },
                                                 selectionSet: {
                                                     kind: 'SelectionSet',
                                                     selections: [
@@ -4116,6 +4346,18 @@ export const SettingsProvidersDocument = {
                     { kind: 'Field', name: { kind: 'Name', value: 'type' } },
                     {
                         kind: 'Field',
+                        name: { kind: 'Name', value: 'connection' },
+                        selectionSet: {
+                            kind: 'SelectionSet',
+                            selections: [
+                                { kind: 'Field', name: { kind: 'Name', value: 'baseUrl' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'hasApiKey' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'modelPrefix' } },
+                            ],
+                        },
+                    },
+                    {
+                        kind: 'Field',
                         name: { kind: 'Name', value: 'agents' },
                         selectionSet: {
                             kind: 'SelectionSet',
@@ -4138,6 +4380,7 @@ export const SettingsProvidersDocument = {
                 selections: [
                     { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'thinking' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'maxOutputTokens' } },
                     {
                         kind: 'Field',
                         name: { kind: 'Name', value: 'reasoning' },
@@ -4149,6 +4392,8 @@ export const SettingsProvidersDocument = {
                                 { kind: 'Field', name: { kind: 'Name', value: 'supported' } },
                                 { kind: 'Field', name: { kind: 'Name', value: 'cannotDisable' } },
                                 { kind: 'Field', name: { kind: 'Name', value: 'defaultOn' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'rejectsEffortWithTools' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'takesNoThinkingDepth' } },
                             ],
                         },
                     },
@@ -5225,6 +5470,7 @@ export const FlowDocument = {
                 kind: 'SelectionSet',
                 selections: [
                     { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'userId' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'title' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'status' } },
                     {
@@ -5515,6 +5761,7 @@ export const FlowFilesDocument = {
                 kind: 'SelectionSet',
                 selections: [
                     { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'flowId' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'path' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'size' } },
@@ -5841,6 +6088,7 @@ export const FlowReportDocument = {
                 kind: 'SelectionSet',
                 selections: [
                     { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'userId' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'title' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'status' } },
                     {
@@ -5949,6 +6197,11 @@ export const UsageStatsByPeriodDocument = {
                         type: { kind: 'NamedType', name: { kind: 'Name', value: 'UsageStatsPeriod' } },
                     },
                 },
+                {
+                    kind: 'VariableDefinition',
+                    variable: { kind: 'Variable', name: { kind: 'Name', value: 'timezone' } },
+                    type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } },
+                },
             ],
             selectionSet: {
                 kind: 'SelectionSet',
@@ -5961,6 +6214,11 @@ export const UsageStatsByPeriodDocument = {
                                 kind: 'Argument',
                                 name: { kind: 'Name', value: 'period' },
                                 value: { kind: 'Variable', name: { kind: 'Name', value: 'period' } },
+                            },
+                            {
+                                kind: 'Argument',
+                                name: { kind: 'Name', value: 'timezone' },
+                                value: { kind: 'Variable', name: { kind: 'Name', value: 'timezone' } },
                             },
                         ],
                         selectionSet: {
@@ -6470,6 +6728,11 @@ export const ToolcallsStatsByPeriodDocument = {
                         type: { kind: 'NamedType', name: { kind: 'Name', value: 'UsageStatsPeriod' } },
                     },
                 },
+                {
+                    kind: 'VariableDefinition',
+                    variable: { kind: 'Variable', name: { kind: 'Name', value: 'timezone' } },
+                    type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } },
+                },
             ],
             selectionSet: {
                 kind: 'SelectionSet',
@@ -6482,6 +6745,11 @@ export const ToolcallsStatsByPeriodDocument = {
                                 kind: 'Argument',
                                 name: { kind: 'Name', value: 'period' },
                                 value: { kind: 'Variable', name: { kind: 'Name', value: 'period' } },
+                            },
+                            {
+                                kind: 'Argument',
+                                name: { kind: 'Name', value: 'timezone' },
+                                value: { kind: 'Variable', name: { kind: 'Name', value: 'timezone' } },
                             },
                         ],
                         selectionSet: {
@@ -6738,6 +7006,11 @@ export const FlowsStatsByPeriodDocument = {
                         type: { kind: 'NamedType', name: { kind: 'Name', value: 'UsageStatsPeriod' } },
                     },
                 },
+                {
+                    kind: 'VariableDefinition',
+                    variable: { kind: 'Variable', name: { kind: 'Name', value: 'timezone' } },
+                    type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } },
+                },
             ],
             selectionSet: {
                 kind: 'SelectionSet',
@@ -6750,6 +7023,11 @@ export const FlowsStatsByPeriodDocument = {
                                 kind: 'Argument',
                                 name: { kind: 'Name', value: 'period' },
                                 value: { kind: 'Variable', name: { kind: 'Name', value: 'period' } },
+                            },
+                            {
+                                kind: 'Argument',
+                                name: { kind: 'Name', value: 'timezone' },
+                                value: { kind: 'Variable', name: { kind: 'Name', value: 'timezone' } },
                             },
                         ],
                         selectionSet: {
@@ -6867,6 +7145,11 @@ export const FlowsExecutionStatsByPeriodDocument = {
                         type: { kind: 'NamedType', name: { kind: 'Name', value: 'UsageStatsPeriod' } },
                     },
                 },
+                {
+                    kind: 'VariableDefinition',
+                    variable: { kind: 'Variable', name: { kind: 'Name', value: 'timezone' } },
+                    type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } },
+                },
             ],
             selectionSet: {
                 kind: 'SelectionSet',
@@ -6879,6 +7162,11 @@ export const FlowsExecutionStatsByPeriodDocument = {
                                 kind: 'Argument',
                                 name: { kind: 'Name', value: 'period' },
                                 value: { kind: 'Variable', name: { kind: 'Name', value: 'period' } },
+                            },
+                            {
+                                kind: 'Argument',
+                                name: { kind: 'Name', value: 'timezone' },
+                                value: { kind: 'Variable', name: { kind: 'Name', value: 'timezone' } },
                             },
                         ],
                         selectionSet: {
@@ -7791,6 +8079,7 @@ export const CreateFlowDocument = {
                 kind: 'SelectionSet',
                 selections: [
                     { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'userId' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'title' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'status' } },
                     {
@@ -8165,6 +8454,7 @@ export const CreateAssistantDocument = {
                 kind: 'SelectionSet',
                 selections: [
                     { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'userId' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'title' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'status' } },
                     {
@@ -8455,6 +8745,11 @@ export const TestAgentDocument = {
                         type: { kind: 'NamedType', name: { kind: 'Name', value: 'AgentConfigInput' } },
                     },
                 },
+                {
+                    kind: 'VariableDefinition',
+                    variable: { kind: 'Variable', name: { kind: 'Name', value: 'simple' } },
+                    type: { kind: 'NamedType', name: { kind: 'Name', value: 'AgentConfigInput' } },
+                },
             ],
             selectionSet: {
                 kind: 'SelectionSet',
@@ -8477,6 +8772,11 @@ export const TestAgentDocument = {
                                 kind: 'Argument',
                                 name: { kind: 'Name', value: 'agent' },
                                 value: { kind: 'Variable', name: { kind: 'Name', value: 'agent' } },
+                            },
+                            {
+                                kind: 'Argument',
+                                name: { kind: 'Name', value: 'simple' },
+                                value: { kind: 'Variable', name: { kind: 'Name', value: 'simple' } },
                             },
                         ],
                         selectionSet: {
@@ -8552,6 +8852,11 @@ export const TestProviderDocument = {
                         type: { kind: 'NamedType', name: { kind: 'Name', value: 'AgentsConfigInput' } },
                     },
                 },
+                {
+                    kind: 'VariableDefinition',
+                    variable: { kind: 'Variable', name: { kind: 'Name', value: 'connection' } },
+                    type: { kind: 'NamedType', name: { kind: 'Name', value: 'ProviderConnectionInput' } },
+                },
             ],
             selectionSet: {
                 kind: 'SelectionSet',
@@ -8569,6 +8874,11 @@ export const TestProviderDocument = {
                                 kind: 'Argument',
                                 name: { kind: 'Name', value: 'agents' },
                                 value: { kind: 'Variable', name: { kind: 'Name', value: 'agents' } },
+                            },
+                            {
+                                kind: 'Argument',
+                                name: { kind: 'Name', value: 'connection' },
+                                value: { kind: 'Variable', name: { kind: 'Name', value: 'connection' } },
                             },
                         ],
                         selectionSet: {
@@ -8760,6 +9070,82 @@ export const TestProviderDocument = {
         },
     ],
 } as unknown as DocumentNode<TestProviderMutation, TestProviderMutationVariables>;
+export const DiscoverProviderModelsDocument = {
+    kind: 'Document',
+    definitions: [
+        {
+            kind: 'OperationDefinition',
+            operation: 'mutation',
+            name: { kind: 'Name', value: 'discoverProviderModels' },
+            variableDefinitions: [
+                {
+                    kind: 'VariableDefinition',
+                    variable: { kind: 'Variable', name: { kind: 'Name', value: 'connection' } },
+                    type: {
+                        kind: 'NonNullType',
+                        type: { kind: 'NamedType', name: { kind: 'Name', value: 'ProviderConnectionInput' } },
+                    },
+                },
+            ],
+            selectionSet: {
+                kind: 'SelectionSet',
+                selections: [
+                    {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'discoverProviderModels' },
+                        arguments: [
+                            {
+                                kind: 'Argument',
+                                name: { kind: 'Name', value: 'connection' },
+                                value: { kind: 'Variable', name: { kind: 'Name', value: 'connection' } },
+                            },
+                        ],
+                        selectionSet: {
+                            kind: 'SelectionSet',
+                            selections: [
+                                { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'description' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'releaseDate' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'thinking' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'maxOutputTokens' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'contextWindow' } },
+                                {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'reasoning' },
+                                    selectionSet: {
+                                        kind: 'SelectionSet',
+                                        selections: [
+                                            { kind: 'Field', name: { kind: 'Name', value: 'mode' } },
+                                            { kind: 'Field', name: { kind: 'Name', value: 'efforts' } },
+                                            { kind: 'Field', name: { kind: 'Name', value: 'supported' } },
+                                            { kind: 'Field', name: { kind: 'Name', value: 'cannotDisable' } },
+                                            { kind: 'Field', name: { kind: 'Name', value: 'defaultOn' } },
+                                            { kind: 'Field', name: { kind: 'Name', value: 'rejectsEffortWithTools' } },
+                                            { kind: 'Field', name: { kind: 'Name', value: 'takesNoThinkingDepth' } },
+                                        ],
+                                    },
+                                },
+                                {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'price' },
+                                    selectionSet: {
+                                        kind: 'SelectionSet',
+                                        selections: [
+                                            { kind: 'Field', name: { kind: 'Name', value: 'input' } },
+                                            { kind: 'Field', name: { kind: 'Name', value: 'output' } },
+                                            { kind: 'Field', name: { kind: 'Name', value: 'cacheRead' } },
+                                            { kind: 'Field', name: { kind: 'Name', value: 'cacheWrite' } },
+                                        ],
+                                    },
+                                },
+                            ],
+                        },
+                    },
+                ],
+            },
+        },
+    ],
+} as unknown as DocumentNode<DiscoverProviderModelsMutation, DiscoverProviderModelsMutationVariables>;
 export const CreateProviderDocument = {
     kind: 'Document',
     definitions: [
@@ -8789,6 +9175,11 @@ export const CreateProviderDocument = {
                         type: { kind: 'NamedType', name: { kind: 'Name', value: 'AgentsConfigInput' } },
                     },
                 },
+                {
+                    kind: 'VariableDefinition',
+                    variable: { kind: 'Variable', name: { kind: 'Name', value: 'connection' } },
+                    type: { kind: 'NamedType', name: { kind: 'Name', value: 'ProviderConnectionInput' } },
+                },
             ],
             selectionSet: {
                 kind: 'SelectionSet',
@@ -8811,6 +9202,11 @@ export const CreateProviderDocument = {
                                 kind: 'Argument',
                                 name: { kind: 'Name', value: 'agents' },
                                 value: { kind: 'Variable', name: { kind: 'Name', value: 'agents' } },
+                            },
+                            {
+                                kind: 'Argument',
+                                name: { kind: 'Name', value: 'connection' },
+                                value: { kind: 'Variable', name: { kind: 'Name', value: 'connection' } },
                             },
                         ],
                         selectionSet: {
@@ -9023,6 +9419,18 @@ export const CreateProviderDocument = {
                     { kind: 'Field', name: { kind: 'Name', value: 'id' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'type' } },
+                    {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'connection' },
+                        selectionSet: {
+                            kind: 'SelectionSet',
+                            selections: [
+                                { kind: 'Field', name: { kind: 'Name', value: 'baseUrl' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'hasApiKey' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'modelPrefix' } },
+                            ],
+                        },
+                    },
                     {
                         kind: 'Field',
                         name: { kind: 'Name', value: 'agents' },
@@ -9066,6 +9474,11 @@ export const UpdateProviderDocument = {
                         type: { kind: 'NamedType', name: { kind: 'Name', value: 'AgentsConfigInput' } },
                     },
                 },
+                {
+                    kind: 'VariableDefinition',
+                    variable: { kind: 'Variable', name: { kind: 'Name', value: 'connection' } },
+                    type: { kind: 'NamedType', name: { kind: 'Name', value: 'ProviderConnectionInput' } },
+                },
             ],
             selectionSet: {
                 kind: 'SelectionSet',
@@ -9088,6 +9501,11 @@ export const UpdateProviderDocument = {
                                 kind: 'Argument',
                                 name: { kind: 'Name', value: 'agents' },
                                 value: { kind: 'Variable', name: { kind: 'Name', value: 'agents' } },
+                            },
+                            {
+                                kind: 'Argument',
+                                name: { kind: 'Name', value: 'connection' },
+                                value: { kind: 'Variable', name: { kind: 'Name', value: 'connection' } },
                             },
                         ],
                         selectionSet: {
@@ -9300,6 +9718,18 @@ export const UpdateProviderDocument = {
                     { kind: 'Field', name: { kind: 'Name', value: 'id' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'type' } },
+                    {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'connection' },
+                        selectionSet: {
+                            kind: 'SelectionSet',
+                            selections: [
+                                { kind: 'Field', name: { kind: 'Name', value: 'baseUrl' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'hasApiKey' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'modelPrefix' } },
+                            ],
+                        },
+                    },
                     {
                         kind: 'Field',
                         name: { kind: 'Name', value: 'agents' },
@@ -10676,6 +11106,7 @@ export const FlowFileAddedDocument = {
                 kind: 'SelectionSet',
                 selections: [
                     { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'flowId' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'path' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'size' } },
@@ -10729,6 +11160,7 @@ export const FlowFileUpdatedDocument = {
                 kind: 'SelectionSet',
                 selections: [
                     { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'flowId' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'path' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'size' } },
@@ -10782,6 +11214,7 @@ export const FlowFileDeletedDocument = {
                 kind: 'SelectionSet',
                 selections: [
                     { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'flowId' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'path' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'size' } },
@@ -10967,6 +11400,7 @@ export const FlowCreatedDocument = {
                 kind: 'SelectionSet',
                 selections: [
                     { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'userId' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'title' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'status' } },
                     {
@@ -11049,6 +11483,7 @@ export const FlowDeletedDocument = {
                 kind: 'SelectionSet',
                 selections: [
                     { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'userId' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'title' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'status' } },
                     {
@@ -11131,6 +11566,7 @@ export const FlowUpdatedDocument = {
                 kind: 'SelectionSet',
                 selections: [
                     { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'userId' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'title' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'status' } },
                     {
@@ -11266,25 +11702,7 @@ export const TaskUpdatedDocument = {
                         ],
                         selectionSet: {
                             kind: 'SelectionSet',
-                            selections: [
-                                { kind: 'Field', name: { kind: 'Name', value: 'id' } },
-                                { kind: 'Field', name: { kind: 'Name', value: 'status' } },
-                                { kind: 'Field', name: { kind: 'Name', value: 'result' } },
-                                {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'subtasks' },
-                                    selectionSet: {
-                                        kind: 'SelectionSet',
-                                        selections: [
-                                            {
-                                                kind: 'FragmentSpread',
-                                                name: { kind: 'Name', value: 'subtaskFragment' },
-                                            },
-                                        ],
-                                    },
-                                },
-                                { kind: 'Field', name: { kind: 'Name', value: 'updatedAt' } },
-                            ],
+                            selections: [{ kind: 'FragmentSpread', name: { kind: 'Name', value: 'taskFragment' } }],
                         },
                     },
                 ],
@@ -11303,6 +11721,32 @@ export const TaskUpdatedDocument = {
                     { kind: 'Field', name: { kind: 'Name', value: 'description' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'result' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'taskId' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'createdAt' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'updatedAt' } },
+                ],
+            },
+        },
+        {
+            kind: 'FragmentDefinition',
+            name: { kind: 'Name', value: 'taskFragment' },
+            typeCondition: { kind: 'NamedType', name: { kind: 'Name', value: 'Task' } },
+            selectionSet: {
+                kind: 'SelectionSet',
+                selections: [
+                    { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'title' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'status' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'input' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'result' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'flowId' } },
+                    {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'subtasks' },
+                        selectionSet: {
+                            kind: 'SelectionSet',
+                            selections: [{ kind: 'FragmentSpread', name: { kind: 'Name', value: 'subtaskFragment' } }],
+                        },
+                    },
                     { kind: 'Field', name: { kind: 'Name', value: 'createdAt' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'updatedAt' } },
                 ],
@@ -11533,6 +11977,18 @@ export const ProviderCreatedDocument = {
                     { kind: 'Field', name: { kind: 'Name', value: 'id' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'type' } },
+                    {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'connection' },
+                        selectionSet: {
+                            kind: 'SelectionSet',
+                            selections: [
+                                { kind: 'Field', name: { kind: 'Name', value: 'baseUrl' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'hasApiKey' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'modelPrefix' } },
+                            ],
+                        },
+                    },
                     {
                         kind: 'Field',
                         name: { kind: 'Name', value: 'agents' },
@@ -11775,6 +12231,18 @@ export const ProviderUpdatedDocument = {
                     { kind: 'Field', name: { kind: 'Name', value: 'type' } },
                     {
                         kind: 'Field',
+                        name: { kind: 'Name', value: 'connection' },
+                        selectionSet: {
+                            kind: 'SelectionSet',
+                            selections: [
+                                { kind: 'Field', name: { kind: 'Name', value: 'baseUrl' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'hasApiKey' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'modelPrefix' } },
+                            ],
+                        },
+                    },
+                    {
+                        kind: 'Field',
                         name: { kind: 'Name', value: 'agents' },
                         selectionSet: {
                             kind: 'SelectionSet',
@@ -12013,6 +12481,18 @@ export const ProviderDeletedDocument = {
                     { kind: 'Field', name: { kind: 'Name', value: 'id' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                     { kind: 'Field', name: { kind: 'Name', value: 'type' } },
+                    {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'connection' },
+                        selectionSet: {
+                            kind: 'SelectionSet',
+                            selections: [
+                                { kind: 'Field', name: { kind: 'Name', value: 'baseUrl' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'hasApiKey' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'modelPrefix' } },
+                            ],
+                        },
+                    },
                     {
                         kind: 'Field',
                         name: { kind: 'Name', value: 'agents' },
@@ -12642,6 +13122,7 @@ export const RuntimeConfigDocument = {
                             selections: [
                                 { kind: 'Field', name: { kind: 'Name', value: 'key' } },
                                 { kind: 'Field', name: { kind: 'Name', value: 'category' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'kind' } },
                                 { kind: 'Field', name: { kind: 'Name', value: 'value' } },
                                 { kind: 'Field', name: { kind: 'Name', value: 'defaultValue' } },
                                 { kind: 'Field', name: { kind: 'Name', value: 'configured' } },
@@ -12656,3 +13137,59 @@ export const RuntimeConfigDocument = {
         },
     ],
 } as unknown as DocumentNode<RuntimeConfigQuery, RuntimeConfigQueryVariables>;
+export const UpdateRuntimeConfigDocument = {
+    kind: 'Document',
+    definitions: [
+        {
+            kind: 'OperationDefinition',
+            operation: 'mutation',
+            name: { kind: 'Name', value: 'updateRuntimeConfig' },
+            variableDefinitions: [
+                {
+                    kind: 'VariableDefinition',
+                    variable: { kind: 'Variable', name: { kind: 'Name', value: 'updates' } },
+                    type: {
+                        kind: 'NonNullType',
+                        type: {
+                            kind: 'ListType',
+                            type: {
+                                kind: 'NonNullType',
+                                type: { kind: 'NamedType', name: { kind: 'Name', value: 'RuntimeConfigUpdateInput' } },
+                            },
+                        },
+                    },
+                },
+            ],
+            selectionSet: {
+                kind: 'SelectionSet',
+                selections: [
+                    {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'updateRuntimeConfig' },
+                        arguments: [
+                            {
+                                kind: 'Argument',
+                                name: { kind: 'Name', value: 'updates' },
+                                value: { kind: 'Variable', name: { kind: 'Name', value: 'updates' } },
+                            },
+                        ],
+                        selectionSet: {
+                            kind: 'SelectionSet',
+                            selections: [
+                                { kind: 'Field', name: { kind: 'Name', value: 'key' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'category' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'kind' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'value' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'defaultValue' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'configured' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'sensitive' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'restartRequired' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'description' } },
+                            ],
+                        },
+                    },
+                ],
+            },
+        },
+    ],
+} as unknown as DocumentNode<UpdateRuntimeConfigMutation, UpdateRuntimeConfigMutationVariables>;

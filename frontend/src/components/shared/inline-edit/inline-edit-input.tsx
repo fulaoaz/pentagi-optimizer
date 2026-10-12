@@ -1,5 +1,5 @@
-import { Check, Loader2, X } from 'lucide-react';
-import { type KeyboardEvent, type Ref } from 'react';
+import { Check, X } from 'lucide-react';
+import { type ChangeEvent, type KeyboardEvent, type Ref, useState } from 'react';
 
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
 import { useLocale } from '@/hooks/use-locale';
@@ -65,7 +65,11 @@ export function InlineEditInput({
     onSave,
     placeholder,
 }: InlineEditInputProps) {
-    const { t } = useLocale();
+    const [isBlank, setIsBlank] = useState(() => !defaultValue?.trim());
+
+    const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setIsBlank(!event.target.value.trim());
+    };
 
     const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
         // Buttons are disabled while busy; the keyboard path must not bypass that gate.
@@ -75,7 +79,10 @@ export function InlineEditInput({
 
         if (event.key === 'Enter') {
             event.preventDefault();
-            onSave();
+
+            if (!isBlank) {
+                onSave();
+            }
 
             return;
         }
@@ -93,6 +100,7 @@ export function InlineEditInput({
                 className="text-foreground"
                 defaultValue={defaultValue}
                 maxLength={maxLength}
+                onChange={handleChange}
                 onKeyDown={handleKeyDown}
                 placeholder={placeholder}
                 ref={inputRef}
@@ -102,8 +110,8 @@ export function InlineEditInput({
                 className="gap-0 pr-2"
             >
                 <InputGroupButton
-                    aria-label={t('common.save')}
-                    disabled={busy}
+                    aria-label="Save"
+                    disabled={busy || isBlank}
                     onClick={onSave}
                 >
                     {busy ? <Loader2 className="animate-spin" /> : <Check />}

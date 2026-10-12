@@ -9,9 +9,12 @@ setup('authenticate', async ({ page }) => {
     // A real backend login + the websocket teardown can outrun the 30s default.
     setup.setTimeout(90_000);
     await page.goto('/login');
-    await page.getByLabel('Login').fill(E2E_USER);
-    await page.getByRole('textbox', { name: 'Password' }).fill(E2E_PASSWORD);
-    await page.getByRole('button', { name: 'Sign in' }).click();
+    // The maintained build defaults to Simplified Chinese, while the upstream
+    // English dictionary remains selectable. Use stable form field names so the
+    // real-tier gate does not depend on the active UI language.
+    await page.locator('input[name="mail"]').fill(E2E_USER);
+    await page.locator('input[name="password"]').fill(E2E_PASSWORD);
+    await page.locator('form button[type="submit"]').click();
 
     // The migration-seeded admin carries password_change_required — the forced
     // change screen is skippable and must not block the suite.

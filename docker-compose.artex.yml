@@ -1,0 +1,43 @@
+services:
+  pentagi:
+    environment:
+      - ARTEX_URL=http://artex:8787
+  artex:
+    image: ${ARTEX_IMAGE:?Set ARTEX_IMAGE to a tested ARTEX tag or digest}
+    restart: unless-stopped
+    environment:
+      ARTEX_PG_DSN: postgres://artex:${ARTEX_POSTGRES_PASSWORD:?Set ARTEX_POSTGRES_PASSWORD}@artex-postgres:5432/artex?sslmode=disable
+    ports:
+      - "127.0.0.1:8787:8787"
+    volumes:
+      - artex-data:/app/data
+    networks:
+      - pentagi-network
+      - artex-storage
+    depends_on:
+      artex-postgres:
+        condition: service_healthy
+  artex-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: artex
+      POSTGRES_PASSWORD: ${ARTEX_POSTGRES_PASSWORD:?Set ARTEX_POSTGRES_PASSWORD}
+      POSTGRES_DB: artex
+    volumes:
+      - artex-postgres-data:/var/lib/postgresql/data
+    networks:
+      - artex-storage
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U artex -d artex"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  artex-data:
+  artex-postgres-data:
+
+networks:
+  artex-storage:
+    internal: true

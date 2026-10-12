@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -11,7 +12,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -20,7 +20,6 @@ import (
 	"pentagi/pkg/observability/langfuse"
 
 	"github.com/sirupsen/logrus"
-	"golang.org/x/net/idna"
 )
 
 const (
@@ -28,9 +27,6 @@ const (
 	minHtmlContentSize       = 300
 	minImgContentSize        = 2048
 	maxScraperErrorBodyBytes = 512
-	maxScraperResponseBytes  = 16 * 1024 * 1024
-	maxScraperHeaderBytes    = 64 * 1024
-	maxBrowserTargetURLBytes = 8 * 1024
 )
 
 // nonHTMLExtensions lists URL path suffixes that point to resources the scraper
@@ -72,22 +68,6 @@ var localZones = []string{
 	".home.arpa",
 }
 
-var nonPublicTargetCIDRs = []string{
-	"0.0.0.0/8",
-	"100.64.0.0/10",
-	"192.0.0.0/24",
-	"192.0.2.0/24",
-	"198.18.0.0/15",
-	"198.51.100.0/24",
-	"203.0.113.0/24",
-	"224.0.0.0/4",
-	"240.0.0.0/4",
-	"2001:2::/48",
-	"2001:10::/28",
-	"2001:db8::/32",
-	"ff00::/8",
-}
-
 type browser struct {
 	flowID    int64
 	taskID    *int64
@@ -116,19 +96,18 @@ func NewBrowserTool(
 
 func (b *browser) wrapCommandResult(ctx context.Context, name, result, url, screen string, err error) (string, error) {
 	ctx, observation := obs.Observer.NewObservation(ctx)
-	redactedURL := redactURL(url)
 	if err != nil {
 		observation.Event(
 			langfuse.WithEventName("browser tool error swallowed"),
 			langfuse.WithEventInput(map[string]any{
-				"url":    redactedURL,
+				"url":    url,
 				"action": name,
 			}),
 			langfuse.WithEventStatus(err.Error()),
 			langfuse.WithEventLevel(langfuse.ObservationLevelWarning),
 			langfuse.WithEventMetadata(langfuse.Metadata{
 				"tool_name": BrowserToolName,
-				"url":       redactedURL,
+				"url":       url,
 				"screen":    screen,
 				"error":     err.Error(),
 			}),
@@ -136,14 +115,14 @@ func (b *browser) wrapCommandResult(ctx context.Context, name, result, url, scre
 
 		logrus.WithContext(ctx).WithError(err).WithFields(enrichLogrusFields(b.flowID, b.taskID, b.subtaskID, logrus.Fields{
 			"tool":   name,
-			"url":    redactedURL,
+			"url":    url,
 			"screen": screen,
 			"result": result[:min(len(result), 1000)],
 		})).Error("browser tool failed")
 		return fmt.Sprintf("browser tool '%s' handled with error: %v", name, err), nil
 	}
 	if screen != "" {
-		_, _ = b.scp.PutScreenshot(ctx, screen, redactedURL, b.taskID, b.subtaskID)
+		_, _ = b.scp.PutScreenshot(ctx, screen, url, b.taskID, b.subtaskID)
 	}
 	return result, nil
 }
@@ -156,6 +135,7 @@ func (b *browser) Handle(ctx context.Context, name string, args json.RawMessage)
 	var action Browser
 	logger := logrus.WithContext(ctx).WithFields(enrichLogrusFields(b.flowID, b.taskID, b.subtaskID, logrus.Fields{
 		"tool": name,
+		"args": string(args),
 	}))
 
 	if name != "browser" {
@@ -186,7 +166,7 @@ func (b *browser) Handle(ctx context.Context, name string, args json.RawMessage)
 
 	logger = logger.WithFields(logrus.Fields{
 		"action": action.Action,
-		"url":    redactURL(action.Url),
+		"url":    action.Url,
 	})
 
 	switch action.Action {
@@ -209,7 +189,7 @@ func (b *browser) ContentMD(ctx context.Context, url string) (string, string, er
 	logger := logrus.WithContext(ctx).WithFields(enrichLogrusFields(b.flowID, b.taskID, b.subtaskID, logrus.Fields{
 		"tool":   "browser",
 		"action": "markdown",
-		"url":    redactURL(url),
+		"url":    url,
 	}))
 	logger.Debug("trying to get markdown content")
 
@@ -222,12 +202,12 @@ func (b *browser) ContentMD(ctx context.Context, url string) (string, string, er
 
 	go func() {
 		defer wg.Done()
-		content, errContent = b.getMD(url)
+		content, errContent = b.getMD(ctx, url)
 	}()
 
 	go func() {
 		defer wg.Done()
-		screenshotName, errScreenshot = b.getScreenshot(url)
+		screenshotName, errScreenshot = b.getScreenshot(ctx, url)
 	}()
 
 	wg.Wait()
@@ -247,7 +227,7 @@ func (b *browser) ContentHTML(ctx context.Context, url string) (string, string, 
 	logger := logrus.WithContext(ctx).WithFields(enrichLogrusFields(b.flowID, b.taskID, b.subtaskID, logrus.Fields{
 		"tool":   "browser",
 		"action": "html",
-		"url":    redactURL(url),
+		"url":    url,
 	}))
 	logger.Debug("trying to get HTML content")
 
@@ -260,12 +240,12 @@ func (b *browser) ContentHTML(ctx context.Context, url string) (string, string, 
 
 	go func() {
 		defer wg.Done()
-		content, errContent = b.getHTML(url)
+		content, errContent = b.getHTML(ctx, url)
 	}()
 
 	go func() {
 		defer wg.Done()
-		screenshotName, errScreenshot = b.getScreenshot(url)
+		screenshotName, errScreenshot = b.getScreenshot(ctx, url)
 	}()
 
 	wg.Wait()
@@ -285,7 +265,7 @@ func (b *browser) Links(ctx context.Context, url string) (string, string, error)
 	logger := logrus.WithContext(ctx).WithFields(enrichLogrusFields(b.flowID, b.taskID, b.subtaskID, logrus.Fields{
 		"tool":   "browser",
 		"action": "links",
-		"url":    redactURL(url),
+		"url":    url,
 	}))
 	logger.Debug("trying to get links")
 
@@ -298,12 +278,12 @@ func (b *browser) Links(ctx context.Context, url string) (string, string, error)
 
 	go func() {
 		defer wg.Done()
-		links, errLinks = b.getLinks(url)
+		links, errLinks = b.getLinks(ctx, url)
 	}()
 
 	go func() {
 		defer wg.Done()
-		screenshotName, errScreenshot = b.getScreenshot(url)
+		screenshotName, errScreenshot = b.getScreenshot(ctx, url)
 	}()
 
 	wg.Wait()
@@ -320,13 +300,39 @@ func (b *browser) Links(ctx context.Context, url string) (string, string, error)
 }
 
 func (b *browser) resolveUrl(targetURL string) (*url.URL, error) {
-	u, err := parseBrowserTargetURL(targetURL)
+	u, err := url.Parse(targetURL)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse url: %w", err)
 	}
 
-	host := normalizeBrowserHost(u.Hostname())
-	isPrivate := browserTargetHostIsPrivate(host)
+	host, _, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		host = u.Host
+	}
+
+	isPrivate := false
+
+	hostIP := net.ParseIP(host)
+	if hostIP != nil {
+		isPrivate = hostIP.IsPrivate() || hostIP.IsLoopback()
+	} else {
+		ip, err := net.ResolveIPAddr("ip", host)
+		if err == nil {
+			isPrivate = ip.IP.IsPrivate() || ip.IP.IsLoopback()
+		} else {
+			lowerHost := strings.ToLower(host)
+			if strings.Contains(lowerHost, "localhost") || !strings.Contains(lowerHost, ".") {
+				isPrivate = true
+			} else {
+				for _, zone := range localZones {
+					if strings.HasSuffix(lowerHost, zone) {
+						isPrivate = true
+						break
+					}
+				}
+			}
+		}
+	}
 
 	var scraperURL string
 	if isPrivate {
@@ -345,197 +351,12 @@ func (b *browser) resolveUrl(targetURL string) (*url.URL, error) {
 		return nil, fmt.Errorf("no scraper URL configured")
 	}
 
-	parsedScraperURL, err := parseScraperURL(scraperURL)
+	parsed, err := url.Parse(scraperURL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse scraper URL: %w", err)
+		// net/url quotes malformed input in its error, including Basic Auth.
+		return nil, errors.New("invalid scraper URL")
 	}
-	return parsedScraperURL, nil
-}
-
-func parseBrowserTargetURL(rawURL string) (*url.URL, error) {
-	rawURL = strings.TrimSpace(rawURL)
-	if rawURL == "" {
-		return nil, fmt.Errorf("target URL is empty")
-	}
-	if len(rawURL) > maxBrowserTargetURLBytes {
-		return nil, fmt.Errorf("target URL exceeds the %d-byte limit", maxBrowserTargetURLBytes)
-	}
-
-	u, err := url.Parse(rawURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse target URL: %w", err)
-	}
-	if !strings.EqualFold(u.Scheme, "http") && !strings.EqualFold(u.Scheme, "https") {
-		return nil, fmt.Errorf("target URL must use http or https")
-	}
-	if u.Host == "" || u.Hostname() == "" {
-		return nil, fmt.Errorf("target URL must include a host")
-	}
-	if err := validateBrowserHost(u.Hostname()); err != nil {
-		return nil, fmt.Errorf("invalid target URL host: %w", err)
-	}
-	if u.User != nil {
-		return nil, fmt.Errorf("target URL must not include user information")
-	}
-	if strings.ContainsAny(u.Hostname(), " \t\r\n") {
-		return nil, fmt.Errorf("target URL host contains whitespace")
-	}
-	if port := u.Port(); port != "" {
-		portNumber, err := strconv.Atoi(port)
-		if err != nil || portNumber < 1 || portNumber > 65535 {
-			return nil, fmt.Errorf("target URL contains an invalid port")
-		}
-	}
-
-	return u, nil
-}
-
-func parseScraperURL(rawURL string) (*url.URL, error) {
-	u, err := url.Parse(strings.TrimSpace(rawURL))
-	if err != nil {
-		return nil, err
-	}
-	if !strings.EqualFold(u.Scheme, "http") && !strings.EqualFold(u.Scheme, "https") {
-		return nil, fmt.Errorf("scraper URL must use http or https")
-	}
-	if u.Host == "" || u.Hostname() == "" {
-		return nil, fmt.Errorf("scraper URL must include a host")
-	}
-	if err := validateBrowserHost(u.Hostname()); err != nil {
-		return nil, fmt.Errorf("invalid scraper URL host: %w", err)
-	}
-	if strings.ContainsAny(u.Hostname(), " \t\r\n") {
-		return nil, fmt.Errorf("scraper URL host contains whitespace")
-	}
-	if port := u.Port(); port != "" {
-		portNumber, err := strconv.Atoi(port)
-		if err != nil || portNumber < 1 || portNumber > 65535 {
-			return nil, fmt.Errorf("scraper URL contains an invalid port")
-		}
-	}
-	return u, nil
-}
-
-func normalizeBrowserHost(host string) string {
-	host = strings.TrimSuffix(strings.ToLower(strings.TrimSpace(host)), ".")
-	if zoneIndex := strings.LastIndex(host, "%"); zoneIndex >= 0 {
-		host = host[:zoneIndex]
-	}
-	if asciiHost, err := idna.Lookup.ToASCII(host); err == nil {
-		host = asciiHost
-	}
-	return host
-}
-
-func validateBrowserHost(rawHost string) error {
-	host := strings.TrimSuffix(strings.TrimSpace(rawHost), ".")
-	if host == "" {
-		return fmt.Errorf("host is empty")
-	}
-	if strings.ContainsAny(host, " \t\r\n") {
-		return fmt.Errorf("host contains whitespace")
-	}
-
-	if zoneIndex := strings.LastIndex(host, "%"); zoneIndex >= 0 {
-		ipHost, zone := host[:zoneIndex], host[zoneIndex+1:]
-		if net.ParseIP(ipHost) == nil || zone == "" || strings.ContainsAny(zone, "%/?#[]") {
-			return fmt.Errorf("invalid IPv6 zone")
-		}
-		return nil
-	}
-	if net.ParseIP(host) != nil {
-		return nil
-	}
-
-	asciiHost, err := idna.Lookup.ToASCII(host)
-	if err != nil {
-		return fmt.Errorf("invalid hostname")
-	}
-	if len(asciiHost) > 253 {
-		return fmt.Errorf("hostname is too long")
-	}
-	for _, label := range strings.Split(asciiHost, ".") {
-		if len(label) == 0 || len(label) > 63 || label[0] == '-' || label[len(label)-1] == '-' {
-			return fmt.Errorf("invalid hostname label")
-		}
-		for _, char := range label {
-			if (char < 'a' || char > 'z') && (char < 'A' || char > 'Z') && (char < '0' || char > '9') && char != '-' {
-				return fmt.Errorf("invalid hostname character")
-			}
-		}
-	}
-	return nil
-}
-
-func browserTargetHostIsPrivate(host string) bool {
-	host = normalizeBrowserHost(host)
-	if host == "" {
-		return true
-	}
-
-	if hostIP := net.ParseIP(host); hostIP != nil {
-		return isNonPublicTargetIP(hostIP)
-	}
-	if isKnownLocalBrowserHost(host) {
-		return true
-	}
-
-	addresses, err := net.LookupIP(host)
-	if err == nil && len(addresses) > 0 {
-		for _, address := range addresses {
-			if isNonPublicTargetIP(address) {
-				return true
-			}
-		}
-		return false
-	}
-
-	// Preserve the existing public-scraper fallback for dotted names that cannot
-	// be resolved locally. The scraper remains responsible for the final fetch.
-	return false
-}
-
-func isKnownLocalBrowserHost(host string) bool {
-	if host == "localhost" || strings.HasSuffix(host, ".localhost") || !strings.Contains(host, ".") {
-		return true
-	}
-	for _, zone := range localZones {
-		zone = strings.TrimPrefix(strings.ToLower(zone), ".")
-		if host == zone || strings.HasSuffix(host, "."+zone) {
-			return true
-		}
-	}
-	return false
-}
-
-func isNonPublicTargetIP(ip net.IP) bool {
-	if ip == nil {
-		return true
-	}
-	if ip4 := ip.To4(); ip4 != nil {
-		ip = ip4
-	}
-	if ip.IsPrivate() || ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsUnspecified() || !ip.IsGlobalUnicast() {
-		return true
-	}
-	for _, cidr := range nonPublicTargetCIDRs {
-		_, network, err := net.ParseCIDR(cidr)
-		if err == nil && network.Contains(ip) {
-			return true
-		}
-	}
-	return false
-}
-
-func redactURL(rawURL string) string {
-	u, err := url.Parse(rawURL)
-	if err != nil {
-		return "<invalid-url>"
-	}
-	u.User = nil
-	u.RawQuery = ""
-	u.Fragment = ""
-	return u.String()
+	return parsed, nil
 }
 
 func (b *browser) saveScreenshotData(screenshot []byte) (string, error) {
@@ -558,7 +379,7 @@ func (b *browser) saveScreenshotData(screenshot []byte) (string, error) {
 	return screenshotName, nil
 }
 
-func (b *browser) getMD(targetURL string) (string, error) {
+func (b *browser) getMD(ctx context.Context, targetURL string) (string, error) {
 	if isBinaryURL(targetURL) {
 		return "", fmt.Errorf(
 			"the URL appears to point to a binary/non-HTML resource (e.g. PDF, image, archive) " +
@@ -576,9 +397,9 @@ func (b *browser) getMD(targetURL string) (string, error) {
 	scraperURL.Path = "/markdown"
 	scraperURL.RawQuery = query.Encode()
 
-	content, err := b.callScraper(scraperURL.String())
+	content, err := b.callScraper(ctx, scraperURL.String())
 	if err != nil {
-		return "", fmt.Errorf("failed to fetch content by url '%s': %w", redactURL(targetURL), err)
+		return "", fmt.Errorf("failed to fetch content by url '%s': %w", targetURL, err)
 	}
 	if len(content) < minMdContentSize {
 		return fmt.Sprintf(
@@ -590,7 +411,7 @@ func (b *browser) getMD(targetURL string) (string, error) {
 	return string(content), nil
 }
 
-func (b *browser) getHTML(targetURL string) (string, error) {
+func (b *browser) getHTML(ctx context.Context, targetURL string) (string, error) {
 	if isBinaryURL(targetURL) {
 		return "", fmt.Errorf(
 			"the URL appears to point to a binary/non-HTML resource (e.g. PDF, image, archive) " +
@@ -608,9 +429,9 @@ func (b *browser) getHTML(targetURL string) (string, error) {
 	scraperURL.Path = "/html"
 	scraperURL.RawQuery = query.Encode()
 
-	content, err := b.callScraper(scraperURL.String())
+	content, err := b.callScraper(ctx, scraperURL.String())
 	if err != nil {
-		return "", fmt.Errorf("failed to fetch content by url '%s': %w", redactURL(targetURL), err)
+		return "", fmt.Errorf("failed to fetch content by url '%s': %w", targetURL, err)
 	}
 	if len(content) < minHtmlContentSize {
 		return fmt.Sprintf(
@@ -622,7 +443,7 @@ func (b *browser) getHTML(targetURL string) (string, error) {
 	return string(content), nil
 }
 
-func (b *browser) getLinks(targetURL string) (string, error) {
+func (b *browser) getLinks(ctx context.Context, targetURL string) (string, error) {
 	scraperURL, err := b.resolveUrl(targetURL)
 	if err != nil {
 		return "", fmt.Errorf("failed to resolve url: %w", err)
@@ -633,9 +454,9 @@ func (b *browser) getLinks(targetURL string) (string, error) {
 	scraperURL.Path = "/links"
 	scraperURL.RawQuery = query.Encode()
 
-	content, err := b.callScraper(scraperURL.String())
+	content, err := b.callScraper(ctx, scraperURL.String())
 	if err != nil {
-		return "", fmt.Errorf("failed to fetch links by url '%s': %w", redactURL(targetURL), err)
+		return "", fmt.Errorf("failed to fetch links by url '%s': %w", targetURL, err)
 	}
 
 	links := []struct {
@@ -648,7 +469,7 @@ func (b *browser) getLinks(targetURL string) (string, error) {
 	}
 
 	var buffer strings.Builder
-	buffer.WriteString(fmt.Sprintf("Links list from URL '%s'\n", targetURL))
+	fmt.Fprintf(&buffer, "Links list from URL '%s'\n", targetURL)
 	for _, l := range links {
 		link := strings.TrimSpace(l.Link)
 		if link == "" {
@@ -658,13 +479,13 @@ func (b *browser) getLinks(targetURL string) (string, error) {
 		if title == "" {
 			title = "UNTITLED"
 		}
-		buffer.WriteString(fmt.Sprintf("[%s](%s)\n", title, l.Link))
+		fmt.Fprintf(&buffer, "[%s](%s)\n", title, l.Link)
 	}
 
 	return buffer.String(), nil
 }
 
-func (b *browser) getScreenshot(targetURL string) (string, error) {
+func (b *browser) getScreenshot(ctx context.Context, targetURL string) (string, error) {
 	scraperURL, err := b.resolveUrl(targetURL)
 	if err != nil {
 		return "", fmt.Errorf("failed to resolve url: %w", err)
@@ -676,9 +497,9 @@ func (b *browser) getScreenshot(targetURL string) (string, error) {
 	scraperURL.Path = "/screenshot"
 	scraperURL.RawQuery = query.Encode()
 
-	content, err := b.callScraper(scraperURL.String())
+	content, err := b.callScraper(ctx, scraperURL.String())
 	if err != nil {
-		return "", fmt.Errorf("failed to fetch screenshot by url '%s': %w", redactURL(targetURL), err)
+		return "", fmt.Errorf("failed to fetch screenshot by url '%s': %w", targetURL, err)
 	}
 	if len(content) < minImgContentSize {
 		return "", fmt.Errorf("image size is less than minimum: %d bytes", minImgContentSize)
@@ -687,49 +508,95 @@ func (b *browser) getScreenshot(targetURL string) (string, error) {
 	return b.saveScreenshotData(content)
 }
 
-func (b *browser) callScraper(url string) ([]byte, error) {
+func (b *browser) callScraper(ctx context.Context, rawURL string) ([]byte, error) {
 	client := &http.Client{
 		Timeout: 65 * time.Second,
 		Transport: &http.Transport{
-			TLSClientConfig:        &tls.Config{InsecureSkipVerify: true},
-			MaxResponseHeaderBytes: maxScraperHeaderBytes,
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
 	}
-	resp, err := client.Get(url)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch data by scraper '%s': %w", redactURL(url), err)
+		// Parsing errors may quote the malformed URL, including its credentials.
+		return nil, errors.New("failed to build scraper request")
+	}
+	// The URL may contain Basic Auth credentials. Keep them on the request, but
+	// never put its userinfo or query string into an error returned to the model,
+	// logs, or observability events.
+	endpoint := scraperErrorEndpoint(req.URL)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, &scraperTransportError{
+			endpoint: endpoint,
+			cause:    err,
+			detail:   scraperTransportReason(err),
+		}
 	}
 	defer resp.Body.Close()
-	redactedURL := redactURL(url)
-	if resp.ContentLength > maxScraperResponseBytes {
-		return nil, fmt.Errorf("scraper response body exceeds the %d-byte limit for '%s'", maxScraperResponseBytes, redactedURL)
-	}
 
 	if resp.StatusCode != http.StatusOK {
-		if resp.StatusCode >= 500 {
+		// Only a 5xx is the scraper failing; a 4xx rejects our own request, so its body is noise to the model.
+		if resp.StatusCode >= 500 && req.URL.User == nil {
+			// A gateway can echo arbitrary request data, including an encoded
+			// Authorization header. With Basic Auth, status is the only safe
+			// diagnostic to return to logs, traces and the model.
 			body, _ := io.ReadAll(io.LimitReader(resp.Body, maxScraperErrorBodyBytes+1))
 			if preview := strings.TrimSpace(string(body)); preview != "" {
 				if truncated := len(body) > maxScraperErrorBodyBytes; truncated {
 					preview = preview[:maxScraperErrorBodyBytes] + "... [truncated]"
 				}
 				return nil, fmt.Errorf(
-					"unexpected resp code for scraper '%s': %d, response: %s", redactedURL, resp.StatusCode, preview,
+					"unexpected resp code for scraper '%s': %d, response: %s", endpoint, resp.StatusCode, preview,
 				)
 			}
 		}
-		return nil, fmt.Errorf("unexpected resp code for scraper '%s': %d", redactedURL, resp.StatusCode)
+		return nil, fmt.Errorf("unexpected resp code for scraper '%s': %d", endpoint, resp.StatusCode)
 	}
 
-	content, err := io.ReadAll(io.LimitReader(resp.Body, maxScraperResponseBytes+1))
+	content, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response body for scraper '%s': %w", redactedURL, err)
-	} else if len(content) > maxScraperResponseBytes {
-		return nil, fmt.Errorf("scraper response body exceeds the %d-byte limit for '%s'", maxScraperResponseBytes, redactedURL)
+		return nil, fmt.Errorf("failed to read response body for scraper '%s': %w", endpoint, err)
 	} else if len(content) == 0 {
-		return nil, fmt.Errorf("empty response body for scraper '%s'", redactedURL)
+		return nil, fmt.Errorf("empty response body for scraper '%s'", endpoint)
 	}
 
 	return content, nil
+}
+
+func scraperErrorEndpoint(u *url.URL) string {
+	if u == nil {
+		return "scraper"
+	}
+	return u.Scheme + "://" + u.Host + u.EscapedPath()
+}
+
+// scraperTransportError keeps errors.Is usable for cancellation without letting
+// a wrapped url.Error print the URL and its Basic Auth credentials.
+type scraperTransportError struct {
+	endpoint string
+	cause    error
+	detail   string
+}
+
+func (e *scraperTransportError) Error() string {
+	return fmt.Sprintf("failed to fetch data by scraper '%s': %s", e.endpoint, e.detail)
+}
+
+func (e *scraperTransportError) Unwrap() error { return e.cause }
+
+func scraperTransportReason(err error) string {
+	if errors.Is(err, context.Canceled) {
+		return "request canceled"
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return "request timed out"
+	}
+	var networkError net.Error
+	if errors.As(err, &networkError) && networkError.Timeout() {
+		return "network timeout"
+	}
+	return "network or TLS error"
 }
 
 func (b *browser) IsAvailable() bool {

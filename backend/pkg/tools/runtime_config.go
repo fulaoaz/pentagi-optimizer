@@ -13,6 +13,7 @@ import (
 type RuntimeConfigEntry struct {
 	Key             string
 	Category        string
+	Kind            string
 	Value           string
 	DefaultValue    string
 	Configured      bool
@@ -42,13 +43,29 @@ func RuntimeConfigCatalog(cfg *config.Config) []RuntimeConfigEntry {
 			display = "••••••••"
 		}
 		entries = append(entries, RuntimeConfigEntry{
-			Key: key, Category: runtimeConfigCategory(key), Value: display,
+			Key: key, Category: runtimeConfigCategory(key), Kind: runtimeConfigKind(field.Type), Value: display,
 			DefaultValue: field.Tag.Get("envDefault"), Configured: explicitlySet || raw != "",
 			Sensitive: sensitive, RestartRequired: true,
 			Description: runtimeConfigDescription(key, field.Type.Kind()),
 		})
 	}
 	return entries
+}
+
+func runtimeConfigKind(typ reflect.Type) string {
+	if typ == reflect.TypeOf((*url.URL)(nil)) {
+		return "url"
+	}
+	switch typ.Kind() {
+	case reflect.Bool:
+		return "boolean"
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return "integer"
+	case reflect.Slice, reflect.Array:
+		return "list"
+	default:
+		return "string"
+	}
 }
 
 func runtimeConfigValue(value reflect.Value) string {
@@ -99,6 +116,10 @@ func runtimeConfigCategory(key string) string {
 	switch {
 	case strings.HasPrefix(upper, "MCP_"):
 		return "MCP 安全桥"
+	case strings.Contains(upper, "KEY") || strings.Contains(upper, "PASSWORD") || strings.Contains(upper, "SECRET") || strings.Contains(upper, "TOKEN") || strings.Contains(upper, "SALT") || strings.Contains(upper, "CREDENTIAL") || strings.Contains(upper, "ACCESS_KEY"):
+		return "认证与安全"
+	case strings.HasPrefix(upper, "OPEN_AI_") || strings.HasPrefix(upper, "ANTHROPIC_") || strings.HasPrefix(upper, "LLM_SERVER_") || strings.HasPrefix(upper, "OLLAMA_SERVER_") || strings.HasPrefix(upper, "GEMINI_") || strings.HasPrefix(upper, "BEDROCK_") || strings.HasPrefix(upper, "DEEPSEEK_") || strings.HasPrefix(upper, "GLM_") || strings.HasPrefix(upper, "KIMI_") || strings.HasPrefix(upper, "QWEN_") || strings.HasPrefix(upper, "MINIMAX_") || strings.HasPrefix(upper, "EMBEDDING_"):
+		return "模型提供商与嵌入"
 	case strings.HasPrefix(upper, "DOCKER_") || strings.HasPrefix(upper, "TERMINAL_"):
 		return "容器与执行环境"
 	case strings.HasPrefix(upper, "SERVER_") || strings.HasPrefix(upper, "STATIC_") || upper == "PUBLIC_URL" || upper == "CORS_ORIGINS":

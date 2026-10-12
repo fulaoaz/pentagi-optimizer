@@ -5,7 +5,7 @@ import type { SubtaskFragmentFragment } from '@/graphql/types';
 
 import Markdown from '@/components/shared/markdown';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useLocale } from '@/hooks/use-locale';
+import { matchesSearchTerm } from '@/lib/text-filter';
 
 import FlowTaskStatusIcon from './flow-task-status-icon';
 
@@ -13,14 +13,6 @@ interface FlowSubtaskProps {
     searchValue?: string;
     subtask: SubtaskFragmentFragment;
 }
-
-const containsSearchValue = (text: null | string | undefined, searchValue: string): boolean => {
-    if (!text || !searchValue.trim()) {
-        return false;
-    }
-
-    return text.toLowerCase().includes(searchValue.toLowerCase().trim());
-};
 
 function FlowSubtask({ searchValue = '', subtask }: FlowSubtaskProps) {
     const { t } = useLocale();
@@ -36,8 +28,8 @@ function FlowSubtask({ searchValue = '', subtask }: FlowSubtaskProps) {
         }
 
         return {
-            hasDescriptionMatch: containsSearchValue(description, trimmedSearch),
-            hasResultMatch: containsSearchValue(result, trimmedSearch),
+            hasDescriptionMatch: matchesSearchTerm(description, trimmedSearch),
+            hasResultMatch: matchesSearchTerm(result, trimmedSearch),
         };
     }, [searchValue, description, result]);
 

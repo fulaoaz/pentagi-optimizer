@@ -12,12 +12,17 @@ src/components/icons/gemini.tsx	jsx-text	Gemini
 src/components/icons/glm.tsx	jsx-text	GLM
 src/components/icons/kimi.tsx	jsx-text	MoonshotAI
 src/components/icons/minimax.tsx	jsx-text	MiniMax
+src/components/icons/mistral.tsx	jsx-text	Mistral
 src/components/icons/ollama.tsx	jsx-text	Ollama
 src/components/icons/open-ai.tsx	jsx-text	OpenAI
 src/components/icons/qwen.tsx	jsx-text	Qwen
-src/components/layouts/main/main-sidebar.tsx	jsx-expression	local
-src/components/layouts/main/main-sidebar.tsx	jsx-expression	oauth
-src/components/layouts/main/main-sidebar.tsx	jsx-text	PentAGI
+src/components/icons/xai.tsx	jsx-text	xAI
+src/components/layouts/main/main-sidebar.tsx	attribute:aria-label	Toggle favorite
+src/components/layouts/main/main-sidebar.tsx	attribute:title	PentAGI
+src/components/layouts/main/main-sidebar.tsx	jsx-expression	Local
+src/components/layouts/main/main-sidebar.tsx	jsx-expression	OAuth
+src/components/layouts/settings/settings-sidebar.tsx	attribute:title	Settings
+src/components/shared/connection-status.tsx	jsx-text	Not receiving updates — reconnecting
 src/components/shared/file-manager/file-manager-actions.tsx	property:label	Copy path
 src/components/shared/file-manager/file-manager-actions.tsx	property:label	Copy paths
 src/components/shared/file-manager/file-manager-actions.tsx	property:label	Copy to…
@@ -32,12 +37,87 @@ src/components/shared/file-manager/file-manager-bulk-actions-bar.tsx	variable:mo
 src/components/shared/file-manager/file-manager.tsx	attribute:aria-label	Collapse all
 src/components/shared/file-manager/file-manager.tsx	attribute:aria-label	Expand all
 src/components/shared/file-manager/file-manager.tsx	attribute:aria-label	Select all
+src/components/shared/inline-edit/inline-edit-input.tsx	attribute:aria-label	Save
 src/components/shared/markdown-editor/markdown-editor-image-edit-form.tsx	attribute:placeholder	https://example.com/image.png
 src/components/shared/markdown-editor/markdown-editor-link-edit-form.tsx	attribute:placeholder	https://example.com
+src/components/shared/markdown.tsx	attribute:label	Table
+src/components/shared/route-error-boundary.tsx	jsx-text	Something went wrong
+src/components/shared/version-panel.tsx	attribute:aria-label	Update channel:
+src/components/shared/version-panel.tsx	jsx-text	All releases
+src/components/shared/version-panel.tsx	jsx-text	PentAGI
+src/components/shared/version-panel.tsx	jsx-text	Release notes for
+src/components/shared/version-panel.tsx	jsx-text	Updates are offered from the
+src/components/shared/version-panel.tsx	jsx-text	build
+src/components/shared/version-panel.tsx	jsx-text	channel, and the installer pulls its images from the same one. UPDATE_STRATEGY on the host sets which channel that is.
+src/components/shared/version-panel.tsx	property:label	Available
+src/components/shared/version-panel.tsx	property:label	Checked
+src/components/shared/version-panel.tsx	property:label	Installed
+src/components/shared/version-panel.tsx	property:label	Last check failed
+src/components/shared/version-panel.tsx	property:tooltip	Checking for updates…
+src/components/shared/version-panel.tsx	property:tooltip	New version
+src/components/shared/version-panel.tsx	property:tooltip	PentAGI
+src/components/shared/version-panel.tsx	property:tooltip	Update checks are disabled in the server configuration.
+src/components/shared/version-panel.tsx	property:tooltip	Update status unknown: the update service could not be reached.
+src/components/shared/version-panel.tsx	property:tooltip	Update status unknown: the update service could not tell whether a newer version exists.
+src/components/shared/version-panel.tsx	property:tooltip	is available. Run the installer tool to update.
+src/components/shared/version-panel.tsx	property:tooltip	is up to date.
 src/components/ui/spinner.tsx	jsx-expression	.spinner-bar { animation: spinner-bars-animation .8s linear infinite; animation-delay: -.8s; } .spinner-bars-2 { animation-delay: -.65s; } .spinner-bars-3 { animation-delay: -0.5s; } @keyframes spinner-bars-animation { 0% { y: 1px; height: 22px; } 93.75% { y: 5px; height: 14px; opacity: 0.2; } }
+src/features/authentication/email-change-form.tsx	property:message	Current password is required
+src/features/authentication/email-change-form.tsx	property:message	Email is required
+src/features/authentication/email-change-form.tsx	property:message	Email must not exceed 50 characters
+src/features/authentication/email-change-form.tsx	property:message	Invalid email address
 src/features/authentication/login-form.tsx	jsx-text	PentAGI
+src/features/authentication/name-change-form.tsx	property:message	Name is required
+src/features/authentication/name-change-form.tsx	property:message	Name must not exceed 70 characters
+src/features/authentication/password-change-form.tsx	property:message	Confirm your password
+src/features/authentication/password-change-form.tsx	property:message	Current password is required
+src/features/authentication/password-change-form.tsx	property:message	New password must be different from current password
+src/features/authentication/password-change-form.tsx	property:message	Password must be at least 8 characters
+src/features/authentication/password-change-form.tsx	property:message	Password must be either longer than 15 characters, or at least 8 characters with a number, lowercase, uppercase, and special character (!@#$&*)
+src/features/authentication/password-change-form.tsx	property:message	Password must not exceed 72 characters
+src/features/authentication/password-change-form.tsx	property:message	Passwords don't match
+src/features/flows/dashboard/flow-dashboard-overview.tsx	attribute:aria-label	Tool Calls by Function
+src/features/flows/dashboard/flow-dashboard-overview.tsx	attribute:aria-label	Usage by Agent Type
+src/features/flows/dashboard/flow-dashboard-overview.tsx	attribute:aria-label	Usage by Model & Provider
+src/features/flows/dashboard/flow-dashboard-overview.tsx	attribute:description	Duration:
+src/features/flows/dashboard/flow-dashboard-overview.tsx	attribute:description	Input + Output tokens
+src/features/flows/dashboard/flow-dashboard-overview.tsx	attribute:description	LLM spending for this flow
+src/features/flows/dashboard/flow-dashboard-overview.tsx	attribute:description	Subtasks:
+src/features/flows/dashboard/flow-dashboard-overview.tsx	attribute:description	· Assistants:
+src/features/flows/dashboard/flow-dashboard-overview.tsx	jsx-expression	Agent
+src/features/flows/dashboard/flow-dashboard-overview.tsx	jsx-expression	Tool
+src/features/flows/dashboard/flow-dashboard-overview.tsx	jsx-text	Agent Type
+src/features/flows/dashboard/flow-dashboard-overview.tsx	jsx-text	Agents
+src/features/flows/dashboard/flow-dashboard-overview.tsx	jsx-text	Avg Duration
+src/features/flows/dashboard/flow-dashboard-overview.tsx	jsx-text	Cache In
+src/features/flows/dashboard/flow-dashboard-overview.tsx	jsx-text	Cache Out
+src/features/flows/dashboard/flow-dashboard-overview.tsx	jsx-text	Cost In
+src/features/flows/dashboard/flow-dashboard-overview.tsx	jsx-text	Cost Out
+src/features/flows/dashboard/flow-dashboard-overview.tsx	jsx-text	Count
+src/features/flows/dashboard/flow-dashboard-overview.tsx	jsx-text	Function
+src/features/flows/dashboard/flow-dashboard-overview.tsx	jsx-text	Model
+src/features/flows/dashboard/flow-dashboard-overview.tsx	jsx-text	Provider
+src/features/flows/dashboard/flow-dashboard-overview.tsx	jsx-text	Tokens In
+src/features/flows/dashboard/flow-dashboard-overview.tsx	jsx-text	Tokens Out
+src/features/flows/dashboard/flow-dashboard-overview.tsx	jsx-text	Total Cost
+src/features/flows/dashboard/flow-dashboard-overview.tsx	jsx-text	Total Duration
+src/features/flows/dashboard/flow-dashboard-overview.tsx	jsx-text	Type
 src/features/flows/files/flow-files-promote-dialog.tsx	attribute:placeholder	results/scan.txt
 src/features/flows/files/flow-files-pull-dialog.tsx	attribute:placeholder	/work
+src/features/flows/flow-form.tsx	attribute:aria-label	Stop
+src/features/flows/flow-form.tsx	attribute:aria-label	Stopping…
+src/features/flows/flow-provider-label.tsx	attribute:aria-label	Unavailable
+src/features/flows/flow-provider-label.tsx	jsx-text	Unavailable
+src/features/flows/tasks/flow-task-status-icon.tsx	attribute:aria-label	Unknown
+src/features/knowledges/knowledge-form.tsx	property:message	Answer type is required
+src/features/knowledges/knowledge-form.tsx	property:message	Code language is required
+src/features/knowledges/knowledge-form.tsx	property:message	Content is required
+src/features/knowledges/knowledge-form.tsx	property:message	Content must be
+src/features/knowledges/knowledge-form.tsx	property:message	Guide type is required
+src/features/knowledges/knowledge-form.tsx	property:message	Question is required
+src/features/knowledges/knowledge-form.tsx	property:message	Question must be
+src/features/knowledges/knowledge-form.tsx	property:message	characters or fewer
+src/features/knowledges/knowledge-form.tsx	property:message	must be
 src/features/templates/preset-templates.zh-CN.ts	property:title	API 安全测试
 src/features/templates/preset-templates.zh-CN.ts	property:title	AWS 云基础设施安全审计
 src/features/templates/preset-templates.zh-CN.ts	property:title	Active Directory 渗透测试
@@ -51,6 +131,95 @@ src/lib/i18n/locales/zh-CN.ts	dictionary-value	Top K
 src/lib/i18n/locales/zh-CN.ts	dictionary-value	Top P
 src/lib/i18n/locales/zh-CN.ts	dictionary-value	{ "chat_template_kwargs": { "enable_thinking": false } }
 src/lib/i18n/locales/zh-CN.ts	dictionary-value	{title}（ID：{id}）
+src/pages/dashboard/dashboard-analytics.tsx	attribute:description	Flows, tasks, and subtasks created per day
+src/pages/dashboard/dashboard-analytics.tsx	attribute:description	Input and output tokens processed daily
+src/pages/dashboard/dashboard-analytics.tsx	attribute:description	LLM spending per day. May stay near zero when using local engines — this is expected.
+src/pages/dashboard/dashboard-analytics.tsx	attribute:description	Number of tool executions per day
+src/pages/dashboard/dashboard-analytics.tsx	attribute:title	Cost Over Time
+src/pages/dashboard/dashboard-analytics.tsx	attribute:title	Flows Activity Over Time
+src/pages/dashboard/dashboard-analytics.tsx	attribute:title	Token Usage Over Time
+src/pages/dashboard/dashboard-analytics.tsx	attribute:title	Tool Calls Over Time
+src/pages/dashboard/dashboard-overview.tsx	attribute:aria-label	Tool Calls by Function
+src/pages/dashboard/dashboard-overview.tsx	attribute:description	Input + Output tokens processed
+src/pages/dashboard/dashboard-overview.tsx	attribute:description	Tasks:
+src/pages/dashboard/dashboard-overview.tsx	attribute:description	Total LLM spending across all providers
+src/pages/dashboard/dashboard-overview.tsx	attribute:description	Total duration:
+src/pages/dashboard/dashboard-overview.tsx	attribute:description	· Assistants:
+src/pages/dashboard/dashboard-overview.tsx	attribute:description	· Subtasks:
+src/pages/dashboard/dashboard-overview.tsx	attribute:label	Usage by Agent Type
+src/pages/dashboard/dashboard-overview.tsx	attribute:label	Usage by Model
+src/pages/dashboard/dashboard-overview.tsx	attribute:label	Usage by Provider
+src/pages/dashboard/dashboard-overview.tsx	attribute:title	Tool Calls
+src/pages/dashboard/dashboard-overview.tsx	attribute:title	Total Cost
+src/pages/dashboard/dashboard-overview.tsx	attribute:title	Total Flows
+src/pages/dashboard/dashboard-overview.tsx	attribute:title	Total Tokens
+src/pages/flows/flow.tsx	attribute:aria-label	Toggle favorite
+src/pages/flows/flow.tsx	attribute:placeholder	Flow title
+src/pages/flows/flow.tsx	attribute:sheetTitle	Flows
+src/pages/flows/flow.tsx	attribute:tooltip	(unavailable)
+src/pages/flows/flow.tsx	jsx-expression	Select a flow
+src/pages/flows/flow.tsx	jsx-text	); } export default Flow;
+src/pages/flows/flow.tsx	jsx-text	); } function FlowReportDropdown()
+src/pages/flows/flow.tsx	jsx-text	.md`; downloadTextFile(reportContent, fileName, 'text/markdown; charset=UTF-8'); } catch (error)
+src/pages/flows/flow.tsx	jsx-text	/report?download=true&silent=true`; window.open(url, '_blank'); }; const handleOpenWebView = () =>
+src/pages/flows/flow.tsx	jsx-text	/report`; window.open(url, '_blank'); }; return (
+src/pages/flows/flow.tsx	jsx-text	; toast.error(t('flow.report.copyFailed')); } }; const handleDownloadMD = () =>
+src/pages/flows/flow.tsx	jsx-text	; } else
+src/pages/flows/flow.tsx	jsx-text	; } }; const handleDownloadPDF = () =>
+src/pages/flows/flow.tsx	jsx-text	= useFlow(); const flow = flowData?.flow; const tasks = flowData?.tasks ?? []; const isReportDisabled = !flow || !flowId; const handleCopyToClipboard = async () =>
+src/pages/flows/flow.tsx	jsx-text	= useLocale(); const
+src/pages/flows/flow.tsx	jsx-text	Double-click to rename
+src/pages/flows/flow.tsx	jsx-text	const
+src/pages/flows/flow.tsx	jsx-text	const reportContent = generateReport(tasks, flow, t('flow.report.noTasks')); const baseFileName = generateFileName(flow); const fileName = `$
+src/pages/flows/flow.tsx	jsx-text	if (isReportDisabled || !flow || !flowId)
+src/pages/flows/flow.tsx	jsx-text	if (isReportDisabled || !flow)
+src/pages/flows/flow.tsx	jsx-text	if (isReportDisabled || !flowId)
+src/pages/flows/flow.tsx	jsx-text	if (isReportDisabled)
+src/pages/flows/flow.tsx	jsx-text	return; } const reportContent = generateReport(tasks, flow, t('flow.report.noTasks')); const success = await copyToClipboard(reportContent); if (success)
+src/pages/flows/flow.tsx	jsx-text	return; } const url = `/flows/$
+src/pages/flows/flow.tsx	jsx-text	return; } try
+src/pages/flows/flows.tsx	attribute:aria-label	Toggle favorite
+src/pages/flows/flows.tsx	attribute:label	Flows
+src/pages/flows/flows.tsx	jsx-expression	Add to favorites
+src/pages/flows/flows.tsx	jsx-expression	Remove from favorites
+src/pages/flows/flows.tsx	property:label	Failed
+src/pages/flows/flows.tsx	property:label	Running
+src/pages/integrations/execution-center.tsx	jsx-expression	ARTEX
+src/pages/integrations/execution-center.tsx	jsx-expression	PentAGI
+src/pages/integrations/execution-center.tsx	jsx-text	ID:
+src/pages/knowledges/knowledges.tsx	attribute:label	Knowledge Documents
+src/pages/settings/settings-account.tsx	variable:accountLabel	Local account
+src/pages/settings/settings-account.tsx	variable:accountLabel	OAuth account
+src/pages/settings/settings-api-tokens.tsx	attribute:aria-label	Developer tools
+src/pages/settings/settings-api-tokens.tsx	attribute:aria-label	Token status
+src/pages/settings/settings-api-tokens.tsx	attribute:cancelText	Cancel
+src/pages/settings/settings-api-tokens.tsx	attribute:confirmText	Delete
+src/pages/settings/settings-api-tokens.tsx	attribute:description	Please wait while we fetch your API tokens
+src/pages/settings/settings-api-tokens.tsx	attribute:filterPlaceholder	Filter tokens...
+src/pages/settings/settings-api-tokens.tsx	attribute:label	API Tokens
+src/pages/settings/settings-api-tokens.tsx	attribute:label	Create Token
+src/pages/settings/settings-api-tokens.tsx	attribute:title	Error loading tokens
+src/pages/settings/settings-api-tokens.tsx	attribute:title	Loading tokens...
+src/pages/settings/settings-api-tokens.tsx	call:toast.error	Failed to copy token to clipboard
+src/pages/settings/settings-api-tokens.tsx	call:toast.success	Token copied to clipboard
+src/pages/settings/settings-api-tokens.tsx	jsx-text	(unnamed)
+src/pages/settings/settings-api-tokens.tsx	jsx-text	API Token Created
+src/pages/settings/settings-api-tokens.tsx	jsx-text	API Tokens
+src/pages/settings/settings-api-tokens.tsx	jsx-text	Close
+src/pages/settings/settings-api-tokens.tsx	jsx-text	Copy Token
+src/pages/settings/settings-api-tokens.tsx	jsx-text	Copy this token now. You won't be able to see it again for security reasons.
+src/pages/settings/settings-api-tokens.tsx	jsx-text	Create Token
+src/pages/settings/settings-api-tokens.tsx	jsx-text	Create your first API token to access PentAGI programmatically
+src/pages/settings/settings-api-tokens.tsx	jsx-text	GraphQL Playground
+src/pages/settings/settings-api-tokens.tsx	jsx-text	No API tokens configured
+src/pages/settings/settings-api-tokens.tsx	jsx-text	Swagger UI
+src/pages/settings/settings-api-tokens.tsx	property:label	active
+src/pages/settings/settings-api-tokens.tsx	property:label	expired
+src/pages/settings/settings-prompts.tsx	attribute:label	Agent Prompts
+src/pages/settings/settings-prompts.tsx	attribute:label	Tool Prompts
+src/pages/settings/settings-providers.tsx	attribute:filterPlaceholder	Filter providers...
+src/pages/settings/settings-providers.tsx	attribute:label	Providers
+src/pages/settings/settings-providers.tsx	jsx-text	); } export default SettingsProviders;
 src/pages/settings/settings-providers.tsx	property:label	Anthropic
 src/pages/settings/settings-providers.tsx	property:label	Bedrock
 src/pages/settings/settings-providers.tsx	property:label	Custom
@@ -61,6 +230,11 @@ src/pages/settings/settings-providers.tsx	property:label	Kimi
 src/pages/settings/settings-providers.tsx	property:label	Ollama
 src/pages/settings/settings-providers.tsx	property:label	OpenAI
 src/pages/settings/settings-providers.tsx	property:label	Qwen
+src/pages/templates/template.tsx	property:message	Text is required
+src/pages/templates/template.tsx	property:message	Text must not exceed
+src/pages/templates/template.tsx	property:message	Title is required
+src/pages/templates/template.tsx	property:message	Title must not exceed
+src/pages/templates/template.tsx	property:message	characters
 src/pages/templates/template.tsx	property:title	API Security Testing
 src/pages/templates/template.tsx	property:title	Active Directory Penetration Test
 src/pages/templates/template.tsx	property:title	Cloud Infrastructure Security Audit (AWS)
@@ -72,3 +246,7 @@ src/pages/templates/template.tsx	property:title	Mobile Application Security Test
 src/pages/templates/template.tsx	property:title	Network Infrastructure Discovery & Mapping
 src/pages/templates/template.tsx	property:title	Web Application Security Assessment
 src/pages/templates/template.tsx	property:title	WordPress Security Assessment
+src/pages/templates/templates.tsx	attribute:label	Templates
+src/providers/user-provider.tsx	call:toast.success	Successfully logged out
+src/providers/user-provider.tsx	variable:LOGIN_LOCKED_MESSAGE	Too many login attempts. Wait a few minutes and try again.
+src/providers/user-provider.tsx	variable:errorMessage	Login failed. Please try again.

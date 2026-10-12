@@ -28,36 +28,66 @@ const (
 
 // File system operations messages
 const (
-	MsgExtractingDockerCompose          = "正在提取 docker-compose.yml"
-	MsgExtractingLangfuseCompose        = "正在提取 docker-compose-langfuse.yml"
-	MsgExtractingObservabilityCompose   = "正在提取 docker-compose-observability.yml"
-	MsgExtractingObservabilityDirectory = "正在提取 observability 目录"
-	MsgSkippingExternalLangfuse         = "Langfuse 使用外部服务，跳过内置部署"
-	MsgSkippingExternalObservability    = "可观测性组件使用外部服务，跳过内置部署"
-	MsgPatchingComposeFile              = "正在修补 docker-compose 文件：%s"
-	MsgComposePatchCompleted            = "docker-compose 文件修补完成"
-	MsgCleaningUpStackFiles             = "正在清理 %s 服务栈文件"
-	MsgStackFilesCleanupCompleted       = "服务栈文件清理完成"
-	MsgEnsurngStackIntegrity            = "正在校正 %s 服务栈文件"
-	MsgVerifyingStackIntegrity          = "正在验证 %s 服务栈完整性"
-	MsgStackIntegrityVerified           = "%s 服务栈完整性验证通过"
-	MsgUpdatingExistingFile             = "正在更新现有文件：%s"
-	MsgCreatingMissingFile              = "正在创建缺失文件：%s"
-	MsgFileIntegrityValid               = "文件完整性验证通过：%s"
-	MsgSkippingModifiedFile             = "文件已被修改，跳过更新：%s"
-	MsgDirectoryCheckedWithModified     = "目录检查完成，其中包含已修改文件：%s"
+	MsgExtractingDockerCompose          = "Extracting docker-compose.yml"
+	MsgExtractingLangfuseCompose        = "Extracting docker-compose-langfuse.yml"
+	MsgExtractingObservabilityCompose   = "Extracting docker-compose-observability.yml"
+	MsgExtractingObservabilityDirectory = "Extracting observability directory"
+	MsgSkippingExternalLangfuse         = "Skipping external Langfuse deployment"
+	MsgSkippingExternalObservability    = "Skipping external Observability deployment"
+	MsgPatchingComposeFile              = "Patching docker-compose file: %s"
+	MsgComposePatchCompleted            = "Docker-compose file patching completed"
+	MsgCleaningUpStackFiles             = "Cleaning up stack files for %s"
+	MsgStackFilesCleanupCompleted       = "Stack files cleanup completed"
+	MsgEnsurngStackIntegrity            = "Ensuring %s stack integrity"
+	MsgVerifyingStackIntegrity          = "Verifying %s stack integrity"
+	MsgStackIntegrityVerified           = "Stack %s integrity verified"
+	MsgUpdatingExistingFile             = "Updating existing file: %s"
+	MsgCreatingMissingFile              = "Creating missing file: %s"
+	MsgMissingFileNotCreated            = "Missing file %s was not created: %s"
+	MsgFileIntegrityValid               = "File integrity valid: %s"
+	MsgSkippingModifiedFile             = "Skipping modified files: %s"
+	MsgDirectoryCheckedWithModified     = "Directory checked with modified files present: %s"
 )
 
 // Update operations messages
 const (
-	MsgCheckingUpdates            = "正在检查更新"
-	MsgDownloadingInstaller       = "正在下载安装程序更新"
-	MsgInstallerDownloadCompleted = "安装程序更新下载完成"
-	MsgUpdatingInstaller          = "正在更新安装程序"
-	MsgRemovingInstaller          = "正在移除安装程序"
-	MsgInstallerUpdateCompleted   = "安装程序更新完成"
-	MsgVerifyingBinaryChecksum    = "正在验证二进制文件校验和"
-	MsgReplacingInstallerBinary   = "正在替换安装程序二进制文件"
+	MsgCheckingUpdates            = "Checking for updates"
+	MsgDownloadingInstaller       = "Downloading installer update"
+	MsgInstallerDownloadCompleted = "Installer download completed"
+	MsgUpdatingInstaller          = "Updating installer"
+	MsgRemovingInstaller          = "Removing installer"
+	MsgInstallerUpdateCompleted   = "Installer update completed"
+	// Past tense: the length, the sha256 and the Ed25519 signature are all checked as the
+	// stream arrives, so by the time this is printed the verdict is already in.
+	MsgVerifyingBinaryChecksum   = "Checksum and signature verified"
+	MsgInstallerSavedTo          = "Installer saved to %s"
+	MsgInstallerDownloadProgress = "Downloaded %d%% (%s of %s)"
+	// The installer binary outlives the removal on purpose: a process cannot delete the
+	// file it is running from, and trying would leave the user with neither.
+	MsgInstallerNotRemoved            = "The installer itself is left in place at %s — delete it yourself when you no longer need it"
+	MsgInstallerNotRemovedUnknownPath = "The installer itself is left in place — delete it yourself when you no longer need it"
+)
+
+// Jaeger storage plugin messages. The plugin is a file mounted into the Jaeger container,
+// not an image, so none of the compose output covers it.
+const (
+	MsgJaegerPluginDownloading       = "Downloading Jaeger storage plugin %s (%s)"
+	MsgJaegerPluginProgress          = "  %s: %d%% (%s of %s)"
+	MsgJaegerPluginInstalled         = "Jaeger storage plugin in place: %s"
+	MsgJaegerPluginStaleRemoved      = "Removed leftover from an interrupted download: %s"
+	MsgJaegerPluginStaleRemoveFailed = "Could not remove leftover %s: %v"
+	MsgJaegerPluginRestarting        = "Restarting Jaeger so it loads the new storage plugin"
+)
+
+// Post-update verification messages
+const (
+	MsgVerifyingUpdatedComponents = "Verifying updated %s components"
+	MsgComponentUpToDate          = "  %s: matches the published build"
+	MsgComponentNewerThanOffered  = "  %s: newer than the offered build (registry moved ahead)"
+	MsgComponentMismatch          = "  %s: expected %s, got %s"
+	MsgComponentNotVerifiable     = "  %s: no published digest to compare against"
+	MsgVerificationPassed         = "All updated %s components match the published build"
+	MsgVerificationMismatch       = "%d %s component(s) do not match the published build"
 )
 
 // Remove operations messages

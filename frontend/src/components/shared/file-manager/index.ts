@@ -27,4 +27,9 @@ export type {
     FileManagerSortState,
     FileNode,
 } from './file-manager-types';
-export { dedupeOverlappingPaths, formatModifiedAbsolute, formatModifiedRelative } from './file-manager-utils';
+export {
+    dedupeOverlappingPaths,
+    formatModifiedAbsolute,
+    formatModifiedRelative,
+    pluralizeItems,
+} from './file-manager-utils';

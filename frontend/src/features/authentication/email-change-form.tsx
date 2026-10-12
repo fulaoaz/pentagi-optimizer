@@ -14,17 +14,16 @@ import { useLocale } from '@/hooks/use-locale';
 import { api, resolveApiErrorMessage } from '@/lib/axios';
 import { useUser } from '@/providers/user-provider';
 
-const buildEmailChangeSchema = (t: Translate) =>
-    z.object({
-        currentPassword: z.string().min(1, { message: t('auth.currentPasswordRequired') }),
-        newEmail: z
-            .string()
-            .trim()
-            .toLowerCase()
-            .min(1, { message: t('auth.emailRequired') })
-            .email({ message: t('auth.invalidEmail') })
-            .max(50, { message: t('auth.emailMaxLength') }),
-    });
+const emailChangeFormSchema = z.object({
+    currentPassword: z.string().min(1, { message: 'Current password is required' }),
+    newEmail: z
+        .string()
+        .trim()
+        .toLowerCase()
+        .min(1, { message: 'Email is required' })
+        .email({ message: 'Invalid email address' })
+        .max(50, { message: 'Email must not exceed 50 characters' }),
+});
 
 const ERROR_BY_CODE: Record<string, string> = {
     'Users.ChangeEmailCurrentUser.EmailAlreadyExists': 'Email address is already in use',
@@ -38,7 +37,7 @@ interface EmailChangeFormProps {
     onSuccess?: () => void;
 }
 
-type EmailChangeFormValues = z.infer<ReturnType<typeof buildEmailChangeSchema>>;
+type EmailChangeFormValues = z.infer<typeof emailChangeFormSchema>;
 
 export function EmailChangeForm({ onCancel, onSuccess }: EmailChangeFormProps) {
     const { t } = useLocale();
@@ -51,7 +50,7 @@ export function EmailChangeForm({ onCancel, onSuccess }: EmailChangeFormProps) {
             currentPassword: '',
             newEmail: '',
         },
-        schema: emailChangeSchema,
+        schema: emailChangeFormSchema,
     });
 
     const handleSubmit = async (values: EmailChangeFormValues) => {

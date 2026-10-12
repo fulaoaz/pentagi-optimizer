@@ -476,6 +476,7 @@ function Knowledges() {
                     empty={{ entityName: t('knowledge.entityNamePlural') }}
                     filterPlaceholder={t('knowledge.filterPlaceholder')}
                     filterValue={filter}
+                    label="Knowledge Documents"
                     onFilterChange={setFilter}
                     onRowClick={(k) => {
                         if (editingKnowledgeId !== k.id) {

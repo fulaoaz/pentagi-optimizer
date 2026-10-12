@@ -6,7 +6,7 @@ import type { OverwriteOutcome } from '@/components/shared/overwrite';
 import type { RestResourceList } from '@/features/resources/resources-rest';
 import type { Translate } from '@/lib/i18n';
 
-import { useLocale } from '@/hooks/use-locale';
+import { pluralizeItems } from '@/components/shared/file-manager';
 import { api, getApiErrorMessage, getApiErrorStatusCode } from '@/lib/axios';
 
 import { FLOW_FILES_PROMOTE_API_PATH } from './flow-files-constants';

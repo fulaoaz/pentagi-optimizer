@@ -9,7 +9,13 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { FlowStatusIcon } from '@/components/icons/flow-status-icon';
-import { ProviderIcon } from '@/components/icons/provider-icon';
+import {
+    AppHeader,
+    AppHeaderAction,
+    AppHeaderActions,
+    AppHeaderContent,
+    AppHeaderTitle,
+} from '@/components/layouts/app/app-header';
 import ConfirmationDialog from '@/components/shared/confirmation-dialog';
 import { HeaderButton } from '@/components/shared/header-button';
 import { InlineEditInput } from '@/components/shared/inline-edit';
@@ -30,26 +36,30 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { StatusCard } from '@/components/ui/status-card';
 import { Toggle } from '@/components/ui/toggle';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { FlowProviderLabel } from '@/features/flows/flow-provider-label';
 import { RenameFlowDocument, ResultType, StatusType, type TerminalFragmentFragment } from '@/graphql/types';
-import { useLocale } from '@/hooks/use-locale';
+import { useIsOwnFlow } from '@/hooks/use-is-own-flow';
 import { useTableState } from '@/hooks/use-table-state';
 import { mergeHrefWithSearchParams } from '@/lib/url-params';
-import { formatDate } from '@/lib/utils/format';
+import { formatTableDate } from '@/lib/utils/format';
 import { useFavorites } from '@/providers/favorites-provider';
 import { type Flow, useFlows } from '@/providers/flows-provider';
+import { useProviders } from '@/providers/providers-provider';
 
 const statusConfig: Record<StatusType, { variant: 'default' | 'destructive' | 'outline' | 'secondary' }> = {
     [StatusType.Created]: {
         variant: 'outline',
     },
     [StatusType.Failed]: {
-        variant: 'destructive',
+        label: 'Failed',
+        variant: 'outline',
     },
     [StatusType.Finished]: {
         variant: 'secondary',
     },
     [StatusType.Running]: {
-        variant: 'default',
+        label: 'Running',
+        variant: 'outline',
     },
     [StatusType.Waiting]: {
         variant: 'outline',
@@ -61,8 +71,10 @@ function Flows() {
     const dateLocale = locale === 'zh-CN' ? zhCN : enUS;
     const navigate = useNavigate();
     const location = useLocation();
-    const { deleteFlow, finishFlow, flows, isLoading } = useFlows();
-    const { isFavoriteFlow, toggleFavoriteFlow } = useFavorites();
+    const { deleteFlow, finishFlow, flows, flowsError, isLoading, refetch } = useFlows();
+    const { canToggleFavorite, isFavoriteFlow, toggleFavoriteFlow } = useFavorites();
+    const { providers } = useProviders();
+    const isOwnFlow = useIsOwnFlow();
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [deletingFlow, setDeletingFlow] = useState<Flow | null>(null);
     const [finishingFlowIds, setFinishingFlowIds] = useState<Set<string>>(new Set());
@@ -163,7 +175,7 @@ function Flows() {
         () => [
             {
                 accessorKey: 'id',
-                cell: ({ row }) => <div className="font-mono text-sm">{row.getValue('id')}</div>,
+                cell: ({ row }) => <div className="font-mono text-sm whitespace-nowrap">{row.getValue('id')}</div>,
                 enableHiding: false,
                 header: ({ column }) => (
                     <DataTableColumnHeader
@@ -171,10 +183,10 @@ function Flows() {
                         title={t('flow.list.id')}
                     />
                 ),
-                maxSize: 80,
+                maxSize: 110,
                 meta: { searchable: true },
-                minSize: 60,
-                size: 70,
+                minSize: 80,
+                size: 90,
             },
             {
                 accessorKey: 'title',
@@ -210,7 +222,7 @@ function Flows() {
                 ),
                 meta: { searchable: true },
                 minSize: 200,
-                size: 300,
+                size: 240,
             },
             {
                 accessorKey: 'status',
@@ -246,19 +258,13 @@ function Flows() {
                 // directly through `row.original`, so the icon + label stay
                 // intact.
                 accessorFn: (row) => row.provider?.name ?? '',
-                cell: ({ row }) => {
-                    const flow = row.original;
-
-                    return (
-                        <div className="flex items-center gap-2">
-                            <ProviderIcon
-                                className="size-4"
-                                provider={flow.provider}
-                            />
-                            <span className="text-sm">{flow.provider?.name || t('common.notAvailable')}</span>
-                        </div>
-                    );
-                },
+                cell: ({ row }) => (
+                    <FlowProviderLabel
+                        isOwnFlow={isOwnFlow(row.original)}
+                        provider={row.original.provider}
+                        providers={providers}
+                    />
+                ),
                 header: ({ column }) => (
                     <DataTableColumnHeader
                         column={column}
@@ -266,10 +272,10 @@ function Flows() {
                     />
                 ),
                 id: 'provider',
-                maxSize: 150,
+                maxSize: 240,
                 meta: { searchable: true },
-                minSize: 80,
-                size: 100,
+                minSize: 100,
+                size: 160,
                 sortingFn: (rowA, rowB) => {
                     const nameA = rowA.original.provider?.name || '';
                     const nameB = rowB.original.provider?.name || '';
@@ -337,8 +343,8 @@ function Flows() {
                 id: 'terminals',
                 maxSize: 220,
                 meta: { searchable: true },
-                minSize: 160,
-                size: 180,
+                minSize: 140,
+                size: 160,
                 sortingFn: (rowA, rowB) => {
                     const terminalsA = rowA.original.terminals || [];
                     const terminalsB = rowB.original.terminals || [];
@@ -351,7 +357,7 @@ function Flows() {
                 cell: ({ row }) => {
                     const dateString = row.getValue('createdAt') as string;
 
-                    return <div className="text-sm">{formatDate(new Date(dateString), dateLocale)}</div>;
+                    return <div className="text-sm whitespace-nowrap">{formatTableDate(new Date(dateString))}</div>;
                 },
                 header: ({ column }) => (
                     <DataTableColumnHeader
@@ -359,10 +365,10 @@ function Flows() {
                         title={t('flow.list.created')}
                     />
                 ),
-                maxSize: 140,
-                meta: { columnMenuLabel: t('flow.list.created') },
-                minSize: 100,
-                size: 120,
+                maxSize: 170,
+                meta: { columnMenuLabel: 'Created' },
+                minSize: 128,
+                size: 136,
                 sortingFn: (rowA, rowB) => {
                     const dateA = new Date(rowA.getValue('createdAt') as string);
                     const dateB = new Date(rowB.getValue('createdAt') as string);
@@ -375,7 +381,7 @@ function Flows() {
                 cell: ({ row }) => {
                     const dateString = row.getValue('updatedAt') as string;
 
-                    return <div className="text-sm">{formatDate(new Date(dateString), dateLocale)}</div>;
+                    return <div className="text-sm whitespace-nowrap">{formatTableDate(new Date(dateString))}</div>;
                 },
                 header: ({ column }) => (
                     <DataTableColumnHeader
@@ -383,10 +389,10 @@ function Flows() {
                         title={t('flow.list.updated')}
                     />
                 ),
-                maxSize: 140,
-                meta: { columnMenuLabel: t('flow.list.updated') },
-                minSize: 100,
-                size: 120,
+                maxSize: 170,
+                meta: { columnMenuLabel: 'Updated' },
+                minSize: 128,
+                size: 136,
                 sortingFn: (rowA, rowB) => {
                     const dateA = new Date(rowA.getValue('updatedAt') as string);
                     const dateB = new Date(rowB.getValue('updatedAt') as string);
@@ -401,19 +407,21 @@ function Flows() {
 
                     return (
                         <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                            <Toggle
-                                aria-label={t('common.toggleFavorite')}
-                                className="border-none data-[state=on]:bg-transparent data-[state=on]:*:[svg]:fill-yellow-500 data-[state=on]:*:[svg]:stroke-yellow-500"
-                                onClick={async (event) => {
-                                    event.stopPropagation();
-                                    await toggleFavoriteFlow(flow.id);
-                                }}
-                                pressed={isFavoriteFlow(flow.id)}
-                                size="sm"
-                                variant="outline"
-                            >
-                                <Star className="size-4" />
-                            </Toggle>
+                            {canToggleFavorite(flow) && (
+                                <Toggle
+                                    aria-label="Toggle favorite"
+                                    className="border-none data-[state=on]:bg-transparent data-[state=on]:*:[svg]:fill-yellow-500 data-[state=on]:*:[svg]:stroke-yellow-500"
+                                    onClick={async (event) => {
+                                        event.stopPropagation();
+                                        await toggleFavoriteFlow(flow.id);
+                                    }}
+                                    pressed={isFavoriteFlow(flow.id)}
+                                    size="sm"
+                                    variant="outline"
+                                >
+                                    <Star />
+                                </Toggle>
+                            )}
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button
@@ -488,8 +496,10 @@ function Flows() {
             },
         ],
         [
+            canToggleFavorite,
             deletingFlowIds,
-            dateLocale,
+            isOwnFlow,
+            providers,
             editingFlowId,
             finishingFlowIds,
             handleFlowDeleteDialogOpen,
@@ -511,11 +521,15 @@ function Flows() {
 
             return (
                 <>
-                    <ContextMenuItem onClick={async () => toggleFavoriteFlow(flow.id)}>
-                        <Star />
-                        {isFavoriteFlow(flow.id) ? t('flow.page.removeFavorite') : t('flow.page.addFavorite')}
-                    </ContextMenuItem>
-                    <ContextMenuSeparator />
+                    {canToggleFavorite(flow) && (
+                        <>
+                            <ContextMenuItem onClick={async () => toggleFavoriteFlow(flow.id)}>
+                                <Star />
+                                {isFavoriteFlow(flow.id) ? 'Remove from favorites' : 'Add to favorites'}
+                            </ContextMenuItem>
+                            <ContextMenuSeparator />
+                        </>
+                    )}
                     <ContextMenuItem onClick={() => handleFlowOpen(flow.id)}>
                         <Eye />
                         {t('flow.list.view')}
@@ -546,6 +560,7 @@ function Flows() {
             );
         },
         [
+            canToggleFavorite,
             deletingFlowIds,
             finishingFlowIds,
             handleFlowDeleteDialogOpen,
@@ -644,6 +659,8 @@ function Flows() {
                     empty={{ entityName: t('flow.list.entityName') }}
                     filterPlaceholder={t('flow.list.filterPlaceholder')}
                     filterValue={filter}
+                    isVirtualized
+                    label="Flows"
                     onFilterChange={setFilter}
                     onPageChange={handlePageChange}
                     onRowClick={handleRowClick}

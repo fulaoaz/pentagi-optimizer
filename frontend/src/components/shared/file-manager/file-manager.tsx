@@ -41,9 +41,10 @@ import {
     collectVisibleFlat,
     computeDirSelectionState,
     computeSelectionTotalBytes,
-    dedupeOverlappingPaths,
+    countAffectedEntries,
     findNodeByPath,
     getCheckboxState,
+    resolveActionPaths,
 } from './file-manager-utils';
 import { useFileManagerData } from './use-file-manager-data';
 import { useFileManagerDnd } from './use-file-manager-dnd';
@@ -99,21 +100,16 @@ export function FileManager({
     emptyState,
     enableSelection,
     files,
-    initialSorting,
     isFoldersFirst = true,
     isLoading,
     labels,
-    onActiveRowChange,
     onExternalFileDrop,
     onMoveItems,
     onOpen,
     onOpenDirectory,
     onSelectionChange,
-    onSortingChange,
     rootGroups,
     search,
-    sorting: controlledSorting,
-    sortStorageKey,
 }: FileManagerProps) {
     const { t } = useLocale();
     const effectiveBulkActions = bulkActions ?? EMPTY_BULK_ACTIONS;
@@ -125,12 +121,7 @@ export function FileManager({
     const isSizeSortable = columns?.isSizeSortable ?? true;
     const isModifiedSortable = columns?.isModifiedSortable ?? true;
 
-    const { sorting, toggleSort } = useFileManagerSorting({
-        controlledSorting,
-        initialSorting,
-        onSortingChange,
-        sortStorageKey,
-    });
+    const { sorting, toggleSort } = useFileManagerSorting();
 
     const {
         allSelectablePaths,
@@ -202,13 +193,17 @@ export function FileManager({
         toggleSelectAll,
     } = useFileManagerSelection({ allSelectablePaths, dirSubtreePaths, flatVisible });
 
+    const actionPaths = useMemo(() => resolveActionPaths({ selectedPaths, tree: fullTree }), [fullTree, selectedPaths]);
+
+    const affectedCount = useMemo(() => countAffectedEntries(fullTree, actionPaths), [actionPaths, fullTree]);
+
     const selectionTotalBytes = useMemo(() => {
-        if (!hasBulkActions || selectedPaths.size === 0) {
+        if (!hasBulkActions || actionPaths.length === 0) {
             return 0;
         }
 
-        return computeSelectionTotalBytes(fullTree, dedupeOverlappingPaths(selectedPaths));
-    }, [fullTree, hasBulkActions, selectedPaths]);
+        return computeSelectionTotalBytes(fullTree, actionPaths);
+    }, [actionPaths, fullTree, hasBulkActions]);
 
     // Tri-state checkbox values per directory: derived from `selectedPaths` so a
     // single state change updates every parent checkbox in lock-step. The map is
@@ -271,19 +266,6 @@ export function FileManager({
 
         return flatVisible[0] ?? null;
     }, [activeRowPath, flatVisible]);
-
-    // Mirror the `onSelectionChange` plumbing for the focused row: stash the
-    // callback in a ref so the effect only re-fires on actual `activeRowPath`
-    // changes, not on every parent re-render passing a fresh function. We
-    // emit the raw `activeRowPath` (not `resolvedActiveRow`) so consumers can
-    // distinguish "user picked something" from the auto-fallback to the first
-    // visible row that the roving tabindex uses internally.
-    const onActiveRowChangeRef = useLatestRef(onActiveRowChange);
-
-    useEffect(() => {
-        onActiveRowChangeRef.current?.(activeRowPath);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeRowPath]);
 
     const focusRow = useCallback((path: null | string) => {
         if (!path) {
@@ -538,11 +520,13 @@ export function FileManager({
 
             {hasBulkActions && (
                 <FileManagerBulkActionsBar
+                    actionPaths={actionPaths}
                     actions={effectiveBulkActions}
+                    affectedCount={affectedCount}
                     files={files}
                     labels={effectiveLabels}
                     onClearSelection={clearSelection}
-                    selectedPaths={selectedPaths}
+                    selectedCount={selectedPaths.size}
                     selectionTotalBytes={selectionTotalBytes}
                 />
             )}

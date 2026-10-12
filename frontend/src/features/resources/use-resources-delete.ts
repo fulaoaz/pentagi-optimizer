@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 
 import type { FileNode } from '@/components/shared/file-manager';
 
-import { useLocale } from '@/hooks/use-locale';
+import { pluralizeItems } from '@/components/shared/file-manager';
 import { api, getApiErrorMessage } from '@/lib/axios';
 
 import { RESOURCES_API_PATH } from './resources-constants';

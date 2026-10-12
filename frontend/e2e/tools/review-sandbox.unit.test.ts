@@ -62,8 +62,8 @@ afterEach(() => {
     execFileSync('git', ['worktree', 'prune'], { cwd: join(__dirname, '..', '..') });
 });
 
-describe('review-sandbox clean — containment', () => {
-    scriptTest('removes a sandbox it created', () => {
+describe('review-sandbox clean — containment', { timeout: 30_000 }, () => {
+    it('removes a sandbox it created', () => {
         const { stdout: sandbox } = run('create');
 
         expect(existsSync(sandbox)).toBe(true);
@@ -99,7 +99,7 @@ describe('review-sandbox clean — containment', () => {
     });
 });
 
-describe('review-sandbox create — where the sandbox lands', () => {
+describe('review-sandbox create — where the sandbox lands', { timeout: 30_000 }, () => {
     // `clean --all` also sweeps a root derived from the script's own location, which no TMPDIR can
     // move: before PENTAGI_SANDBOX_ROOT governed it too, running this very file deleted real stale
     // sandboxes from the repo's parent directory on the developer's machine.
@@ -134,8 +134,8 @@ describe('review-sandbox create — where the sandbox lands', () => {
     });
 });
 
-describe('review-sandbox clean — the sweep', () => {
-    scriptTest('refuses a bare clean rather than taking the whole root', () => {
+describe('review-sandbox clean — the sweep', { timeout: 30_000 }, () => {
+    it('refuses a bare clean rather than taking the whole root', () => {
         const { stdout: sandbox } = run('create');
 
         expect(run('clean').code).not.toBe(0);

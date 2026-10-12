@@ -8,8 +8,7 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } 
 import type { FlowFragmentFragment, UsageStatsPeriod } from '@/graphql/types';
 import type { Locale } from '@/lib/i18n';
 
-import { ChartCard, ChartTooltip } from '@/components/dashboard';
-import { DashboardError } from '@/components/dashboard/dashboard-error';
+import { ChartCard, ChartTooltip, DashboardError } from '@/components/dashboard';
 import { FlowStatusBadge } from '@/components/icons/flow-status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +22,7 @@ import {
 } from '@/graphql/types';
 import { useLocale } from '@/hooks/use-locale';
 import { cn } from '@/lib/utils';
+import { isSeriesEmpty } from '@/lib/utils/chart-series';
 import { formatCost, formatDuration, formatNumber, formatTokenCount } from '@/lib/utils/format';
 
 const CHART_COLORS = {
@@ -66,34 +66,35 @@ type FlowExecution = {
 };
 
 export function DashboardAnalytics({ period }: { period: UsageStatsPeriod }) {
-    const { locale, t } = useLocale();
+    const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', []);
+
     const {
         data: usageByPeriodData,
         error: usageByPeriodDataError,
         loading: usageByPeriodLoading,
     } = useQuery(UsageStatsByPeriodDocument, {
-        variables: { period },
+        variables: { period, timezone },
     });
     const {
         data: toolcallsByPeriodData,
         error: toolcallsByPeriodDataError,
         loading: toolcallsByPeriodLoading,
     } = useQuery(ToolcallsStatsByPeriodDocument, {
-        variables: { period },
+        variables: { period, timezone },
     });
     const {
         data: flowsByPeriodData,
         error: flowsByPeriodDataError,
         loading: flowsByPeriodLoading,
     } = useQuery(FlowsStatsByPeriodDocument, {
-        variables: { period },
+        variables: { period, timezone },
     });
     const {
         data: executionStatsData,
         error: executionStatsDataError,
         loading: executionStatsLoading,
     } = useQuery(FlowsExecutionStatsByPeriodDocument, {
-        variables: { period },
+        variables: { period, timezone },
     });
     const { data: flowsData } = useQuery(FlowsDocument);
 
@@ -158,12 +159,12 @@ export function DashboardAnalytics({ period }: { period: UsageStatsPeriod }) {
     return (
         <div className="flex flex-col gap-6">
             <ChartCard
-                description={t('dashboard.flowsChartDescription')}
-                empty={!flowsByPeriodLoading && flowsChartData.length === 0}
-                error={!!flowsByPeriodDataError}
+                description="Flows, tasks, and subtasks created per day"
+                empty={isSeriesEmpty(flowsChartData)}
+                error={!!flowsByPeriodError && !flowsByPeriodData}
                 height={320}
-                loading={flowsByPeriodLoading}
-                title={t('dashboard.flowsChartTitle')}
+                loading={flowsByPeriodLoading && !flowsByPeriodData}
+                title="Flows Activity Over Time"
             >
                 <BarChart
                     data={flowsChartData}
@@ -218,11 +219,11 @@ export function DashboardAnalytics({ period }: { period: UsageStatsPeriod }) {
 
             <div className="grid gap-6 lg:grid-cols-2">
                 <ChartCard
-                    description={t('dashboard.toolCallsChartDescription')}
-                    empty={!toolcallsByPeriodLoading && toolcallsChartData.length === 0}
-                    error={!!toolcallsByPeriodDataError}
-                    loading={toolcallsByPeriodLoading}
-                    title={t('dashboard.toolCallsChartTitle')}
+                    description="Number of tool executions per day"
+                    empty={isSeriesEmpty(toolcallsChartData)}
+                    error={!!toolcallsByPeriodError && !toolcallsByPeriodData}
+                    loading={toolcallsByPeriodLoading && !toolcallsByPeriodData}
+                    title="Tool Calls Over Time"
                 >
                     <BarChart
                         data={toolcallsChartData}
@@ -264,11 +265,11 @@ export function DashboardAnalytics({ period }: { period: UsageStatsPeriod }) {
                 </ChartCard>
 
                 <ChartCard
-                    description={t('dashboard.tokensChartDescription')}
-                    empty={!usageByPeriodLoading && usageChartData.length === 0}
-                    error={!!usageByPeriodDataError}
-                    loading={usageByPeriodLoading}
-                    title={t('dashboard.tokensChartTitle')}
+                    description="Input and output tokens processed daily"
+                    empty={isSeriesEmpty(usageChartData)}
+                    error={!!usageByPeriodError && !usageByPeriodData}
+                    loading={usageByPeriodLoading && !usageByPeriodData}
+                    title="Token Usage Over Time"
                 >
                     <AreaChart
                         data={usageChartData}
@@ -322,12 +323,12 @@ export function DashboardAnalytics({ period }: { period: UsageStatsPeriod }) {
             </div>
 
             <ChartCard
-                description={t('dashboard.costChartDescription')}
-                empty={!usageByPeriodLoading && usageChartData.length === 0}
-                error={!!usageByPeriodDataError}
+                description="LLM spending per day. May stay near zero when using local engines — this is expected."
+                empty={isSeriesEmpty(usageChartData)}
+                error={!!usageByPeriodError && !usageByPeriodData}
                 height={240}
-                loading={usageByPeriodLoading}
-                title={t('dashboard.costChartTitle')}
+                loading={usageByPeriodLoading && !usageByPeriodData}
+                title="Cost Over Time"
             >
                 <AreaChart
                     data={usageChartData}
@@ -385,11 +386,11 @@ export function DashboardAnalytics({ period }: { period: UsageStatsPeriod }) {
                     <CardDescription>{t('dashboard.executionDetailsDescription')}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {executionStatsLoading ? (
+                    {executionStatsLoading && !executionStatsData ? (
                         <div className="flex items-center justify-center py-8">
                             <Loader2 className="text-muted-foreground size-6 animate-spin" />
                         </div>
-                    ) : executionStatsDataError ? (
+                    ) : executionStatsError && !executionStatsData ? (
                         <DashboardError className="py-8" />
                     ) : !deferredExecutionStats.length ? (
                         <p className="text-muted-foreground py-8 text-center text-sm">{t('dashboard.noExecutions')}</p>

@@ -38,7 +38,8 @@ import { StatusCard } from '@/components/ui/status-card';
 import { DeletePromptDocument, SettingsPromptsDocument } from '@/graphql/types';
 import { useLocale } from '@/hooks/use-locale';
 import { usePageStorageKeys } from '@/hooks/use-page-storage-keys';
-import { translatePromptName } from '@/lib/i18n/settings-labels';
+import { formatPromptId } from '@/lib/route-titles/format-prompt-id';
+import { routes } from '@/lib/routes';
 
 type AgentPromptTableData = {
     displayName: string;
@@ -255,7 +256,7 @@ function SettingsPrompts() {
             const hasCustomHuman = humanType ? userDefined.some((p) => p.type === humanType) : false;
 
             const agentData: AgentPromptTableData = {
-                displayName: translatePromptName(key, t),
+                displayName: formatPromptId(key),
                 hasHuman: !!(prompts as AgentPrompts)?.human,
                 hasSystem: !!(prompts as AgentPrompt | AgentPrompts)?.system,
                 humanStatus: (prompts as AgentPrompts)?.human ? (hasCustomHuman ? 'Custom' : 'Default') : 'N/A',
@@ -295,7 +296,7 @@ function SettingsPrompts() {
             const hasCustomTool = userDefined.some((p) => p.type === toolType);
 
             const toolData: ToolPromptTableData = {
-                displayName: translatePromptName(key, t),
+                displayName: formatPromptId(key),
                 name: key,
                 promptType: toolType,
                 status: (prompt as DefaultPrompt)?.template ? (hasCustomTool ? 'Custom' : 'Default') : 'N/A',
@@ -841,6 +842,7 @@ function SettingsPrompts() {
                             empty={{ entityName: 'agent prompts' }}
                             filterPlaceholder={t('settings.prompts.filterAgents')}
                             initialPageSize={1000}
+                            label="Agent Prompts"
                             renderRowContextMenu={renderAgentRowContextMenu}
                             renderSubComponent={renderAgentSubComponent}
                             storageKey={`${tableStorageBase}:agents`}
@@ -862,6 +864,7 @@ function SettingsPrompts() {
                             empty={{ entityName: 'tool prompts' }}
                             filterPlaceholder={t('settings.prompts.filterTools')}
                             initialPageSize={1000}
+                            label="Tool Prompts"
                             renderRowContextMenu={renderToolRowContextMenu}
                             renderSubComponent={renderToolSubComponent}
                             storageKey={`${tableStorageBase}:tools`}

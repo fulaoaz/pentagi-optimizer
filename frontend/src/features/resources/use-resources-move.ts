@@ -5,7 +5,7 @@ import { z } from 'zod';
 import type { OverwriteOutcome } from '@/components/shared/overwrite';
 import type { Translate } from '@/lib/i18n';
 
-import { useLocale } from '@/hooks/use-locale';
+import { pluralizeItems } from '@/components/shared/file-manager';
 import { api, getApiErrorMessage, getApiErrorStatusCode } from '@/lib/axios';
 
 import { RESOURCES_MOVE_API_PATH } from './resources-constants';
@@ -21,6 +21,9 @@ export const createResourcesMoveFormSchema = (t: Translate) =>
                 message: t('resources.destinationNoParentSegment'),
             }),
     });
+
+// Compatibility alias for dialogs and extensions that use the noun-first name.
+export const resourcesMoveFormSchema = createResourcesMoveFormSchema;
 
 export type ResourcesMoveFormValues = z.infer<ReturnType<typeof createResourcesMoveFormSchema>>;
 

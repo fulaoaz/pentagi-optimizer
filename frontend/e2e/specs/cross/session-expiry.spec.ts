@@ -49,7 +49,7 @@ test.describe('session expiry', { tag: '@cross' }, () => {
             await page.goto('/resources');
 
             await expect(page).toHaveURL(/\/login\?returnUrl=%2Fresources/);
-            await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+            await expect(page.locator('form button[type="submit"]')).toBeVisible();
             // The login page's own /info rewrites the key, so only the identity inside it matters.
             expect(await storedUser(page), 'the expired identity must not survive in storage').toBeNull();
 
@@ -81,23 +81,30 @@ test.describe('session expiry', { tag: '@cross' }, () => {
             await page.goto('/flows');
 
             await expect(page).toHaveURL(/\/login\?returnUrl=%2Fflows/);
-            await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+            await expect(page.locator('form button[type="submit"]')).toBeVisible();
         });
     });
 
     test.describe('a GraphQL auth error', () => {
         test.use({
             cassette: flowsCassette({
-                queries: { flows: [{ errors: [{ message: 'auth required' }], setFlag: EXPIRED }] },
+                queries: {
+                    flows: [
+                        {
+                            errors: [{ extensions: { code: 'UNAUTHENTICATED' }, message: 'authentication required' }],
+                            setFlag: EXPIRED,
+                        },
+                    ],
+                },
                 rest: { ...baseRest(), ...infoTurningGuest() },
             }),
         });
 
-        test('re-checks the session on an auth-worded resolver error too', async ({ page }) => {
+        test('re-checks the session on a resolver error carrying the unauthenticated code', async ({ page }) => {
             await page.goto('/flows');
 
             await expect(page).toHaveURL(/\/login\?returnUrl=%2Fflows/);
-            await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+            await expect(page.locator('form button[type="submit"]')).toBeVisible();
         });
     });
 

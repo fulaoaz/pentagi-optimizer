@@ -5,9 +5,8 @@ import type { Translate } from '@/lib/i18n';
 
 import { ResultFormat } from '@/graphql/types';
 
-/**
- * Interface for message data that can be copied to clipboard
- */
+import { Log } from './log';
+
 export interface CopyableMessage {
     message?: null | string;
     result?: null | string;
@@ -182,5 +181,17 @@ export const copyMessageToClipboard = async (messageData: CopyableMessage, t: Tr
         toast.success(t('clipboard.copied'));
     } catch {
         toast.error(t('clipboard.copyFailed'));
+    }
+};
+
+export const copyToClipboard = async (text: string): Promise<boolean> => {
+    try {
+        await navigator.clipboard.writeText(text);
+
+        return true;
+    } catch (error) {
+        Log.error('Failed to copy to clipboard:', error);
+
+        return false;
     }
 };

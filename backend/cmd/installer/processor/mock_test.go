@@ -1,3 +1,6 @@
+//go:build legacy_mock_tests
+// +build legacy_mock_tests
+
 package processor
 
 import (

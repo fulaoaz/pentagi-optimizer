@@ -57,17 +57,27 @@ import { isNotFoundError } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 import { type Template, useTemplates } from '@/providers/templates-provider';
 
-const createFormSchema = (t: Translate) =>
-    z.object({
-        text: z
-            .string()
-            .trim()
-            .min(1, { message: t('templates.textRequired') }),
-        title: z
-            .string()
-            .trim()
-            .min(1, { message: t('templates.titleRequired') }),
-    });
+// Mirrors the limits in backend/pkg/graph/context.go.
+const MAX_TEMPLATE_TITLE_LENGTH = 255;
+const MAX_TEMPLATE_TEXT_LENGTH = 65536;
+
+export const formSchema = z.object({
+    // The text is a document: it is sent as it was written, the line break it ends with included, and the
+    // limit counts all of it, as the mutation does.
+    text: z
+        .string()
+        .refine((value) => value.trim() !== '', { message: 'Text is required' })
+        .refine((value) => [...value].length <= MAX_TEMPLATE_TEXT_LENGTH, {
+            message: `Text must not exceed ${MAX_TEMPLATE_TEXT_LENGTH} characters`,
+        }),
+    title: z
+        .string()
+        .trim()
+        .min(1, { message: 'Title is required' })
+        .refine((value) => [...value].length <= MAX_TEMPLATE_TITLE_LENGTH, {
+            message: `Title must not exceed ${MAX_TEMPLATE_TITLE_LENGTH} characters`,
+        }),
+});
 
 type FormValues = z.infer<ReturnType<typeof createFormSchema>>;
 

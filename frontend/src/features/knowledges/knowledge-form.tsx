@@ -27,10 +27,6 @@ import { useUser } from '@/providers/user-provider';
 import { KnowledgeFormLayoutDesktop, KnowledgeFormLayoutMobile } from './knowledge-form-layout';
 import { KnowledgeHeader } from './knowledge-header';
 
-// Length limits mirror the REST validation tags on the Go side
-// (`backend/pkg/server/models/knowledge.go`). The GraphQL layer itself does
-// not enforce them, so without these the user could submit a payload that
-// later round-trips through REST and gets rejected.
 export const KNOWLEDGE_LIMITS = {
     codeLang: 100,
     content: 65536,
@@ -44,49 +40,44 @@ export const KNOWLEDGE_LIMITS = {
 // backend clears it) from "field was empty and untouched" (don't send at
 // all so the backend leaves it alone). Mapping `"" → undefined` here would
 // erase that signal and break the "clear an existing description" use case.
-const optionalTrimmed = (max: number, label: string, t: Translate) =>
+const withinLimit = (max: number) => (value: string) => [...value].length <= max;
+
+const optionalTrimmed = (max: number, label: string) =>
     z
         .string()
         .trim()
-        .max(max, { message: t('knowledge.validation.maxCharacters', { label, max }) })
+        .refine(withinLimit(max), { message: `${label} must be ${max} characters or fewer` })
         .optional();
 
-export const createKnowledgeFormSchema = (t: Translate) =>
-    z
-        .object({
-            answerType: z.nativeEnum(KnowledgeAnswerType).optional(),
-            codeLang: optionalTrimmed(KNOWLEDGE_LIMITS.codeLang, t('knowledge.codeLanguage'), t),
-            content: z
-                .string()
-                .trim()
-                .min(1, { message: t('knowledge.contentRequired') })
-                .max(KNOWLEDGE_LIMITS.content, {
-                    message: t('knowledge.validation.maxCharacters', {
-                        label: t('knowledge.content'),
-                        max: KNOWLEDGE_LIMITS.content,
-                    }),
-                }),
-            description: optionalTrimmed(KNOWLEDGE_LIMITS.description, t('knowledge.description'), t),
-            docType: z.nativeEnum(KnowledgeDocType),
-            guideType: z.nativeEnum(KnowledgeGuideType).optional(),
-            question: z
-                .string()
-                .trim()
-                .min(1, { message: t('knowledge.questionRequired') })
-                .max(KNOWLEDGE_LIMITS.question, {
-                    message: t('knowledge.validation.maxCharacters', {
-                        label: t('knowledge.question'),
-                        max: KNOWLEDGE_LIMITS.question,
-                    }),
-                }),
-        })
-        .superRefine((value, ctx) => {
-            const requiredByDocType: Partial<
-                Record<KnowledgeDocType, { field: 'answerType' | 'codeLang' | 'guideType'; message: string }>
-            > = {
-                [KnowledgeDocType.Answer]: { field: 'answerType', message: t('knowledge.answerTypeRequired') },
-                [KnowledgeDocType.Code]: { field: 'codeLang', message: t('knowledge.codeLanguageRequired') },
-                [KnowledgeDocType.Guide]: { field: 'guideType', message: t('knowledge.guideTypeRequired') },
+export const formSchema = z
+    .object({
+        answerType: z.nativeEnum(KnowledgeAnswerType).optional(),
+        codeLang: optionalTrimmed(KNOWLEDGE_LIMITS.codeLang, 'Code language'),
+        // The body is a document: it is sent as it was written, the line break it ends with included, and the
+        // limit counts all of it, as the endpoint does.
+        content: z
+            .string()
+            .refine((value) => value.trim() !== '', { message: 'Content is required' })
+            .refine(withinLimit(KNOWLEDGE_LIMITS.content), {
+                message: `Content must be ${KNOWLEDGE_LIMITS.content} characters or fewer`,
+            }),
+        description: optionalTrimmed(KNOWLEDGE_LIMITS.description, 'Description'),
+        docType: z.nativeEnum(KnowledgeDocType),
+        guideType: z.nativeEnum(KnowledgeGuideType).optional(),
+        question: z
+            .string()
+            .trim()
+            .min(1, { message: 'Question is required' })
+            .refine(withinLimit(KNOWLEDGE_LIMITS.question), {
+                message: `Question must be ${KNOWLEDGE_LIMITS.question} characters or fewer`,
+            }),
+    })
+    .superRefine((value, ctx) => {
+        const requiredByDocType: Partial<Record<KnowledgeDocType, { field: FieldPath<FormValues>; message: string }>> =
+            {
+                [KnowledgeDocType.Answer]: { field: 'answerType', message: 'Answer type is required' },
+                [KnowledgeDocType.Code]: { field: 'codeLang', message: 'Code language is required' },
+                [KnowledgeDocType.Guide]: { field: 'guideType', message: 'Guide type is required' },
             };
 
             const rule = requiredByDocType[value.docType];
@@ -239,11 +230,7 @@ export function KnowledgeForm({ initialValues, isNew, knowledge, onSubmit }: Kno
                 // `isDirty`/`canSubmit` at submit time.
                 const result = await onSubmit(values, form.formState.dirtyFields as DirtyFlags);
 
-                // Prefer the server's view of the document — backend may have
-                // trimmed/normalized fields, attached derived data, or filled
-                // optional fields. Falling back to the local `values` keeps
-                // the form stable when the mutation hook can't return the
-                // saved fragment for some reason.
+                // The returned document is the one that is stored, so the form is reset to it when present.
                 const resetValues = result.document ? documentToFormValues(result.document) : values;
 
                 // Reset BEFORE navigate so `isDirty` is false by the time the
@@ -303,7 +290,7 @@ export function KnowledgeForm({ initialValues, isNew, knowledge, onSubmit }: Kno
 
         // `form.getValues()` returns raw field state (no zod transforms applied),
         // so we run it through the schema explicitly. This way the dialog path
-        // produces the same trimmed/normalized values as the form-button path
+        // produces the same parsed values as the form-button path
         // (which gets parsed values directly from `handleSubmit`'s callback).
         const parsed = formSchema.safeParse(form.getValues());
 

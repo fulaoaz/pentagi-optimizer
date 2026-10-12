@@ -1,4 +1,5 @@
 import { ApolloProvider } from '@apollo/client/react';
+import { MotionConfig } from 'motion/react';
 import { lazy, Suspense } from 'react';
 import {
     createBrowserRouter,
@@ -15,6 +16,7 @@ import MainLayout from '@/components/layouts/main/main-layout';
 import SettingsLayout from '@/components/layouts/settings/settings-layout';
 import ProtectedRoute from '@/components/routes/protected-route';
 import PublicRoute from '@/components/routes/public-route';
+import { ConnectionStatus } from '@/components/shared/connection-status';
 import { DocumentTitle } from '@/components/shared/document-title';
 import PageLoader from '@/components/shared/page-loader';
 import RouteErrorBoundary from '@/components/shared/route-error-boundary';
@@ -32,10 +34,15 @@ import { SidebarFlowsProvider } from '@/providers/sidebar-flows-provider';
 import { TemplatesProvider } from '@/providers/templates-provider';
 import { ThemeProvider } from '@/providers/theme-provider';
 import { UserProvider } from '@/providers/user-provider';
+import { VersionInfoProvider } from '@/providers/version-info-provider';
 
 import { SystemSettingsProvider } from './providers/system-settings-provider';
 
 const Dashboard = lazy(() => import('@/pages/dashboard/dashboard'));
+const ExecutionCenter = lazy(() => import('@/pages/integrations/execution-center'));
+const ArtexWorkbench = lazy(() => import('@/pages/integrations/artex-workbench'));
+const McpConnectors = lazy(() => import('@/pages/integrations/mcp-connectors'));
+const SkillsCenter = lazy(() => import('@/pages/integrations/skills-center'));
 const Flow = lazy(() => import('@/pages/flows/flow'));
 const FlowReport = lazy(() => import('@/pages/flows/flow-report'));
 const Flows = lazy(() => import('@/pages/flows/flows'));
@@ -76,11 +83,13 @@ function ProtectedAppLayout() {
     return (
         <ProtectedRoute>
             <SystemSettingsProvider>
-                <ProvidersProvider>
-                    <SidebarFlowsProvider>
-                        <AppLayout />
-                    </SidebarFlowsProvider>
-                </ProvidersProvider>
+                <VersionInfoProvider>
+                    <ProvidersProvider>
+                        <SidebarFlowsProvider>
+                            <AppLayout />
+                        </SidebarFlowsProvider>
+                    </ProvidersProvider>
+                </VersionInfoProvider>
             </SystemSettingsProvider>
         </ProtectedRoute>
     );
@@ -140,6 +149,26 @@ const router = createBrowserRouter(
                         element={<Dashboard />}
                         handle={routeTitles.dashboard}
                         path="dashboard"
+                    />
+                    <Route
+                        element={<ExecutionCenter />}
+                        handle={routeTitles.executionRuns}
+                        path="execution-runs"
+                    />
+                    <Route
+                        element={<ArtexWorkbench />}
+                        handle={routeTitles.artex}
+                        path="artex"
+                    />
+                    <Route
+                        element={<McpConnectors />}
+                        handle={routeTitles.mcpConnectors}
+                        path="mcp-connectors"
+                    />
+                    <Route
+                        element={<SkillsCenter />}
+                        handle={routeTitles.skills}
+                        path="skills"
                     />
 
                     <Route element={<FlowsLayout />}>
@@ -245,6 +274,11 @@ const router = createBrowserRouter(
                         path="runtime-config"
                     />
                     <Route
+                        element={<SettingsRuntimeConfig />}
+                        handle={routeTitles.runtimeConfig}
+                        path="runtime-config/:category"
+                    />
+                    <Route
                         element={
                             <Navigate
                                 replace
@@ -289,12 +323,13 @@ const router = createBrowserRouter(
 function App() {
     return (
         <ApolloProvider client={client}>
-            <LocaleProvider>
+            <MotionConfig reducedMotion="user">
                 <ThemeProvider>
                     <Toaster />
+                    <ConnectionStatus />
                     <RouterProvider router={router} />
                 </ThemeProvider>
-            </LocaleProvider>
+            </MotionConfig>
         </ApolloProvider>
     );
 }

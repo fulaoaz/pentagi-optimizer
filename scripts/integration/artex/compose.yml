@@ -1,0 +1,66 @@
+name: pentagi-artex-contract-lab
+services:
+  postgres:
+    image: postgres@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+    env_file: ["${ARTEX_LAB_RUNTIME:?Set ARTEX_LAB_RUNTIME}/postgres.env"]
+    volumes: ["postgres-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U artex -d artex"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+    mem_limit: 512m
+  artex:
+    image: mcr.microsoft.com/playwright@sha256:5b8f294aff9041b7191c34a4bab3ac270157a28774d4b0660e9743297b697e48
+    entrypoint: ["/bin/bash", "-ceu"]
+    command: ["node /probe/model-fixture.mjs & exec /probe/artex -addr :8787 -data /work/data -proxy ''"]
+    working_dir: /work
+    env_file: ["${ARTEX_LAB_RUNTIME:?Set ARTEX_LAB_RUNTIME}/artex.env"]
+    environment:
+      ARTEX_SKILL_DIR: /work/skills
+    volumes:
+      - type: bind
+        source: ${ARTEX_LAB_BINARY:?Set ARTEX_LAB_BINARY}
+        target: /probe/artex
+        read_only: true
+      - type: bind
+        source: ./model-fixture.mjs
+        target: /probe/model-fixture.mjs
+        read_only: true
+      - artex-data:/work
+      - type: bind
+        source: ${ARTEX_LAB_RUNTIME}/jwt.key
+        target: /probe/jwt.key
+        read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 1g
+    cpus: 2
+    depends_on:
+      postgres:
+        condition: service_healthy
+  control:
+    image: mcr.microsoft.com/playwright@sha256:5b8f294aff9041b7191c34a4bab3ac270157a28774d4b0660e9743297b697e48
+    entrypoint: ["node", "/probe/control-proxy.mjs"]
+    volumes:
+      - type: bind
+        source: ./control-proxy.mjs
+        target: /probe/control-proxy.mjs
+        read_only: true
+    networks: [default, ingress]
+    ports:
+      - "127.0.0.1:18787:8080"
+      - "127.0.0.1:18788:8081"
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    read_only: true
+    mem_limit: 128m
+    depends_on: [artex]
+networks:
+  default:
+    internal: true
+  ingress:
+    driver: bridge
+volumes:
+  postgres-data:
+  artex-data:

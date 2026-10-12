@@ -26,6 +26,9 @@ func TestRuntimeConfigCatalogMasksSecretsAndGroupsSettings(t *testing.T) {
 	if mcp.Category != "MCP 安全桥" {
 		t.Fatalf("unexpected MCP category: %q", mcp.Category)
 	}
+	if mcp.Kind != "string" || tavily.Kind != "string" {
+		t.Fatalf("unexpected runtime config kinds: mcp=%q tavily=%q", mcp.Kind, tavily.Kind)
+	}
 	if tavily == nil || tavily.Value != "https://gateway.example.test/api/tavily" {
 		t.Fatalf("Tavily URL was not exposed as non-secret configuration: %+v", tavily)
 	}
