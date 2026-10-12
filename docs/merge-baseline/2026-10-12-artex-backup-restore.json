@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "environment": "isolated ARTEX contract lab",
+  "backup": {
+    "format": "postgres custom dump",
+    "relativePathOutsideGit": "F:/CTF/PentAGI/.integration-lab/backups/2026-10-12/artex.dump",
+    "sha256": "4acb2be2964fb06c68ec595ac7524211195289b0cf6fc320147f3675280f4693"
+  },
+  "restoreCheck": {
+    "temporaryDatabase": true,
+    "restoredPublicTableCount": 48,
+    "temporaryDatabaseRemoved": true
+  },
+  "credentialMaterial": "JWT signing material was separately mounted and survived the container recreation probe",
+  "verifiedAt": "2026-10-12"
+}

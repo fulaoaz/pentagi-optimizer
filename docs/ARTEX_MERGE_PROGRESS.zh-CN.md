@@ -9,9 +9,9 @@
 | P0 实施基线 | 完成初始记录 | 52 个已有文件的路径与 SHA-256；28 项原有修改、12 项混合文件、12 项 ARTEX 原型。检查确认本轮验证前这些文件均未改动 |
 | P1 真实接口验证 | ARTEX 协议与持久性检查通过 | 真实 ARTEX + PostgreSQL 16：基线 20/20、容器重建 12/12。模型使用本地协议 fixture，不能等同于真实模型或完整产品端到端验收 |
 | P2 模型配置共享 | 核心实现与真实联调通过 | PentAGI 提供商归属、配置版本、受管理 profile、远端 ID、显式密钥轮换已实现；真实 ARTEX/PostgreSQL 联调通过，下一步把配置绑定接入统一任务和复测视图 |
-| P3 统一任务中心 | 进行中 | 已增加 `engine_runs` 本地运行记录、ARTEX 绑定版本关联、提交前持久化、提交结果未知状态、显式远端核对、状态规范化同步，以及 `/execution-runs` 双引擎列表和前端统一任务中心；下一步补断网/重启恢复、原生任务创建入口和幂等控制验收 |
+| P3 统一任务中心 | 首版入口与幂等已接入 | 统一任务中心可选择 PentAGI/ARTEX 创建任务；`engine_runs` 支持提交前持久化、未知状态核对、状态规范化和 `Idempotency-Key` 去重。隔离 ARTEX 重建验收已通过，真实 PentAGI 联合环境仍待验收 |
 | P4 统一资产／证据／报告 | 首版证据归档已接入 | 资产/发现/活动读取会按实际任务归档列表快照；任务详情已可查看证据历史、版本和内容指纹。统一报告编排和跨引擎资产身份仍待完成 |
-| P5 联合发行验收 | 未完成 | 两套引擎使用同一已授权真实模型连接的验收、备份恢复和发行核对均待完成 |
+| P5 联合发行验收 | 隔离 ARTEX 恢复通过，联合发行待验收 | 联合启动、备份、JWT 签名材料保存和回滚步骤已文档化；隔离库 dump 恢复到临时库并清理通过，真实模型连接和 PentAGI+ARTEX 同 Compose 验收仍待执行 |
 
 目标仍在进行中，不能标记为完成。
 
@@ -20,6 +20,8 @@
 - [文件基线](merge-baseline/2026-09-24-files.json)：只保存源文件路径、分组与哈希，不复制 `.env`、凭据或运行数据。
 - [真实 ARTEX 基线结果](merge-baseline/2026-09-24-artex-live-bootstrap.json)：20 项检查通过。
 - [容器重建结果](merge-baseline/2026-09-24-artex-live-recreate.json)：12 项检查通过，包含重建前登录令牌继续有效。
+- [2026-10-12 容器重建结果](merge-baseline/2026-10-12-artex-live-recreate.json)：12 项检查通过，包含控制令牌、任务、模型绑定、轮换 Key 和复测历史持久化。
+- [2026-10-12 备份恢复结果](merge-baseline/2026-10-12-artex-backup-restore.json)：PostgreSQL custom dump 恢复到临时库，48 张公共表恢复后清理临时库。
 - [暂停与截止时间观察](merge-baseline/2026-09-24-artex-deadline-observation.json)：保留一次失败及其解释，未用新的成功结果掩盖它。
 - [可复现验证脚本](../scripts/integration/artex/README.md)：启动、探测、重建及停止步骤。
 - 2026-09-25 后端模型共享与运行映射回归：`go test -p 2 ./pkg/integrations/artex ./pkg/server/services ./pkg/server -run 'Test(ModelSharing|ArtexModelSource|Client|Artex|Router)' -count=1` 通过。
@@ -82,3 +84,7 @@ ARTEX 更新 profile 会使其引用任务在后续调用中使用更新值。�
 已完成的验证：后端 `go build ./...` 通过；GraphQL 后端定向测试通过；前端 GraphQL 类型生成、TypeScript 检查和 Vite production build 通过；提供商、容器恢复、MCP 审计和工具分发定向测试通过。Windows 环境下安装器嵌入文件和部分旧测试仍需在 CI/Linux 生成环境复验，不能把当前本机构建等同于完整 CI 绿灯。
 
 2026-10-12 又补齐了远端 ARTEX task 到本地 run 的证据历史入口：`/artex/tasks/:id/snapshots` 和详情接口会先解析受管理映射，再读取脱敏快照；前端任务详情新增“证据历史”页签。未找到本地 run、快照不存在或归档存储不可用都会返回明确状态，不回退为未归档成功。
+
+2026-10-12 又补齐统一任务创建入口和远端创建幂等：统一任务中心的“新建执行任务”会选择引擎；ARTEX 创建请求支持 `Idempotency-Key`，重复请求复用已创建任务，`pending/uncertain` 状态必须先核对。对应迁移为 `20260925_140000_engine_run_idempotency.sql`。
+
+2026-10-12 在隔离 ARTEX 环境完成 bootstrap 20/20、容器重建 12/12 和数据库备份恢复演练。模型请求仍使用本地协议 fixture，因此这些结果证明真实 ARTEX 协议和持久性，不等同于真实外部模型效果。
