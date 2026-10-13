@@ -82,7 +82,7 @@ func TestSQLModelSharingLive(t *testing.T) {
 	}
 	defer db.Close()
 	db.SetMaxOpenConns(8)
-	for _, migrationName := range []string{"sql/20260924_200000_engine_provider_bindings.sql", "sql/20260925_120000_engine_runs.sql"} {
+	for _, migrationName := range []string{"sql/20260924_200000_engine_provider_bindings.sql", "sql/20260925120000_engine_runs.sql"} {
 		migration, readErr := migrations.EmbedMigrations.ReadFile(migrationName)
 		if readErr != nil {
 			t.Fatal(readErr)

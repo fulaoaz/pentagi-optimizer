@@ -1,0 +1,112 @@
+{
+  "observedAt": "2026-10-13T09:14:33+08:00",
+  "sourceCommit": "4a43a29fcc9cc3de789607b53e60540e95c640c8 (working tree migration and unified-report fixes)",
+  "mode": "joint-local-qa",
+  "realComponents": [
+    "PentAGI merge image",
+    "PentAGI PostgreSQL",
+    "ARTEX backend",
+    "ARTEX PostgreSQL 16"
+  ],
+  "simulatedComponents": [
+    "OpenAI-compatible local model protocol fixture"
+  ],
+  "checks": [
+    {
+      "name": "pentagi_image_built",
+      "passed": true,
+      "image": "pentagi-merge-local:20261013",
+      "imageID": "sha256:4ecadb4c65eaf8a7a4d8031ced574adb3662d3ebd4b67150657747d06a477582"
+    },
+    {
+      "name": "goose_migrations_unique_and_applied",
+      "passed": true,
+      "latestVersion": "20260925140000"
+    },
+    {
+      "name": "pentagi_info_http_200",
+      "passed": true
+    },
+    {
+      "name": "artex_status_healthy_and_writable",
+      "passed": true
+    },
+    {
+      "name": "provider_catalog_is_compatible",
+      "passed": true,
+      "providerRef": "default:openai",
+      "models": ["gpt-5.4-mini", "gpt-5.4-nano", "gpt-5.6-terra"]
+    },
+    {
+      "name": "managed_model_binding_ready",
+      "passed": true,
+      "remoteProfileId": 12,
+      "model": "gpt-5.4-nano"
+    },
+    {
+      "name": "artex_task_created_with_selected_binding",
+      "passed": true,
+      "remoteTaskId": "13",
+      "remoteProfileId": 12
+    },
+    {
+      "name": "idempotency_replay_reused_remote_task",
+      "passed": true,
+      "remoteTaskId": "13"
+    },
+    {
+      "name": "artex_pause_resume",
+      "passed": true,
+      "remoteTaskId": "13"
+    },
+    {
+      "name": "native_pentagi_flow_created",
+      "passed": true,
+      "flowId": "1"
+    },
+    {
+      "name": "both_engines_requested_selected_model",
+      "passed": true,
+      "model": "gpt-5.4-nano",
+      "newFixtureCallsSinceQaStart": 9,
+      "cancelledCalls": 0
+    },
+    {
+      "name": "unified_execution_list_contains_both_engines",
+      "passed": true,
+      "total": 3,
+      "detailPaths": ["/artex?task=13", "/flows/1"]
+    },
+    {
+      "name": "artex_unified_report",
+      "passed": true,
+      "remoteTaskId": "13",
+      "artifactCount": 4
+    },
+    {
+      "name": "pentagi_unified_report",
+      "passed": true,
+      "flowId": "1",
+      "artifactCount": 1
+    },
+    {
+      "name": "pentagi_database_backup_restore",
+      "passed": true,
+      "restoredPublicTables": 29,
+      "temporaryDatabaseCleaned": true,
+      "backupSha256": "60774D905D1F8753BA590B00E3977AF11C52FA2B138F333DB8157F46DE2719A7",
+      "backupBytes": 133729
+    },
+    {
+      "name": "container_recreate_preserves_artex_binding",
+      "passed": true,
+      "artexHealthy": true,
+      "readyBindingCount": 2
+    }
+  ],
+  "outcome": "passed",
+  "limitations": [
+    "The model endpoint was an owned local protocol fixture; this proves request routing and selected-model binding, not model quality or vulnerability discovery accuracy.",
+    "The ARTEX service used the isolated contract-lab network and PostgreSQL volume; no external target or external model was contacted."
+  ]
+}

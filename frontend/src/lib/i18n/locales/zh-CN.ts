@@ -814,6 +814,8 @@ export const zhCN: Dictionary = {
     'executionCenter.model': '模型',
     'executionCenter.reconcile': '核对远端',
     'executionCenter.reconciling': '正在核对…',
+    'executionCenter.report': '导出统一报告',
+    'executionCenter.reporting': '正在导出…',
     'executionCenter.status.queued': '排队中',
     'executionCenter.status.running': '运行中',
     'executionCenter.status.waiting': '等待中',

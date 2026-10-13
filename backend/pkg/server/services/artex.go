@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -26,7 +27,36 @@ type ArtexService struct {
 	native  database.Querier
 }
 
+// UnifiedReport is the product-level report envelope. The two engines keep
+// their native records, while the envelope gives callers one stable place to
+// find the report text and provenance references.
+type UnifiedReport struct {
+	ID           string                  `json:"id"`
+	Engine       string                  `json:"engine"`
+	EngineTaskID string                  `json:"engineTaskId,omitempty"`
+	Title        string                  `json:"title"`
+	Status       string                  `json:"status"`
+	Model        string                  `json:"model,omitempty"`
+	Report       string                  `json:"report,omitempty"`
+	ReportFormat string                  `json:"reportFormat,omitempty"`
+	GeneratedAt  time.Time               `json:"generatedAt"`
+	Artifacts    []UnifiedReportArtifact `json:"artifacts"`
+}
+
+type UnifiedReportArtifact struct {
+	ID             string          `json:"id"`
+	Kind           string          `json:"kind"`
+	Representation string          `json:"representation,omitempty"`
+	CapturedAt     time.Time       `json:"capturedAt,omitempty"`
+	Content        json.RawMessage `json:"content,omitempty"`
+}
+
 func NewArtexService(client *artex.Client, sharing ...*artex.ModelSharing) *ArtexService {
+	if client == nil {
+		// A malformed optional configuration must disable ARTEX cleanly instead
+		// of making status or the unified task center panic during startup.
+		client = &artex.Client{}
+	}
 	s := &ArtexService{client: client}
 	if len(sharing) > 0 {
 		s.sharing = sharing[0]
@@ -87,7 +117,8 @@ func (s *ArtexService) ListUnifiedRuns(c *gin.Context) {
 			if flow.UpdatedAt.Valid {
 				updated = flow.UpdatedAt.Time
 			}
-			items = append(items, artex.UnifiedRun{ID: "pentagi:" + strconv.FormatInt(flow.ID, 10), Engine: "pentagi", EngineTaskID: strconv.FormatInt(flow.ID, 10), Title: flow.Title, Status: normalizeNativeRunStatus(string(flow.Status)), RawStatus: string(flow.Status), Model: flow.Model, CreatedAt: created, UpdatedAt: updated, DetailPath: "/flows/" + strconv.FormatInt(flow.ID, 10)})
+			flowID := strconv.FormatInt(flow.ID, 10)
+			items = append(items, artex.UnifiedRun{ID: "pentagi:" + flowID, Engine: "pentagi", EngineTaskID: flowID, Title: flow.Title, Status: normalizeNativeRunStatus(string(flow.Status)), RawStatus: string(flow.Status), Model: flow.Model, CreatedAt: created, UpdatedAt: updated, DetailPath: unifiedDetailPath("pentagi", flowID)})
 		}
 	}
 	if admin && s.runs != nil && s.client.Enabled() {
@@ -102,10 +133,175 @@ func (s *ArtexService) ListUnifiedRuns(c *gin.Context) {
 			return
 		}
 		for _, run := range runs {
-			items = append(items, artex.UnifiedRun{ID: "artex:" + run.ID, Engine: "artex", EngineTaskID: run.EngineTaskID, Title: run.Name, Status: run.Status, RawStatus: run.RawStatus, SubmitState: run.SubmitState, BindingID: run.BindingID, BindingRevision: run.BindingRevision, CreatedAt: run.CreatedAt, UpdatedAt: run.UpdatedAt, DetailPath: "/artex"})
+			items = append(items, artex.UnifiedRun{ID: "artex:" + run.ID, Engine: "artex", EngineTaskID: run.EngineTaskID, Title: run.Name, Status: run.Status, RawStatus: run.RawStatus, SubmitState: run.SubmitState, BindingID: run.BindingID, BindingRevision: run.BindingRevision, CreatedAt: run.CreatedAt, UpdatedAt: run.UpdatedAt, DetailPath: unifiedDetailPath("artex", run.EngineTaskID)})
 		}
 	}
 	response.Success(c, http.StatusOK, gin.H{"items": items, "total": len(items)})
+}
+
+func unifiedDetailPath(engine, taskID string) string {
+	taskID = strings.TrimSpace(taskID)
+	switch engine {
+	case "pentagi":
+		if taskID != "" {
+			return "/flows/" + url.PathEscape(taskID)
+		}
+	case "artex":
+		if taskID != "" {
+			return "/artex?task=" + url.QueryEscape(taskID)
+		}
+	}
+	return "/execution-center"
+}
+
+// GetUnifiedRunReport exposes a bounded, source-labelled report envelope for
+// either engine. ARTEX remains administrator-only because its upstream token
+// is instance-scoped; native PentAGI flows keep their existing user ownership.
+func (s *ArtexService) GetUnifiedRunReport(c *gin.Context) {
+	rawID := strings.TrimSpace(c.Param("id"))
+	switch {
+	case strings.HasPrefix(rawID, "pentagi:"):
+		if !s.canViewNative(c) {
+			return
+		}
+		s.getNativeRunReport(c, strings.TrimPrefix(rawID, "pentagi:"))
+	case strings.HasPrefix(rawID, "artex:"):
+		if !s.canView(c) {
+			return
+		}
+		s.getArtexRunReport(c, strings.TrimPrefix(rawID, "artex:"))
+	default:
+		response.Error(c, response.NewHttpError(400, "Runs.InvalidID", "Invalid unified execution ID"), nil)
+	}
+}
+
+func (s *ArtexService) getNativeRunReport(c *gin.Context, rawID string) {
+	flowID, err := strconv.ParseInt(rawID, 10, 64)
+	if err != nil || flowID <= 0 || strconv.FormatInt(flowID, 10) != rawID || s.native == nil {
+		response.Error(c, response.NewHttpError(404, "Runs.NotFound", "Execution report was not found"), nil)
+		return
+	}
+	uid := int64(c.GetUint64("uid"))
+	var flow database.Flow
+	if slices.Contains(c.GetStringSlice("prm"), "flows.admin") {
+		flow, err = s.native.GetFlow(c.Request.Context(), flowID)
+	} else {
+		flow, err = s.native.GetUserFlow(c.Request.Context(), database.GetUserFlowParams{ID: flowID, UserID: uid})
+	}
+	if err != nil {
+		response.Error(c, response.NewHttpError(404, "Runs.NotFound", "Execution report was not found"), nil)
+		return
+	}
+	logs, err := s.native.GetUserFlowMsgLogs(c.Request.Context(), database.GetUserFlowMsgLogsParams{FlowID: flowID, UserID: flow.UserID})
+	if err != nil {
+		response.Error(c, response.NewHttpError(500, "Runs.ReportUnavailable", "PentAGI report data is unavailable"), nil)
+		return
+	}
+	response.Success(c, http.StatusOK, buildNativeUnifiedReport(flow, logs))
+}
+
+func buildNativeUnifiedReport(flow database.Flow, logs []database.Msglog) UnifiedReport {
+	generated := flow.UpdatedAt.Time
+	if !flow.UpdatedAt.Valid {
+		generated = flow.CreatedAt.Time
+	}
+	report := UnifiedReport{
+		ID:           "pentagi:" + strconv.FormatInt(flow.ID, 10),
+		Engine:       "pentagi",
+		EngineTaskID: strconv.FormatInt(flow.ID, 10),
+		Title:        flow.Title,
+		Status:       normalizeNativeRunStatus(string(flow.Status)),
+		Model:        flow.Model,
+		GeneratedAt:  generated,
+		Artifacts:    make([]UnifiedReportArtifact, 0, len(logs)),
+	}
+	for _, log := range logs {
+		artifact := UnifiedReportArtifact{
+			ID:         strconv.FormatInt(log.ID, 10),
+			Kind:       string(log.Type),
+			CapturedAt: log.CreatedAt.Time,
+		}
+		if log.Type == database.MsglogTypeReport {
+			content, _ := json.Marshal(struct {
+				Message string `json:"message,omitempty"`
+				Result  string `json:"result,omitempty"`
+				Format  string `json:"resultFormat,omitempty"`
+			}{Message: log.Message, Result: log.Result, Format: string(log.ResultFormat)})
+			artifact.Representation = "report"
+			artifact.Content = content
+			text := strings.TrimSpace(log.Result)
+			if text == "" {
+				text = strings.TrimSpace(log.Message)
+			}
+			if text != "" {
+				report.Report = text
+				report.ReportFormat = string(log.ResultFormat)
+				if log.CreatedAt.Valid {
+					report.GeneratedAt = log.CreatedAt.Time
+				}
+			}
+		}
+		report.Artifacts = append(report.Artifacts, artifact)
+	}
+	return report
+}
+
+func (s *ArtexService) getArtexRunReport(c *gin.Context, localID string) {
+	if s.runs == nil || !s.client.Enabled() || strings.TrimSpace(localID) == "" {
+		response.Error(c, artexError(artex.ErrRunNotFound), nil)
+		return
+	}
+	runs, err := s.runs.ListAll(c.Request.Context())
+	if err != nil {
+		response.Error(c, artexError(err), nil)
+		return
+	}
+	var run *artex.Run
+	for i := range runs {
+		if runs[i].ID == localID {
+			run = &runs[i]
+			break
+		}
+	}
+	if run == nil || run.EngineTaskID == "" {
+		response.Error(c, artexError(artex.ErrRunNotFound), nil)
+		return
+	}
+	task, err := s.client.GetTask(c.Request.Context(), run.EngineTaskID)
+	if err != nil {
+		response.Error(c, artexError(err), nil)
+		return
+	}
+	assets, err := s.client.ListAssets(c.Request.Context(), run.EngineTaskID, 1)
+	if err != nil {
+		response.Error(c, artexError(err), nil)
+		return
+	}
+	findings, err := s.client.ListFindings(c.Request.Context(), run.EngineTaskID, 1)
+	if err != nil {
+		response.Error(c, artexError(err), nil)
+		return
+	}
+	report := UnifiedReport{
+		ID:           "artex:" + run.ID,
+		Engine:       "artex",
+		EngineTaskID: run.EngineTaskID,
+		Title:        run.Name,
+		Status:       run.Status,
+		GeneratedAt:  run.UpdatedAt,
+		Artifacts: []UnifiedReportArtifact{
+			{ID: run.EngineTaskID, Kind: "task", Representation: "detail", Content: task},
+			{ID: run.EngineTaskID, Kind: "asset", Representation: "list", Content: assets},
+			{ID: run.EngineTaskID, Kind: "finding", Representation: "list", Content: findings},
+		},
+	}
+	if snapshots, snapshotErr := s.runs.SnapshotPage(c.Request.Context(), run.ID, "", "", 100); snapshotErr == nil {
+		content, marshalErr := json.Marshal(snapshots)
+		if marshalErr == nil {
+			report.Artifacts = append(report.Artifacts, UnifiedReportArtifact{ID: run.ID, Kind: "evidence_history", Representation: "list", Content: content})
+		}
+	}
+	response.Success(c, http.StatusOK, report)
 }
 
 func normalizeNativeRunStatus(raw string) string {
@@ -477,6 +673,18 @@ func (s *ArtexService) canView(c *gin.Context) bool {
 	response.Error(c, response.NewHttpError(403, "Artex.Forbidden", "ARTEX requires flow administrator access"), nil)
 	return false
 }
+
+func (s *ArtexService) canViewNative(c *gin.Context) bool {
+	if c.GetUint64("uid") > 0 {
+		privs := c.GetStringSlice("prm")
+		if slices.Contains(privs, "flows.admin") || slices.Contains(privs, "flows.view") {
+			return true
+		}
+	}
+	response.Error(c, response.NewHttpError(403, "Runs.Forbidden", "Flow viewing permission required"), nil)
+	return false
+}
+
 func (s *ArtexService) canWrite(c *gin.Context, permission string) bool {
 	if !s.canView(c) {
 		return false

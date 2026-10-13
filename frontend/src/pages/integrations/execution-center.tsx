@@ -1,4 +1,4 @@
-import { ListChecks, RefreshCw, SearchCheck } from 'lucide-react';
+import { Download, ListChecks, RefreshCw, SearchCheck } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -37,6 +37,7 @@ function ExecutionCenter() {
     const { selectedProvider } = useProviders();
     const [revision, setRevision] = useState(0);
     const [busyID, setBusyID] = useState('');
+    const [reportID, setReportID] = useState('');
     const [createOpen, setCreateOpen] = useState(false);
     const [engine, setEngine] = useState<'artex' | 'pentagi'>('pentagi');
     const [message, setMessage] = useState('');
@@ -77,6 +78,26 @@ function ExecutionCenter() {
             refresh();
         } finally {
             setBusyID('');
+        }
+    };
+
+    const downloadReport = async (run: UnifiedRun) => {
+        if (reportID || run.id === '') return;
+        setReportID(run.id);
+        setCreateError('');
+        try {
+            const report = await executionApi.report(run.id);
+            const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.download = 'pentagi-' + run.id.replace(/[^a-zA-Z0-9_-]/g, '_') + '-report.json';
+            anchor.click();
+            window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (caught) {
+            setCreateError(artexErrorText(caught, t));
+        } finally {
+            setReportID('');
         }
     };
 
@@ -123,11 +144,19 @@ function ExecutionCenter() {
                     <p className="text-muted-foreground mt-1 text-sm">{t('executionCenter.description')}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                    <Button disabled={loading} onClick={refresh} size="sm" variant="outline">
+                    <Button
+                        disabled={loading}
+                        onClick={refresh}
+                        size="sm"
+                        variant="outline"
+                    >
                         <RefreshCw className="mr-2 size-4" />
                         {t('executionCenter.refresh')}
                     </Button>
-                    <Button onClick={() => setCreateOpen(true)} size="sm">
+                    <Button
+                        onClick={() => setCreateOpen(true)}
+                        size="sm"
+                    >
                         {t('executionCenter.newExecution')}
                     </Button>
                 </div>
@@ -158,32 +187,66 @@ function ExecutionCenter() {
                             {items.map((run) => {
                                 const needsReconcile = run.engine === 'artex' && run.submitState === 'uncertain';
                                 return (
-                                    <div className="flex flex-wrap items-center justify-between gap-3 p-4" key={run.id}>
+                                    <div
+                                        className="flex flex-wrap items-center justify-between gap-3 p-4"
+                                        key={run.id}
+                                    >
                                         <div className="min-w-0 flex-1">
                                             <div className="flex flex-wrap items-center gap-2">
                                                 <Badge variant={run.engine === 'artex' ? 'purple' : 'blue'}>
                                                     {run.engine === 'artex' ? 'ARTEX' : 'PentAGI'}
                                                 </Badge>
-                                                <Link className="truncate font-medium hover:underline" to={run.detailPath}>
+                                                <Link
+                                                    className="truncate font-medium hover:underline"
+                                                    to={run.detailPath}
+                                                >
                                                     {run.title || t('executionCenter.untitled')}
                                                 </Link>
                                                 <Badge variant={statusVariant(run.status)}>
-                                                    {t('executionCenter.status.' + run.status, { fallback: run.status })}
+                                                    {t('executionCenter.status.' + run.status, {
+                                                        fallback: run.status,
+                                                    })}
                                                 </Badge>
                                             </div>
                                             <div className="text-muted-foreground mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
-                                                <span>{t('executionCenter.rawStatus')}: {run.rawStatus || run.status}</span>
-                                                {run.model ? <span>{t('executionCenter.model')}: {run.model}</span> : null}
+                                                <span>
+                                                    {t('executionCenter.rawStatus')}: {run.rawStatus || run.status}
+                                                </span>
+                                                {run.model ? (
+                                                    <span>
+                                                        {t('executionCenter.model')}: {run.model}
+                                                    </span>
+                                                ) : null}
                                                 {run.engineTaskId ? <span>ID: {run.engineTaskId}</span> : null}
                                                 <span>{new Date(run.updatedAt || run.createdAt).toLocaleString()}</span>
                                             </div>
                                         </div>
-                                        {needsReconcile ? (
-                                            <Button disabled={busyID !== ''} onClick={() => void reconcile(run)} size="sm" variant="outline">
-                                                <SearchCheck className="mr-2 size-4" />
-                                                {busyID === run.id ? t('executionCenter.reconciling') : t('executionCenter.reconcile')}
+                                        <div className="flex gap-2">
+                                            {needsReconcile ? (
+                                                <Button
+                                                    disabled={busyID !== '' || reportID !== ''}
+                                                    onClick={() => void reconcile(run)}
+                                                    size="sm"
+                                                    variant="outline"
+                                                >
+                                                    <SearchCheck className="mr-2 size-4" />
+                                                    {busyID === run.id
+                                                        ? t('executionCenter.reconciling')
+                                                        : t('executionCenter.reconcile')}
+                                                </Button>
+                                            ) : null}
+                                            <Button
+                                                disabled={busyID !== '' || reportID !== ''}
+                                                onClick={() => void downloadReport(run)}
+                                                size="sm"
+                                                variant="outline"
+                                            >
+                                                <Download className="mr-2 size-4" />
+                                                {reportID === run.id
+                                                    ? t('executionCenter.reporting')
+                                                    : t('executionCenter.report')}
                                             </Button>
-                                        ) : null}
+                                        </div>
                                     </div>
                                 );
                             })}
@@ -201,7 +264,10 @@ function ExecutionCenter() {
                     <DialogHeader>
                         <DialogTitle>{t('executionCenter.newExecution')}</DialogTitle>
                     </DialogHeader>
-                    <form className="grid gap-4" onSubmit={(event) => void createExecution(event)}>
+                    <form
+                        className="grid gap-4"
+                        onSubmit={(event) => void createExecution(event)}
+                    >
                         <div className="grid gap-2">
                             <Label>{t('executionCenter.engine')}</Label>
                             <Select
@@ -211,7 +277,9 @@ function ExecutionCenter() {
                                 }}
                                 value={engine}
                             >
-                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="pentagi">PentAGI</SelectItem>
                                     {isAdmin ? <SelectItem value="artex">ARTEX</SelectItem> : null}
@@ -239,7 +307,9 @@ function ExecutionCenter() {
                         ) : (
                             <>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="execution-description">{t('executionCenter.descriptionField')}</Label>
+                                    <Label htmlFor="execution-description">
+                                        {t('executionCenter.descriptionField')}
+                                    </Label>
                                     <Input
                                         id="execution-description"
                                         onChange={(event) => setDescription(event.target.value)}
@@ -257,22 +327,40 @@ function ExecutionCenter() {
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>{t('executionCenter.modelBinding')}</Label>
-                                    <Select onValueChange={setBindingID} value={bindingID}>
-                                        <SelectTrigger><SelectValue placeholder={t('executionCenter.selectBinding')} /></SelectTrigger>
+                                    <Select
+                                        onValueChange={setBindingID}
+                                        value={bindingID}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={t('executionCenter.selectBinding')} />
+                                        </SelectTrigger>
                                         <SelectContent>
                                             {(bindings ?? []).map((binding) => (
-                                                <SelectItem key={binding.id} value={binding.id}>
+                                                <SelectItem
+                                                    key={binding.id}
+                                                    value={binding.id}
+                                                >
                                                     {binding.spec.model} · {binding.state}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                    {bindingsLoading ? <p className="text-muted-foreground text-xs">{t('executionCenter.loading')}</p> : null}
+                                    {bindingsLoading ? (
+                                        <p className="text-muted-foreground text-xs">{t('executionCenter.loading')}</p>
+                                    ) : null}
                                 </div>
                             </>
                         )}
                         {createError ? <p className="text-destructive text-sm">{createError}</p> : null}
-                        <Button disabled={creating || (engine === 'pentagi' ? !message.trim() || !selectedProvider : !bindingID || !goal.trim())} type="submit">
+                        <Button
+                            disabled={
+                                creating ||
+                                (engine === 'pentagi'
+                                    ? !message.trim() || !selectedProvider
+                                    : !bindingID || !goal.trim())
+                            }
+                            type="submit"
+                        >
                             {creating ? t('executionCenter.creating') : t('executionCenter.create')}
                         </Button>
                     </form>

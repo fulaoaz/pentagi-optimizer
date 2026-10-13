@@ -1,8 +1,8 @@
 import type { FormEvent } from 'react';
 
 import { Pause, Play, Plus, Radar, RefreshCw } from 'lucide-react';
-import { useCallback, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -38,8 +38,9 @@ function ArtexWorkbench() {
 
 function ConnectedWorkbench() {
     const { t } = useLocale();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [revision, setRevision] = useState(0);
-    const [selectedID, setSelectedID] = useState('');
+    const [selectedID, setSelectedID] = useState(() => searchParams.get('task') ?? '');
     const [creating, setCreating] = useState(false);
     const [modeling, setModeling] = useState(false);
     const [returnToCreate, setReturnToCreate] = useState(false);
@@ -74,6 +75,13 @@ function ConnectedWorkbench() {
         setRevision((value) => value + 1);
     };
 
+    useEffect(() => {
+        const requested = searchParams.get('task');
+        if (requested && tasks.some((task) => task.id === requested)) {
+            setSelectedID(requested);
+        }
+    }, [searchParams, tasks]);
+
     const createTask = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
@@ -87,6 +95,7 @@ function ConnectedWorkbench() {
         try {
             const task = await artexApi.create(description.trim(), goal.trim(), timeout, bindingID);
             setSelectedID(task.id);
+            setSearchParams({ task: task.id }, { replace: true });
             setCreating(false);
             setDescription('');
             setGoal('');
@@ -220,7 +229,10 @@ function ConnectedWorkbench() {
                                     }
                                     disabled={busy}
                                     key={task.id}
-                                    onClick={() => setSelectedID(task.id)}
+                                    onClick={() => {
+                                        setSelectedID(task.id);
+                                        setSearchParams({ task: task.id }, { replace: true });
+                                    }}
                                     type="button"
                                 >
                                     <span className="block truncate font-medium">

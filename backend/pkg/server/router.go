@@ -382,6 +382,7 @@ func NewRouter(
 	})
 	setArtexGroup(privateGroup, artexService)
 	privateGroup.GET("/execution-runs", artexService.ListUnifiedRuns)
+	privateGroup.GET("/execution-runs/:id/report", artexService.GetUnifiedRunReport)
 
 	if cfg.StaticURL != nil && cfg.StaticURL.Scheme != "" && cfg.StaticURL.Host != "" {
 		router.NoRoute(func() gin.HandlerFunc {

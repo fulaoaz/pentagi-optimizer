@@ -34,7 +34,7 @@ func evidenceLabDB(t *testing.T) *sql.DB {
  query:=endpoint.Query();query.Set("search_path",schema);endpoint.RawQuery=query.Encode()
  db,err:=sql.Open("postgres",endpoint.String());if err!=nil{t.Fatal("open schema failed")}
  t.Cleanup(func(){db.Close()});db.SetMaxOpenConns(8)
- for _,name:=range []string{"sql/20260925_120000_engine_runs.sql","sql/20260925_130000_engine_evidence_snapshots.sql"} {
+ for _,name:=range []string{"sql/20260925120000_engine_runs.sql","sql/20260925130000_engine_evidence_snapshots.sql"} {
   migration,err:=migrations.EmbedMigrations.ReadFile(name);if err!=nil{t.Fatal(err)}
   if _,err=db.Exec(strings.Split(string(migration),"-- +goose Down")[0]);err!=nil{t.Fatal("migration failed",err)}
  }

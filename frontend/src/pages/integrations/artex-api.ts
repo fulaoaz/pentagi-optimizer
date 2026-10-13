@@ -78,6 +78,26 @@ const unifiedRunSchema = z.object({
     updatedAt: z.string(),
 });
 const unifiedRunsSchema = z.object({ items: z.array(unifiedRunSchema), total: z.number().nonnegative() });
+const unifiedReportSchema = z.object({
+    artifacts: z.array(
+        z.object({
+            capturedAt: z.string().optional(),
+            content: z.unknown().optional(),
+            id: z.string(),
+            kind: z.string(),
+            representation: z.string().optional(),
+        }),
+    ),
+    engine: z.enum(['pentagi', 'artex']),
+    engineTaskId: z.string().optional(),
+    generatedAt: z.string(),
+    id: z.string(),
+    model: z.string().optional(),
+    report: z.string().optional(),
+    reportFormat: z.string().optional(),
+    status: z.string(),
+    title: z.string(),
+});
 const evidenceSnapshotSchema = z.object({
     capturedAt: z.string(),
     content: z.unknown().optional(),
@@ -137,6 +157,7 @@ export interface ArtexModelSelection {
 export type ArtexRetest = z.infer<typeof retestSchema>;
 export type ArtexStatus = z.infer<typeof statusSchema>;
 export type ArtexTask = z.infer<typeof taskSchema>;
+export type UnifiedReport = z.infer<typeof unifiedReportSchema>;
 export type UnifiedRun = z.infer<typeof unifiedRunSchema>;
 
 async function read<T>(
@@ -163,7 +184,13 @@ export const artexApi = {
         unwrapApiResponse(
             await api.post('/artex/tasks/' + encodeURIComponent(task) + '/control', { action }, { timeout: 130_000 }),
         ),
-    create: async (description: string, goal: string, timeoutSeconds: number, bindingId: string, idempotencyKey = crypto.randomUUID()) => {
+    create: async (
+        description: string,
+        goal: string,
+        timeoutSeconds: number,
+        bindingId: string,
+        idempotencyKey = crypto.randomUUID(),
+    ) => {
         const result = unwrapApiResponse(
             await api.post(
                 '/artex/tasks',
@@ -179,7 +206,11 @@ export const artexApi = {
     findings: (task: string, page: number, signal?: AbortSignal) =>
         read('/findings', findingsSchema, signal, { page, task }),
     snapshot: (task: string, snapshotID: string, signal?: AbortSignal) =>
-        read('/tasks/' + encodeURIComponent(task) + '/snapshots/' + encodeURIComponent(snapshotID), evidenceSnapshotSchema, signal),
+        read(
+            '/tasks/' + encodeURIComponent(task) + '/snapshots/' + encodeURIComponent(snapshotID),
+            evidenceSnapshotSchema,
+            signal,
+        ),
     snapshots: (task: string, before = '', signal?: AbortSignal) =>
         read('/tasks/' + encodeURIComponent(task) + '/snapshots', evidenceSnapshotPageSchema, signal, {
             before,
@@ -217,6 +248,14 @@ export const executionApi = {
     list: async (signal?: AbortSignal) => {
         const result = unwrapApiResponse(await api.get<unknown>('/execution-runs', { signal, timeout: 130_000 }));
         const parsed = unifiedRunsSchema.safeParse(result);
+        if (!parsed.success) throw new Error('Artex.Response');
+        return parsed.data;
+    },
+    report: async (runID: string) => {
+        const result = unwrapApiResponse(
+            await api.get<unknown>('/execution-runs/' + encodeURIComponent(runID) + '/report', { timeout: 130_000 }),
+        );
+        const parsed = unifiedReportSchema.safeParse(result);
         if (!parsed.success) throw new Error('Artex.Response');
         return parsed.data;
     },

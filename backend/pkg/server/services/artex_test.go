@@ -1,6 +1,7 @@
 package services
 
 import (
+	"database/sql"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -8,8 +9,10 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"pentagi/pkg/database"
 	"pentagi/pkg/integrations/artex"
 )
 
@@ -132,5 +135,49 @@ func TestArtexSubmissionCorrelationIsBoundedAndReversible(t *testing.T) {
 	}
 	if !strings.Contains(long, marker) {
 		t.Fatal("marker missing")
+	}
+}
+
+func TestUnifiedDetailPathKeepsEngineAndRemoteTaskIdentity(t *testing.T) {
+	if got := unifiedDetailPath("pentagi", "42"); got != "/flows/42" {
+		t.Fatalf("native detail path = %q", got)
+	}
+	if got := unifiedDetailPath("artex", "17"); got != "/artex?task=17" {
+		t.Fatalf("ARTEX detail path = %q", got)
+	}
+	if got := unifiedDetailPath("artex", ""); got != "/execution-center" {
+		t.Fatalf("unresolved detail path = %q", got)
+	}
+}
+
+func TestBuildNativeUnifiedReportKeepsLatestReportAndSourceReferences(t *testing.T) {
+	first := time.Date(2026, 10, 12, 10, 0, 0, 0, time.UTC)
+	second := first.Add(time.Minute)
+	flow := database.Flow{
+		ID:        42,
+		Status:    database.FlowStatusFinished,
+		Title:     "Local target review",
+		Model:     "model-a",
+		CreatedAt: sql.NullTime{Time: first, Valid: true},
+		UpdatedAt: sql.NullTime{Time: second, Valid: true},
+	}
+	logs := []database.Msglog{
+		{ID: 10, Type: database.MsglogTypeTerminal, CreatedAt: sql.NullTime{Time: first, Valid: true}},
+		{ID: 11, Type: database.MsglogTypeReport, Message: "first", ResultFormat: database.MsglogResultFormatMarkdown, CreatedAt: sql.NullTime{Time: first, Valid: true}},
+		{ID: 12, Type: database.MsglogTypeReport, Result: "latest", ResultFormat: database.MsglogResultFormatMarkdown, CreatedAt: sql.NullTime{Time: second, Valid: true}},
+	}
+
+	report := buildNativeUnifiedReport(flow, logs)
+	if report.ID != "pentagi:42" || report.Engine != "pentagi" || report.Status != "completed" {
+		t.Fatalf("unexpected report identity: %+v", report)
+	}
+	if report.Report != "latest" || report.ReportFormat != "markdown" || !report.GeneratedAt.Equal(second) {
+		t.Fatalf("latest report was not selected: %+v", report)
+	}
+	if len(report.Artifacts) != 3 || report.Artifacts[0].ID != "10" || report.Artifacts[0].Kind != "terminal" {
+		t.Fatalf("source references were not preserved: %+v", report.Artifacts)
+	}
+	if len(report.Artifacts[2].Content) == 0 || !strings.Contains(string(report.Artifacts[2].Content), "latest") {
+		t.Fatalf("report content was not attached to its source artifact: %s", report.Artifacts[2].Content)
 	}
 }

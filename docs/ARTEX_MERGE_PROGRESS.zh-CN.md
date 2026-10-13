@@ -1,6 +1,6 @@
 # PentAGI × ARTEX 实施进度
 
-更新日期：2026-09-25。对应已确认方案：[合并规划](ARTEX_MERGE_PLAN.zh-CN.md)。
+更新日期：2026-10-13。对应已确认方案：[合并规划](ARTEX_MERGE_PLAN.zh-CN.md)。
 
 ## 当前状态
 
@@ -8,12 +8,12 @@
 | --- | --- | --- |
 | P0 实施基线 | 完成初始记录 | 52 个已有文件的路径与 SHA-256；28 项原有修改、12 项混合文件、12 项 ARTEX 原型。检查确认本轮验证前这些文件均未改动 |
 | P1 真实接口验证 | ARTEX 协议与持久性检查通过 | 真实 ARTEX + PostgreSQL 16：基线 20/20、容器重建 12/12。模型使用本地协议 fixture，不能等同于真实模型或完整产品端到端验收 |
-| P2 模型配置共享 | 核心实现与真实联调通过 | PentAGI 提供商归属、配置版本、受管理 profile、远端 ID、显式密钥轮换已实现；真实 ARTEX/PostgreSQL 联调通过，下一步把配置绑定接入统一任务和复测视图 |
-| P3 统一任务中心 | 首版入口与幂等已接入 | 统一任务中心可选择 PentAGI/ARTEX 创建任务；`engine_runs` 支持提交前持久化、未知状态核对、状态规范化和 `Idempotency-Key` 去重。隔离 ARTEX 重建验收已通过，真实 PentAGI 联合环境仍待验收 |
-| P4 统一资产／证据／报告 | 首版证据归档已接入 | 资产/发现/活动读取会按实际任务归档列表快照；任务详情已可查看证据历史、版本和内容指纹。统一报告编排和跨引擎资产身份仍待完成 |
-| P5 联合发行验收 | 隔离 ARTEX 恢复通过，联合发行待验收 | 联合启动、备份、JWT 签名材料保存和回滚步骤已文档化；隔离库 dump 恢复到临时库并清理通过，真实模型连接和 PentAGI+ARTEX 同 Compose 验收仍待执行 |
+| P2 模型配置共享 | 首版完成并通过真实联调 | PentAGI 提供商归属、配置版本、受管理 profile、远端 ID、显式密钥轮换已实现；联合 QA 中同一提供商生成 ARTEX profile 并被任务实际使用 |
+| P3 统一任务中心 | 首版完成并通过双引擎联调 | 统一入口可创建 PentAGI/ARTEX 任务；`engine_runs` 支持提交前持久化、未知状态核对、状态规范化和 `Idempotency-Key` 去重；已实测 ARTEX 创建、幂等重放、暂停/恢复与原生 Flow 创建 |
+| P4 统一资产／证据／报告 | 首版完成并通过报告验收 | ARTEX 资产/发现/活动/证据历史和复测沿用来源快照；统一任务列表提供两引擎深链，统一报告接口分别返回 ARTEX 资产/发现/证据和 PentAGI 报告来源 |
+| P5 联合发行验收 | 首版联合 QA、备份恢复和重建完成 | PentAGI + ARTEX 隔离联合运行、迁移、PentAGI 数据库备份恢复、容器重建和 ARTEX 绑定持久性均已验证；部署与回滚说明已具备交付条件 |
 
-目标仍在进行中，不能标记为完成。
+首版目标已完成。外部真实模型的效果和真实目标上的漏洞发现率不在本轮本地靶场验收范围内，不能由协议 fixture 结果推导。
 
 ## 本轮证据
 
@@ -22,18 +22,19 @@
 - [容器重建结果](merge-baseline/2026-09-24-artex-live-recreate.json)：12 项检查通过，包含重建前登录令牌继续有效。
 - [2026-10-12 容器重建结果](merge-baseline/2026-10-12-artex-live-recreate.json)：12 项检查通过，包含控制令牌、任务、模型绑定、轮换 Key 和复测历史持久化。
 - [2026-10-12 备份恢复结果](merge-baseline/2026-10-12-artex-backup-restore.json)：PostgreSQL custom dump 恢复到临时库，48 张公共表恢复后清理临时库。
+- [2026-10-13 PentAGI × ARTEX 联合 QA](merge-baseline/2026-10-13-pentagi-artex-joint-qa.json)：迁移、双引擎任务、模型绑定、幂等、暂停/恢复、统一报告、PentAGI 数据库备份恢复和容器重建均通过。
 - [暂停与截止时间观察](merge-baseline/2026-09-24-artex-deadline-observation.json)：保留一次失败及其解释，未用新的成功结果掩盖它。
 - [可复现验证脚本](../scripts/integration/artex/README.md)：启动、探测、重建及停止步骤。
 - 2026-09-25 后端模型共享与运行映射回归：`go test -p 2 ./pkg/integrations/artex ./pkg/server/services ./pkg/server -run 'Test(ModelSharing|ArtexModelSource|Client|Artex|Router)' -count=1` 通过。
 - 2026-09-25 前端模型共享回归：`artex-workbench.test.tsx` 9/9、TypeScript 检查和 Vite production build 通过。
 - 2026-09-25 统一任务中心前端：路由完整性与 ARTEX 工作台共 15 项测试通过，TypeScript 和 Vite production build 通过。
-- 2026-09-25 真实模型共享联调：隔离容器内 `TestSQLModelSharingLive` 的模型绑定、轮换、越权和实际模型请求检查通过；本地运行映射的 SQL 存储已编译并由定向测试覆盖，完整断网/重启联调仍待 P3 验收。
+- 2026-09-25 真实模型共享联调（阶段性记录）：隔离容器内 `TestSQLModelSharingLive` 的模型绑定、轮换、越权和实际模型请求检查通过；后续联合 QA 已在 2026-10-13 收口双引擎任务、报告和重建验收。
 
 验证环境固定到 ARTEX `bf7f414477832b77d2152539c0723dc691086522`，源码检出后保持干净；以 Go 1.26.5 构建 Linux/amd64 后端。OCI 基础镜像和数据库镜像在验证 Compose 中按 digest 固定。
 
-环境在 `F:/CTF/PentAGI/.integration-lab`。测试凭据仅保存在该目录下受限的运行时目录中，不进入 Git；数据库及工作空间使用独立 Docker 卷。ARTEX 只连接 internal 网络，没有挂载宿主机工作目录或 Docker socket。一个固定目标的测试控制代理负责发布宿主机回环端口。
+环境在 `F:/CTF/PentAGI/.integration-lab`。测试凭据仅保存在该目录下受限的运行时目录中，不进入 Git；数据库及工作空间使用独立 Docker 卷。ARTEX 只连接 internal 网络，没有挂载宿主机工作目录或 Docker socket。PentAGI QA 容器通过合同实验室的固定网络别名访问本地模型 fixture，控制代理只发布宿主机回环端口。
 
-正常运行的 `pentagi`、`pgvector` 和其他已有容器未被重启或修改。测试任务在探测结束后暂停，环境保留供下一阶段使用。
+本轮 QA 使用独立的 PentAGI 数据卷、网络和端口，并重建了本地 `pentagi` 容器以验证新镜像；不涉及其他项目容器。测试任务结束后处于终态，环境保留供复核。
 
 ## 已验证的接口行为
 
@@ -66,16 +67,26 @@ ARTEX 更新 profile 会使其引用任务在后续调用中使用更新值。�
 
 该 ARTEX 源码版本将 `jwt.key` 放在可执行文件同级，而非可浏览的工作空间。只持久化 `data` 卷不足以保证容器重建后登录令牌继续有效。
 
-验证环境已使用单独的只读签名文件挂载，并验证旧令牌在容器重建后仍有效。正常联合部署样例目前还需要在 P5 补齐同等处理，并纳入备份恢复说明；不能仅凭数据卷存在就宣称认证材料已备份。
+验证环境已使用单独的只读签名文件挂载，并验证旧令牌在容器重建后仍有效。正式联合部署仍必须按[联合部署说明](ARTEX_JOINT_DEPLOYMENT.zh-CN.md)单独保存 ARTEX 签名材料、数据卷和数据库备份；不能仅凭数据卷存在就宣称认证材料已备份。
 
-## 下一轮从这里继续
+## 首版联合验收记录（2026-10-13）
 
-1. 为 `engine_runs` 增加 ARTEX 状态轮询/断点同步，并在远端任务 ID 已知时拒绝重复创建。
-2. 把原生 PentAGI Flow 与 ARTEX run 映射到同一任务列表，显式显示引擎、原始状态和统一状态。
-3. 将资产、发现、证据、复测和报告关联到本地 run ID，保留来源与版本，不覆盖原始证据。
-4. 沿用当前真实 ARTEX 验证环境完成断网、重启、暂停/恢复和真实模型连接验收；P4/P5 仍未完成。
+- 运行镜像 `pentagi-merge-local:20261013` 已构建并启动；`/api/v1/info` 返回 200，容器重建后仍保持运行。
+- Goose 迁移版本已统一为连续 14 位版本号，最新 `20260925140000` 成功应用；此前按日期前缀造成的重复版本已消除。
+- PentAGI 的 `default:openai` 提供商目录显示兼容；同一配置同步出 ARTEX 受管理 profile `remoteProfileId=12`，ARTEX 任务使用该 profile 实际向本地协议 fixture 发出 `gpt-5.4-nano` 请求。
+- 原生 PentAGI Flow 也使用同一模型端点发出真实请求；统一任务列表同时包含 `artex:...` 和 `pentagi:1`，详情分别进入 `/artex?task=13` 与 `/flows/1`。
+- 重复使用同一 `Idempotency-Key` 返回同一个 ARTEX 远端任务 ID；ARTEX 暂停和恢复均返回对应状态；两引擎统一报告接口均返回 200 并带来源 artifact。
+- PentAGI PostgreSQL custom dump 已恢复到临时库，29 张公共表恢复后清理；随后强制重建 PentAGI 容器，ARTEX 健康状态和 2 个 ready 模型绑定仍可读取。
 
-不自动提交、推送、公开发布或部署到正常运行环境。
+上述模型请求来自隔离协议 fixture，只证明请求路由、模型绑定和任务生命周期，不代表真实模型效果。没有对未知外部目标执行测试。
+
+## 首版之后的边界
+
+1. 如果需要真实模型效果评测，应在用户明确授权的模型账号和本地靶场上固定预算、范围和版本后另行执行。
+2. 如果需要多人强隔离或统一模型网关，应先更新已确认方案；首版仍是单一信任域、配置同步而非统一网关。
+3. 继续跟进上游时，保留迁移版本唯一性检查、ARTEX 签名材料备份和本地报告来源校验。
+
+不自动推送、公开发布或部署生产环境；本地首版提交保留在当前分支供复核。
 
 ## 2026-10-12 上游合并候选验证
 
@@ -85,6 +96,6 @@ ARTEX 更新 profile 会使其引用任务在后续调用中使用更新值。�
 
 2026-10-12 又补齐了远端 ARTEX task 到本地 run 的证据历史入口：`/artex/tasks/:id/snapshots` 和详情接口会先解析受管理映射，再读取脱敏快照；前端任务详情新增“证据历史”页签。未找到本地 run、快照不存在或归档存储不可用都会返回明确状态，不回退为未归档成功。
 
-2026-10-12 又补齐统一任务创建入口和远端创建幂等：统一任务中心的“新建执行任务”会选择引擎；ARTEX 创建请求支持 `Idempotency-Key`，重复请求复用已创建任务，`pending/uncertain` 状态必须先核对。对应迁移为 `20260925_140000_engine_run_idempotency.sql`。
+2026-10-12 又补齐统一任务创建入口和远端创建幂等：统一任务中心的“新建执行任务”会选择引擎；ARTEX 创建请求支持 `Idempotency-Key`，重复请求复用已创建任务，`pending/uncertain` 状态必须先核对。对应迁移为 `20260925140000_engine_run_idempotency.sql`。
 
 2026-10-12 在隔离 ARTEX 环境完成 bootstrap 20/20、容器重建 12/12 和数据库备份恢复演练。模型请求仍使用本地协议 fixture，因此这些结果证明真实 ARTEX 协议和持久性，不等同于真实外部模型效果。

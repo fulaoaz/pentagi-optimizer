@@ -730,7 +730,8 @@ export const en: Dictionary = {
     'integrations.artex.emptyActivity': 'No activity recorded yet.',
     'integrations.artex.emptyEvidenceHistory': 'No archived evidence snapshots are available yet.',
     'integrations.artex.evidenceHistory': 'Evidence history',
-    'integrations.artex.evidenceHistoryHint': 'Archived snapshots preserve the source, version and content hash for traceability.',
+    'integrations.artex.evidenceHistoryHint':
+        'Archived snapshots preserve the source, version and content hash for traceability.',
     'integrations.artex.adminOnly':
         'This connection exposes the whole ARTEX instance. Flow administrator access is required.',
     'integrations.artex.setupHint':
@@ -822,7 +823,8 @@ export const en: Dictionary = {
     'executionCenter.create': 'Create execution',
     'executionCenter.loadError': 'Could not load the execution center',
     'executionCenter.runs': 'Executions',
-    'executionCenter.runsHint': 'The original engine state is retained; reconcile an uncertain submission before continuing.',
+    'executionCenter.runsHint':
+        'The original engine state is retained; reconcile an uncertain submission before continuing.',
     'executionCenter.loading': 'Loading…',
     'executionCenter.empty': 'No executions yet.',
     'executionCenter.untitled': 'Untitled task',
@@ -830,6 +832,8 @@ export const en: Dictionary = {
     'executionCenter.model': 'Model',
     'executionCenter.reconcile': 'Reconcile remote',
     'executionCenter.reconciling': 'Reconciling…',
+    'executionCenter.report': 'Export unified report',
+    'executionCenter.reporting': 'Exporting…',
     'executionCenter.status.queued': 'Queued',
     'executionCenter.status.running': 'Running',
     'executionCenter.status.waiting': 'Waiting',
